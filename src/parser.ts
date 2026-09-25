@@ -70,10 +70,32 @@ export function parseWorkflow(source: string, file: string): Workflow {
     if (
       value['runs-on'] !== undefined &&
       typeof value['runs-on'] !== 'string' &&
-      (!Array.isArray(value['runs-on']) ||
+      !Array.isArray(value['runs-on']) &&
+      !mapping(value['runs-on'])
+    )
+      throw new Error(`Invalid job ${id}: invalid runs-on value`);
+    if (
+      Array.isArray(value['runs-on']) &&
+      (!value['runs-on'].length ||
         value['runs-on'].some((runner) => typeof runner !== 'string'))
     )
-      throw new Error(`Invalid job ${id}: runs-on must be a string or string array`);
+      throw new Error(`Invalid job ${id}: runs-on arrays must contain strings`);
+    if (mapping(value['runs-on'])) {
+      const runner = value['runs-on'];
+      if (
+        Object.keys(runner).some((key) => !['group', 'labels'].includes(key)) ||
+        !Object.keys(runner).length ||
+        (runner.group !== undefined &&
+          (typeof runner.group !== 'string' || !runner.group)) ||
+        (runner.labels !== undefined &&
+          typeof runner.labels !== 'string' &&
+          (!Array.isArray(runner.labels) ||
+            !runner.labels.length ||
+            runner.labels.some((label) => typeof label !== 'string'))) ||
+        (typeof runner.labels === 'string' && !runner.labels)
+      )
+        throw new Error(`Invalid job ${id}: runs-on mapping requires group or labels`);
+    }
     validateScalarMap(value.env, `${id} env`);
     validateMap(value.outputs, `${id} outputs`);
     if (

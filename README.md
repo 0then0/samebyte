@@ -13,7 +13,7 @@ npm build → npm test
 ```console
 $ samebyte tests/fixtures/rebuild.yml
 SB001 HIGH [mismatch]
-Production artifact was never tested. The production OCI image was created after source tests; no recognized image test consumes it.
+Production artifact was never tested. Source tests ran, but no recognized OCI test consumes the deployed digest.
 ```
 
 Build the image once, publish its digest, and pass that digest to every consumer:

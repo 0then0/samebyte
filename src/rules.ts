@@ -66,18 +66,32 @@ export function analyzeRules(
         (op) => op.kind === kind && precedes(op, deploy, workflow),
       );
       const guaranteed = (op: Operation): boolean => {
+        const hasStatusCheck = (condition: unknown) =>
+          /\b(?:success|failure|cancelled|always)\s*\(/i.test(String(condition));
+        const operationJob = workflow.jobs[op.location.job];
+        const operationStep = operationJob.steps[op.location.step];
+        const deploymentJob = workflow.jobs[deploy.location.job];
+        const deploymentStep = deploymentJob.steps[deploy.location.step];
+        if (hasStatusCheck(deploymentStep?.if)) return false;
+        const onlyDefaultJobCondition =
+          operationJob.if !== undefined &&
+          operationJob.strategy === undefined &&
+          !operationJob['continue-on-error'] &&
+          operationStep?.if === undefined &&
+          !operationStep?.['continue-on-error'] &&
+          !hasStatusCheck(operationJob.if);
         const visit = (id: string): boolean => {
-          if (id === op.location.job) return true;
           const job = workflow.jobs[id];
+          if (id === op.location.job) return !op.guarded || onlyDefaultJobCondition;
           if (
-            job.if !== undefined ||
             job.strategy !== undefined ||
-            job['continue-on-error']
+            job['continue-on-error'] ||
+            hasStatusCheck(job.if)
           )
             return false;
           return job.needs.some(visit);
         };
-        return !op.guarded && visit(deploy.location.job);
+        return visit(deploy.location.job);
       };
       const same = candidates.find(
         (op) =>
@@ -86,7 +100,7 @@ export function analyzeRules(
           deploy.identity.kind === 'immutable' &&
           op.identity.key === deploy.identity.key,
       );
-      if (same && !deploy.guarded) {
+      if (same) {
         checks[kind] = 'proven';
         continue;
       }
@@ -101,7 +115,7 @@ export function analyzeRules(
           op.identity.repository === deploy.identity.repository &&
           op.identity.key !== deploy.identity.key,
       );
-      if (different.length && !deploy.guarded) {
+      if (different.length) {
         checks[kind] = 'mismatch';
         add(
           { test: 'SB002', scan: 'SB003', attest: 'SB004' }[kind],
@@ -133,7 +147,7 @@ export function analyzeRules(
         build.producedReference === deploy.identity.reference &&
         sourceCheckedBefore(build),
     );
-    if (stronglyLinkedBuild && checks.test === 'unknown' && !deploy.guarded) {
+    if (stronglyLinkedBuild && checks.test === 'unknown') {
       checks.test = 'mismatch';
       add(
         'SB001',
@@ -142,7 +156,7 @@ export function analyzeRules(
         [...sourceTests, stronglyLinkedBuild],
       );
     }
-    if (weaklyLinkedBuild && checks.test === 'unknown' && !deploy.guarded)
+    if (weaklyLinkedBuild && checks.test === 'unknown')
       add(
         'SB001',
         'A candidate production image was built after source tests, but a mutable tag cannot prove which bytes were deployed.',

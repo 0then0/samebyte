@@ -392,18 +392,24 @@ test('invalid nested inputs and job output values are rejected', () => {
     assert.throws(() => analyze(source));
 });
 
-test('normal jobs require a valid runner, reusable workflow jobs do not', () => {
+test('normal jobs accept valid runner forms and require a runner', () => {
   assert.throws(
     () => parseWorkflow('jobs: {release: {steps: [{run: echo ok}]}}', 'fixture.yml'),
     /runs-on is required/,
   );
+  assert.doesNotThrow(() =>
+    parseWorkflow(
+      'jobs: {release: {runs-on: {group: ubuntu-runners, labels: [linux, x64]}, steps: [{run: echo ok}]}}',
+      'fixture.yml',
+    ),
+  );
   assert.throws(
     () =>
       parseWorkflow(
-        'jobs: {release: {runs-on: {group: ubuntu}, steps: [{run: echo ok}]}}',
+        'jobs: {release: {runs-on: {pool: ubuntu}, steps: [{run: echo ok}]}}',
         'fixture.yml',
       ),
-    /runs-on must be a string or string array/,
+    /runs-on mapping requires group or labels/,
   );
   assert.throws(
     () => parseWorkflow('jobs: {release: {uses: null}}', 'fixture.yml'),
@@ -414,5 +420,64 @@ test('normal jobs require a valid runner, reusable workflow jobs do not', () => 
       'jobs: {release: {uses: acme/repo/.github/workflows/reuse.yml@main}}',
       'fixture.yml',
     ),
+  );
+});
+
+test('a conditional required test job proves the deployed digest only when its dependency gates deploy', () => {
+  const conditionalTest = [
+    'jobs:',
+    '  source:',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    '      - run: npm test',
+    '  build:',
+    '    needs: source',
+    '    runs-on: ubuntu-latest',
+    '    outputs:',
+    '      digest: ${{ steps.image.outputs.digest }}',
+    '    steps:',
+    '      - id: image',
+    '        uses: docker/build-push-action@v6',
+    '  test:',
+    '    needs: build',
+    '    runs-on: ubuntu-latest',
+    "    if: github.ref == 'refs/heads/main'",
+    '    steps:',
+    '      - run: docker run ghcr.io/acme/api@${{ needs.build.outputs.digest }}',
+    '  deploy:',
+    '    needs: [build, test]',
+    '    runs-on: ubuntu-latest',
+    '    steps:',
+    '      - run: kubectl set image deployment/api api=ghcr.io/acme/api@${{ needs.build.outputs.digest }}',
+  ].join('\n');
+  const gated = analyze(conditionalTest);
+  assert.equal(gated.deployments[0].checks.test, 'proven');
+  assert.equal(
+    gated.findings.some((item) => item.ruleId === 'SB001'),
+    false,
+  );
+
+  const bypass = analyze(
+    conditionalTest.replace(
+      '    needs: [build, test]\n    runs-on: ubuntu-latest\n    steps:',
+      '    needs: [build, test]\n    runs-on: ubuntu-latest\n    if: always()\n    steps:',
+    ),
+  );
+  assert.notEqual(bypass.deployments[0].checks.test, 'proven');
+  assert.equal(
+    bypass.findings.some((item) => item.ruleId === 'SB001'),
+    true,
+  );
+
+  const stepAlways = analyze(
+    conditionalTest.replace(
+      '      - run: kubectl set image deployment/api api=ghcr.io/acme/api@${{ needs.build.outputs.digest }}',
+      '      - run: kubectl set image deployment/api api=ghcr.io/acme/api@${{ needs.build.outputs.digest }}\n        if: always()',
+    ),
+  );
+  assert.notEqual(stepAlways.deployments[0].checks.test, 'proven');
+  assert.equal(
+    stepAlways.findings.some((item) => item.ruleId === 'SB001'),
+    true,
   );
 });
