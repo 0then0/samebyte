@@ -230,53 +230,18 @@ export function analyzeRules(
         build.producedReference === deploy.identity.reference &&
         sourceCheckedBefore(build),
     );
-    const deployJob = workflow.jobs[deploy.location.job];
-    const deployStep = deployJob.steps[deploy.location.step];
-    const possibleTestOfDeployed = operations.some((op) => {
-      const intermediateBypasses = Object.entries(workflow.jobs).some(
-        ([jobId, job]) =>
-          jobId !== op.location.job &&
-          jobId !== deploy.location.job &&
-          bypassesSuccess(job.if) &&
-          jobDependsOn(op.location.job, jobId, workflow) &&
-          jobDependsOn(jobId, deploy.location.job, workflow),
-      );
-      if (
-        op.kind !== 'test' ||
-        !precedes(op, deploy, workflow) ||
-        deploy.identity.kind !== 'immutable' ||
-        !(
-          op.identity.kind === 'unknown' ||
-          (op.identity.kind === 'immutable' &&
-            op.identity.key === deploy.identity.key) ||
-          (op.identity.kind === 'mutable' &&
-            op.identity.repository === deploy.identity.repository)
-        ) ||
-        bypassesSuccess(deployJob.if) ||
-        bypassesSuccess(deployStep?.if) ||
-        intermediateBypasses
-      )
-        return false;
-      return (
-        !op.guarded ||
-        op.guardedByJobCondition === true ||
-        op.label === 'unsupported shell command'
-      );
-    });
-    const conditionalTestOfDeployed = operations.some(
+    const possibleTestOfDeployed = operations.some(
       (op) =>
         op.kind === 'test' &&
         precedes(op, deploy, workflow) &&
         deploy.identity.kind === 'immutable' &&
-        op.identity.kind === 'immutable' &&
-        op.identity.key === deploy.identity.key,
+        (op.identity.kind === 'unknown' ||
+          (op.identity.kind === 'immutable' &&
+            op.identity.key === deploy.identity.key) ||
+          (op.identity.kind === 'mutable' &&
+            op.identity.repository === deploy.identity.repository)),
     );
-    if (
-      stronglyLinkedBuild &&
-      checks.test === 'unknown' &&
-      !possibleTestOfDeployed &&
-      !conditionalTestOfDeployed
-    ) {
+    if (stronglyLinkedBuild && checks.test === 'unknown' && !possibleTestOfDeployed) {
       checks.test = 'mismatch';
       add(
         'SB001',

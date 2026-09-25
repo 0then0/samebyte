@@ -688,8 +688,8 @@ test('new TRIVY_INPUT written to GITHUB_ENV cannot prove later action scans', ()
 });
 test('unresolved OCI tests remain unknown instead of producing SB001', () => {
   const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
-  const workflow = (testCommand: string) =>
-    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n      - id: image\n        uses: docker/build-push-action@v6\n        with:\n          push: true\n      - run: ${JSON.stringify(testCommand)}\n      - run: kubectl set image deployment/api api=${digest}`;
+  const workflow = (testCommand: string, deploymentCondition = '') =>
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n      - id: image\n        uses: docker/build-push-action@v6\n        with:\n          push: true\n      - run: ${JSON.stringify(testCommand)}\n      - run: kubectl set image deployment/api api=${digest}\n${deploymentCondition ? `        if: ${deploymentCondition}\n` : ''}`;
 
   for (const command of [
     `docker run --cap-add NET_ADMIN ${digest} npm test`,
@@ -697,14 +697,16 @@ test('unresolved OCI tests remain unknown instead of producing SB001', () => {
     `docker run ${digest} npm test && echo passed`,
     `docker compose run integration-test`,
   ]) {
-    const report = analyze(workflow(command));
-    assert.equal(report.deployments[0].checks.test, 'unknown', command);
-    assert.notEqual(report.deployments[0].state, 'mismatch', command);
-    assert.equal(
-      report.findings.some((finding) => finding.ruleId === 'SB001'),
-      false,
-      command,
-    );
+    for (const condition of ['', 'always()']) {
+      const report = analyze(workflow(command, condition));
+      assert.equal(report.deployments[0].checks.test, 'unknown', command);
+      assert.notEqual(report.deployments[0].state, 'mismatch', command);
+      assert.equal(
+        report.findings.some((finding) => finding.ruleId === 'SB001'),
+        false,
+        `${command} ${condition}`,
+      );
+    }
   }
 
   const unrelated = analyze(workflow(`docker run postgres@${B} npm test`));
@@ -714,6 +716,17 @@ test('unresolved OCI tests remain unknown instead of producing SB001', () => {
     `jobs:\n  source:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n  build:\n    needs: source\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.image.outputs.digest }}\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n  verify-and-deploy:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: docker run ghcr.io/acme/api@\${{ needs.build.outputs.digest }} npm test\n        background: true\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ needs.build.outputs.digest }}`,
   );
   assert.ok(notAwaited.findings.some((finding) => finding.ruleId === 'SB001'));
+});
+test('disabled or later matching OCI tests do not suppress SB001', () => {
+  const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
+  const workflows = [
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n      - id: image\n        uses: docker/build-push-action@v6\n      - if: false\n        run: docker run --cap-add NET_ADMIN ${digest} npm test\n      - if: always()\n        run: kubectl set image deployment/api api=${digest}`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n      - id: image\n        uses: docker/build-push-action@v6\n      - if: always()\n        run: kubectl set image deployment/api api=${digest}\n      - run: docker run --cap-add NET_ADMIN ${digest} npm test`,
+  ];
+  for (const source of workflows) {
+    const report = analyze(source);
+    assert.ok(report.findings.some((finding) => finding.ruleId === 'SB001'));
+  }
 });
 test('GitHub expression AST handles bracket notation and case-insensitive contexts', () => {
   const scope = new Map([
