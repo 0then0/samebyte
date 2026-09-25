@@ -288,6 +288,11 @@ export function analyzeWorkflow(
             Object.fromEntries(
               Object.entries(inputs).map(([key, value]) => [key, value.text]),
             ),
+            Object.fromEntries(
+              [...stepScope]
+                .filter(([key]) => key.startsWith('shell.'))
+                .map(([key, value]) => [key.slice(6), value.text]),
+            ),
           )) {
             const usedInputs = consumer.usedInputs ?? [];
             record(
@@ -392,7 +397,14 @@ export function analyzeWorkflow(
               undefined,
               build.tag ? { ...resolved, text: build.tag } : undefined,
             );
-          for (const consumer of shellConsumption(tokens))
+          for (const consumer of shellConsumption(
+            tokens,
+            Object.fromEntries(
+              [...stepScope]
+                .filter(([key]) => key.startsWith('shell.'))
+                .map(([key, value]) => [key.slice(6), value.text]),
+            ),
+          ))
             record(
               consumer.kind,
               consumer.reference

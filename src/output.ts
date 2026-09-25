@@ -27,14 +27,10 @@ export function textReport(report: Report, explain = false): string {
     if (explain && operation) {
       for (const kind of ['test', 'scan', 'attest'] as const) {
         if (deployment.checks[kind] !== 'unknown') continue;
-        for (const uncertain of report.operations.filter(
-          (op) =>
-            op.kind === kind &&
-            op.runtimeIdentityUnknown !== undefined &&
-            op.identity.key === operation.identity.key,
-        ))
+        const reason = deployment.checkReasons?.[kind];
+        if (reason)
           lines.push(
-            `  ${kind} identity unknown (${uncertain.location.file}:${uncertain.location.line}): ${uncertain.runtimeIdentityUnknown}`,
+            `  ${kind} identity unknown (${reason.file}:${reason.line}): ${reason.reason}`,
           );
       }
     }

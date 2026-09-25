@@ -87,11 +87,12 @@ test('arbitrary scripts are not inferred from names', () => {
   assert.match(textReport(report), /not verified/);
 });
 test('test after deploy cannot prove a check', () => {
-  assert.equal(
-    simple(`kubectl set image deployment/api api=${image(A)}`, `docker run ${image(A)}`)
-      .deployments[0].checks.test,
-    'unknown',
+  const report = simple(
+    `kubectl set image deployment/api api=${image(A)}`,
+    `docker run ${image(A)}`,
   );
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+  assert.doesNotMatch(textReport(report, true), /test identity unknown/);
 });
 test('conditional, matrix and ignored failures do not prove tests', () => {
   for (const guard of [
@@ -178,12 +179,24 @@ test('ignored and cancelled background tests in conditional jobs stay unknown', 
   }
   assert.equal(analyze(workflow('wait: test')).deployments[0].checks.test, 'proven');
 });
-test('an explicit success condition on a background wait preserves the result', () => {
-  const digest = 'ghcr.io/acme/api@${{ needs.build.outputs.digest }}';
-  const report = analyze(
-    `jobs:\n  build:\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.image.outputs.digest }}\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n  verify:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: docker run ${digest}\n        background: true\n      - wait: test\n        if: success()\n  deploy:\n    needs: [build, verify]\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=${digest}`,
-  );
-  assert.equal(report.deployments[0].checks.test, 'proven');
+test('GitHub control steps reject unsupported conditions and argument shapes', () => {
+  for (const control of [
+    'wait: test\n        if: success()',
+    'wait-all: true',
+    'wait-all:\n        if: success()',
+    'cancel: [test, other]',
+    'cancel: test\n        if: success()',
+  ]) {
+    assert.throws(
+      () =>
+        parseWorkflow(
+          `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: docker run ${image(A)}\n        background: true\n      - ${control}`,
+          'invalid-control.yml',
+        ),
+      /Invalid (conditional control step|wait-all value|cancel target)/,
+      control,
+    );
+  }
 });
 test('background operations finish before dependent jobs start', () => {
   const digest = 'ghcr.io/acme/api@${{ needs.test.outputs.digest }}';
@@ -328,6 +341,51 @@ test('Trivy archive input resolved from an expression also remains unknown', () 
     `jobs:\n  release:\n    runs-on: ubuntu-latest\n    env:\n      ARCHIVE: ./unrelated-image.tar\n    steps:\n      - uses: aquasecurity/trivy-action@v0\n        with:\n          image-ref: ${digest}\n          input: \${{ env.ARCHIVE }}\n      - run: kubectl set image deployment/api api=${digest}`,
   );
   assert.equal(report.deployments[0].checks.scan, 'unknown');
+});
+test('Trivy environment archive inputs never prove the deployed image was scanned', () => {
+  const digest = image(A);
+  const scopes = [
+    {
+      prefix: 'env:\n  TRIVY_INPUT: ./unrelated-image.tar\n',
+      job: '',
+      step: '',
+    },
+    {
+      prefix: '',
+      job: '    env:\n      TRIVY_INPUT: ./unrelated-image.tar\n',
+      step: '',
+    },
+    {
+      prefix: '',
+      job: '',
+      step: '        env:\n          TRIVY_INPUT: ./unrelated-image.tar\n',
+    },
+  ];
+  for (const scope of scopes) {
+    const action = analyze(
+      `${scope.prefix}jobs:\n  release:\n    runs-on: ubuntu-latest\n${scope.job}    steps:\n      - run: docker run ${digest}\n      - uses: aquasecurity/trivy-action@v0\n${scope.step}        with:\n          image-ref: ${digest}\n      - run: kubectl set image deployment/api api=${digest}`,
+    );
+    assert.equal(action.deployments[0].checks.scan, 'unknown');
+    assert.equal(action.deployments[0].state, 'unknown');
+
+    const shell = analyze(
+      `${scope.prefix}jobs:\n  release:\n    runs-on: ubuntu-latest\n${scope.job}    steps:\n      - run: docker run ${digest}\n      - run: trivy image ${digest}\n${scope.step}      - run: kubectl set image deployment/api api=${digest}`,
+    );
+    assert.equal(shell.deployments[0].checks.scan, 'unknown');
+    assert.equal(shell.deployments[0].state, 'unknown');
+  }
+});
+test('Trivy environment variable names preserve case', () => {
+  const digest = image(A);
+  for (const command of [
+    `      - uses: aquasecurity/trivy-action@v0\n        env:\n          trivy_input: ./unrelated-image.tar\n        with:\n          image-ref: ${digest}\n`,
+    `      - run: trivy image ${digest}\n        env:\n          trivy_input: ./unrelated-image.tar\n`,
+  ]) {
+    const report = analyze(
+      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ${digest}\n${command}      - run: kubectl set image deployment/api api=${digest}`,
+    );
+    assert.equal(report.deployments[0].checks.scan, 'proven');
+  }
 });
 test('GitHub expression AST handles bracket notation and case-insensitive contexts', () => {
   const scope = new Map([

@@ -9,10 +9,11 @@ export interface Consumption {
 export function actionConsumption(
   uses: string,
   inputs: Record<string, string>,
+  env: Record<string, string> = {},
 ): Consumption[] {
   const action = uses.split('@')[0].toLowerCase();
   if (action === 'aquasecurity/trivy-action') {
-    const archiveInput = inputs.input?.trim();
+    const archiveInput = inputs.input?.trim() || env.TRIVY_INPUT?.trim();
     return [
       {
         kind: 'scan',
@@ -47,7 +48,10 @@ export function actionConsumption(
   // Unknown deployment actions need explicit annotations instead of guesses.
   return [];
 }
-export function shellConsumption(tokens: string[]): Consumption[] {
+export function shellConsumption(
+  tokens: string[],
+  env: Record<string, string> = {},
+): Consumption[] {
   if (
     ['kubectl', 'helm'].includes(tokens[0]) &&
     tokens.some(
@@ -80,20 +84,22 @@ export function shellConsumption(tokens: string[]): Consumption[] {
     return [
       {
         kind: 'scan',
-        reference: simpleOperand(
-          tokens.slice(2),
-          [
-            '--severity',
-            '--format',
-            '-f',
-            '--output',
-            '-o',
-            '--exit-code',
-            '--scanners',
-            '--ignorefile',
-          ],
-          ['--quiet', '-q', '--no-progress', '--ignore-unfixed'],
-        ),
+        reference: env.TRIVY_INPUT?.trim()
+          ? undefined
+          : simpleOperand(
+              tokens.slice(2),
+              [
+                '--severity',
+                '--format',
+                '-f',
+                '--output',
+                '-o',
+                '--exit-code',
+                '--scanners',
+                '--ignorefile',
+              ],
+              ['--quiet', '-q', '--no-progress', '--ignore-unfixed'],
+            ),
       },
     ];
   if (tokens[0] === 'grype')

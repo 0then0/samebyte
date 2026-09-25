@@ -57,6 +57,9 @@ export interface Deployment {
   operation: string;
   state: State;
   checks: Record<'test' | 'scan' | 'attest', State>;
+  checkReasons?: Partial<
+    Record<'test' | 'scan' | 'attest', { file: string; line: number; reason: string }>
+  >;
 }
 export interface Report {
   version: 1;

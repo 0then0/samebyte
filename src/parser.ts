@@ -146,15 +146,16 @@ export function parseWorkflow(source: string, file: string): Workflow {
         (controlKeys.length && step.background === true)
       )
         throw new Error(`Invalid control step in ${id}[${index}]`);
+      if (controlKeys.length && step.if !== undefined)
+        throw new Error(`Invalid conditional control step in ${id}[${index}]`);
       if (step.background !== undefined && typeof step.background !== 'boolean')
         throw new Error(`Invalid background value in ${id}[${index}]`);
-      if (
-        step['wait-all'] !== undefined &&
-        step['wait-all'] !== true &&
-        step['wait-all'] !== false &&
-        step['wait-all'] !== null
-      )
+      if (step['wait-all'] !== undefined && step['wait-all'] !== null)
         throw new Error(`Invalid wait-all value in ${id}[${index}]`);
+      if (Array.isArray(step.cancel))
+        throw new Error(
+          `Invalid cancel target in ${id}[${index}]: expected one step id`,
+        );
       for (const key of ['wait', 'cancel']) {
         const target = step[key];
         if (

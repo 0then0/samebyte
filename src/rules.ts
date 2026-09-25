@@ -51,6 +51,7 @@ export function analyzeRules(
       scan: 'unknown',
       attest: 'unknown',
     };
+    const checkReasons: NonNullable<Deployment['checkReasons']> = {};
     const add = (
       ruleId: string,
       message: string,
@@ -129,6 +130,12 @@ export function analyzeRules(
         // runtime manifest. Keep that result unknown and do not compare other
         // test digests as though the deployed digest had never been tested.
         if (same.runtimeIdentityUnknown === undefined) checks[kind] = 'proven';
+        else
+          checkReasons[kind] = {
+            file: same.location.file,
+            line: same.location.line,
+            reason: same.runtimeIdentityUnknown,
+          };
         continue;
       }
       // Compare only concrete digests of the same named repository. Independent
@@ -222,7 +229,12 @@ export function analyzeRules(
       : Object.values(checks).every((value) => value === 'proven')
         ? 'proven'
         : 'unknown';
-    deployments.push({ operation: deploy.id, state, checks });
+    deployments.push({
+      operation: deploy.id,
+      state,
+      checks,
+      ...(Object.keys(checkReasons).length ? { checkReasons } : {}),
+    });
   }
   return { findings, deployments };
 }
