@@ -908,6 +908,35 @@ test('dry-run deployments and kubectl selector values are not production images'
   assert.equal(report.deployments.length, 1);
   assert.equal(report.findings.length, 0);
 });
+test('kubectl dry-run none remains a deployment while non-mutating modes are ignored', () => {
+  const imageRef = 'ghcr.io/acme/api:release';
+  for (const dryRun of ['--dry-run=none', '--dry-run none']) {
+    const report = simple(`kubectl set image deployment/api api=${imageRef} ${dryRun}`);
+    assert.equal(report.deployments.length, 1, dryRun);
+    assert.ok(
+      report.findings.some((finding) => finding.ruleId === 'SB005'),
+      dryRun,
+    );
+  }
+  for (const dryRun of ['--dry-run=client', '--dry-run=server'])
+    assert.equal(
+      simple(`kubectl set image deployment/api api=${imageRef} ${dryRun}`).deployments
+        .length,
+      0,
+      dryRun,
+    );
+  const localFalse = simple(
+    `kubectl set image deployment/api api=${imageRef} --local=false`,
+  );
+  assert.equal(localFalse.deployments.length, 1);
+  assert.ok(localFalse.findings.some((finding) => finding.ruleId === 'SB005'));
+});
+test('unresolved shell variables after a docker image do not erase its identity', () => {
+  const report = analyze(
+    `jobs:\n  build:\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.image.outputs.digest }}\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n        with:\n          push: true\n  test:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ghcr.io/acme/api@\${{ needs.build.outputs.digest }} sh -c 'echo "$UNAVAILABLE"'\n  deploy:\n    needs: [build, test]\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ needs.build.outputs.digest }}`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'proven');
+});
 test('Docker Scout only counts supported scan commands', () => {
   const imageRef = `ghcr.io/acme/api@${A}`;
   const deploy = `kubectl set image deployment/api api=${imageRef}`;

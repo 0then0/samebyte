@@ -52,17 +52,28 @@ export function shellConsumption(
   tokens: string[],
   env: Record<string, string> = {},
 ): Consumption[] {
-  if (
-    ['kubectl', 'helm'].includes(tokens[0]) &&
-    tokens.some(
-      (token) =>
-        token === '--dry-run' ||
-        token.startsWith('--dry-run=') ||
-        token === '--local' ||
-        token === '--local=true',
-    )
-  )
-    return [];
+  const helmDryRun =
+    tokens[0] === 'helm' &&
+    tokens
+      .slice(2)
+      .some((token) => token === '--dry-run' || token.startsWith('--dry-run='));
+  const kubectlDryRun =
+    tokens[0] === 'kubectl' &&
+    tokens.some((token, index) => {
+      if (token === '--dry-run') {
+        const mode = tokens[index + 1];
+        return mode === undefined || mode === 'client' || mode === 'server';
+      }
+      if (token.startsWith('--dry-run=')) {
+        const mode = token.slice('--dry-run='.length);
+        return mode === 'client' || mode === 'server';
+      }
+      return false;
+    });
+  const kubectlLocal =
+    tokens[0] === 'kubectl' &&
+    tokens.some((token) => token === '--local' || token === '--local=true');
+  if (helmDryRun || kubectlDryRun || kubectlLocal) return [];
   if (tokens[0] === 'docker' && tokens[1] === 'run')
     return [
       {
@@ -155,6 +166,10 @@ export function shellConsumption(
         continue;
       }
       if (
+        token === '--dry-run' ||
+        token === '--local' ||
+        token.startsWith('--dry-run=') ||
+        token.startsWith('--local=') ||
         valueFlags.some((flag) => token.startsWith(`${flag}=`)) ||
         ['--record', '--all'].includes(token)
       )

@@ -418,7 +418,20 @@ export function analyzeWorkflow(
                 ? {
                     ...resolved,
                     text: consumer.reference,
-                    unknown: resolved.unknown || consumer.identityUnknown !== undefined,
+                    // An unrelated unresolved variable in a test command must
+                    // not erase an image identity that was parsed separately.
+                    // Unknown symbolic values retain their own text, which lets
+                    // us keep the reference unknown when that value is the image.
+                    unknown:
+                      consumer.identityUnknown !== undefined ||
+                      consumer.reference.includes('__samebyte_unknown__') ||
+                      [...stepScope.values()].some(
+                        (value) =>
+                          value.unknown &&
+                          value.text.length > 0 &&
+                          (consumer.reference?.includes(value.text) ||
+                            consumer.reference === value.text.split(/\s/, 1)[0]),
+                      ),
                     trace: consumer.identityUnknown
                       ? [...resolved.trace, consumer.identityUnknown]
                       : resolved.trace,
