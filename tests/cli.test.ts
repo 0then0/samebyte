@@ -47,6 +47,47 @@ test('skipped deployments exit successfully and are absent from JSON and graph',
     await rm(dir, { recursive: true, force: true });
   }
 });
+test('shared needs graphs do not trigger repeated exponential traversal', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'samebyte-dag-'));
+  try {
+    const depth = 24;
+    const jobs = ['jobs:'];
+    for (let level = 0; level < depth; level++) {
+      for (const branch of ['a', 'b']) {
+        jobs.push(
+          `  ${branch}${level}:`,
+          '    runs-on: ubuntu-latest',
+          ...(level > 0 ? [`    needs: [a${level - 1}, b${level - 1}]`] : []),
+          '    steps:',
+          '      - run: echo ok',
+        );
+      }
+    }
+    jobs.push(
+      '  deploy:',
+      `    needs: [a${depth - 1}, b${depth - 1}]`,
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - run: kubectl set image deployment/api api=ghcr.io/acme/api:latest',
+    );
+    const file = join(dir, 'dag.yml');
+    await writeFile(file, `${jobs.join('\n')}\n`);
+    const result = spawnSync(
+      process.execPath,
+      ['dist/cli.js', file, '--format', 'json'],
+      { encoding: 'utf8', timeout: 5000 },
+    );
+    assert.equal(
+      result.error,
+      undefined,
+      result.error ? result.error.message : 'CLI spawn error',
+    );
+    assert.equal(result.status, 1, result.stderr);
+    assert.equal(JSON.parse(result.stdout).deployments.length, 1);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 test('invalid and empty workflows produce analysis errors', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'samebyte-test-'));
   try {

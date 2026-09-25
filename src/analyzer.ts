@@ -476,8 +476,9 @@ export function analyzeWorkflow(
       bind(outputs, key, resolveValue(raw, scope));
     jobOutputs.set(jobId, outputs);
   }
+  const reachability = new Map<string, boolean>();
   const reachableOperations = operations.filter(
-    (operation) => !operationIsUnreachable(operation, workflow),
+    (operation) => !operationIsUnreachable(operation, workflow, reachability),
   );
   const artifacts: Artifact[] = [];
   for (const operation of reachableOperations.filter(

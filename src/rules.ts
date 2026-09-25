@@ -20,22 +20,36 @@ const isDisabled = (operation: Operation, workflow: Workflow) => {
 function jobIsSkippedByNeeds(
   jobId: string,
   workflow: Workflow,
+  memo = new Map<string, boolean>(),
   visiting = new Set<string>(),
 ): boolean {
+  const cached = memo.get(jobId);
+  if (cached !== undefined) return cached;
   const job = workflow.jobs[jobId];
-  if (neverRuns(job.if)) return true;
-  if (bypassesSuccess(job.if) || visiting.has(jobId)) return false;
+  if (neverRuns(job.if)) {
+    memo.set(jobId, true);
+    return true;
+  }
+  if (bypassesSuccess(job.if) || visiting.has(jobId)) {
+    if (!visiting.has(jobId)) memo.set(jobId, false);
+    return false;
+  }
   visiting.add(jobId);
   const skipped = job.needs.some((need) =>
-    jobIsSkippedByNeeds(need, workflow, visiting),
+    jobIsSkippedByNeeds(need, workflow, memo, visiting),
   );
   visiting.delete(jobId);
+  memo.set(jobId, skipped);
   return skipped;
 }
 
-export const operationIsUnreachable = (operation: Operation, workflow: Workflow) =>
+export const operationIsUnreachable = (
+  operation: Operation,
+  workflow: Workflow,
+  memo = new Map<string, boolean>(),
+) =>
   isDisabled(operation, workflow) ||
-  jobIsSkippedByNeeds(operation.location.job, workflow);
+  jobIsSkippedByNeeds(operation.location.job, workflow, memo);
 
 function jobDependsOn(from: string, to: string, workflow: Workflow): boolean {
   if (from === to) return true;
@@ -62,6 +76,7 @@ export function analyzeRules(
 ): { findings: Finding[]; deployments: Deployment[] } {
   const findings: Finding[] = [];
   const deployments: Deployment[] = [];
+  const reachability = new Map<string, boolean>();
   const evidence = (ops: Operation[]) =>
     ops.map((op) => ({
       operation: op.id,
@@ -69,7 +84,7 @@ export function analyzeRules(
       path: op.identity.trace,
     }));
   for (const deploy of operations.filter(
-    (op) => op.kind === 'deploy' && !operationIsUnreachable(op, workflow),
+    (op) => op.kind === 'deploy' && !operationIsUnreachable(op, workflow, reachability),
   )) {
     const checks: Deployment['checks'] = {
       test: 'unknown',
