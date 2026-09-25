@@ -13,6 +13,11 @@ const hasStatusCheck = (condition: unknown) =>
   /\b(?:success|failure|cancelled|always)\s*\(/i.test(String(condition));
 const bypassesSuccess = (condition: unknown) =>
   hasStatusCheck(condition) && !explicitSuccess(condition);
+const neverRuns = (condition: unknown) => normalizedCondition(condition) === 'false';
+const isDisabled = (operation: Operation, workflow: Workflow) => {
+  const job = workflow.jobs[operation.location.job];
+  return neverRuns(job.if) || neverRuns(job.steps[operation.location.step]?.if);
+};
 
 function jobDependsOn(from: string, to: string, workflow: Workflow): boolean {
   if (from === to) return true;
@@ -45,7 +50,9 @@ export function analyzeRules(
       reference: op.identity.reference,
       path: op.identity.trace,
     }));
-  for (const deploy of operations.filter((op) => op.kind === 'deploy')) {
+  for (const deploy of operations.filter(
+    (op) => op.kind === 'deploy' && !isDisabled(op, workflow),
+  )) {
     const checks: Deployment['checks'] = {
       test: 'unknown',
       scan: 'unknown',
@@ -141,7 +148,17 @@ export function analyzeRules(
       // A recognized consumer with an unresolved identity may refer to the
       // deployed digest. Do not claim a mismatch while that possibility is
       // still in the lineage; the check remains unknown instead.
-      if (candidates.some((op) => op.identity.kind === 'unknown')) continue;
+      const unresolved = candidates.find(
+        (op) => op.identity.kind === 'unknown' && !isDisabled(op, workflow),
+      );
+      if (unresolved) {
+        checkReasons[kind] = {
+          file: unresolved.location.file,
+          line: unresolved.location.line,
+          reason: `A preceding ${kind} consumer has unresolved artifact identity.`,
+        };
+        continue;
+      }
       // Compare only concrete digests of the same named repository. Independent
       // symbolic build outputs can still represent identical bytes.
       const different = candidates.filter(

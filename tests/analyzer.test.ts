@@ -70,11 +70,68 @@ test('an unresolved preceding consumer keeps a digest mismatch unknown', () => {
   for (const scenario of cases) {
     const report = simple(scenario.known, scenario.unknown, deploy);
     assert.equal(report.deployments[0].checks[scenario.kind], 'unknown', scenario.kind);
+    assert.match(
+      report.deployments[0].checkReasons?.[scenario.kind]?.reason ?? '',
+      /unresolved artifact identity/,
+      scenario.kind,
+    );
     assert.equal(
       report.findings.some((finding) => finding.ruleId === scenario.rule),
       false,
       scenario.kind,
     );
+    assert.match(textReport(report, true), /consumer has unresolved artifact identity/);
+  }
+});
+test('statically disabled consumers do not hide proven digest mismatches', () => {
+  const cases = [
+    {
+      kind: 'test',
+      known: `docker run ${image(A)}`,
+      disabled: `docker run --cap-add NET_ADMIN ${image(B)} test`,
+      rule: 'SB002',
+    },
+    {
+      kind: 'scan',
+      known: `trivy image ${image(A)}`,
+      disabled: `trivy image --input ./image-b.tar ${image(B)}`,
+      rule: 'SB003',
+    },
+    {
+      kind: 'attest',
+      known: `gh attestation verify oci://${image(A)}`,
+      disabled: 'gh attestation verify',
+      rule: 'SB004',
+    },
+  ] as const;
+  const deploy = `kubectl set image deployment/api api=${image(B)}`;
+  for (const scenario of cases) {
+    const report = analyze(
+      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${JSON.stringify(scenario.known)}\n      - if: false\n        run: ${JSON.stringify(scenario.disabled)}\n      - run: ${JSON.stringify(deploy)}`,
+    );
+    assert.equal(
+      report.deployments[0].checks[scenario.kind],
+      'mismatch',
+      scenario.kind,
+    );
+    assert.equal(
+      report.findings.some((finding) => finding.ruleId === scenario.rule),
+      true,
+      scenario.kind,
+    );
+  }
+});
+test('statically disabled deployments do not produce findings', () => {
+  const deployment = 'kubectl set image deployment/api api=ghcr.io/acme/api:latest';
+  const cases = [
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - if: false\n        run: ${JSON.stringify(deployment)}`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    if: false\n    steps:\n      - run: ${JSON.stringify(deployment)}`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - if: '\${{ false }}'\n        run: ${JSON.stringify(deployment)}`,
+  ];
+  for (const workflow of cases) {
+    const report = analyze(workflow);
+    assert.deepEqual(report.deployments, []);
+    assert.deepEqual(report.findings, []);
   }
 });
 test('an unresolved consumer after deployment cannot suppress a known mismatch', () => {
