@@ -4,6 +4,7 @@ export interface Consumption {
   kind: OperationKind;
   reference?: string;
   usedInputs?: string[];
+  identityUnknown?: string;
 }
 export function actionConsumption(
   uses: string,
@@ -57,7 +58,20 @@ export function shellConsumption(tokens: string[]): Consumption[] {
   )
     return [];
   if (tokens[0] === 'docker' && tokens[1] === 'run')
-    return [{ kind: 'test', reference: runImage(tokens) }];
+    return [
+      {
+        kind: 'test',
+        reference: runImage(tokens),
+        identityUnknown: tokens.some(
+          (token, index) =>
+            token === '--platform' ||
+            token.startsWith('--platform=') ||
+            (index > 0 && tokens[index - 1] === '--platform'),
+        )
+          ? 'platform-specific child manifest is not tracked'
+          : undefined,
+      },
+    ];
   if (tokens[0] === 'docker' && tokens[1] === 'compose' && tokens.includes('run'))
     return [{ kind: 'test' }];
   if (tokens[0] === 'trivy' && tokens[1] === 'image')

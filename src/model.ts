@@ -32,6 +32,7 @@ export interface Operation {
   location: Location;
   label: string;
   guarded: boolean;
+  guardedByJobCondition?: boolean;
   order: number;
   completionStep?: number;
   producedReference?: string;

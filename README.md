@@ -89,7 +89,10 @@ The analysis separates workflow parsing, symbolic values, operation adapters, an
 - GitHub expressions are parsed using GitHub's [@actions/expressions](https://github.com/actions/languageservices/tree/main/expressions) AST. Direct property access, bracket notation, string literals, and `github.sha` are supported. Functions, dynamic indexing, and compound expressions remain unknown.
 - Simple `echo "name=value" >> "$GITHUB_OUTPUT"` forwards a value, including resolved expressions and environment variables.
 - Full 64-hex `sha256` digests provide immutable identity. Tags, including `${{ github.sha }}`, are mutable references. A source revision is not an OCI digest.
-- Job dependencies and step/command order matter. A later test, a parallel sibling job, conditional checks, matrix jobs, and ignored failures do not establish unconditional verification.
+- Job dependencies, step order, and completion order matter. A later test, a parallel sibling job, status checks that can bypass success, matrix jobs, and ignored failures do not establish unconditional verification. A plain `if: success()` condition preserves the success gate.
+- `background: true` steps only establish a check after `wait` or `wait-all`. Their outputs remain unknown until then. If waiting ignores failure with `continue-on-error`, the result stays unknown. A dependent job starts after background steps in its prerequisite job finish.
+- `parallel` syntax is accepted, but its nested operations are not analyzed yet. SameByte reports an analysis diagnostic and exits with code `2` instead of claiming lineage is verified.
+- A multi-platform build and `docker run --platform ...` do not prove a specific runtime manifest. SameByte keeps these identities unknown because the selected OCI child manifest can depend on the target platform.
 
 The common supported pipeline is:
 

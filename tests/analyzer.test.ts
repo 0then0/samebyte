@@ -103,6 +103,14 @@ test('explicit success conditions preserve a required test-to-deploy chain', () 
   assert.equal(report.deployments[0].checks.test, 'proven');
   assert.deepEqual(report.findings, []);
 });
+test('conditional job does not hide continue-on-error on its test step', () => {
+  const digest = image(A);
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    if: github.ref == 'refs/heads/main'\n    steps:\n      - run: docker run ${digest}\n        continue-on-error: true\n      - run: trivy image ${digest}\n      - run: gh attestation verify oci://${digest}\n      - run: kubectl set image deployment/api api=${digest}`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+  assert.notEqual(report.deployments[0].state, 'proven');
+});
 test('background operations require a wait before later same-job consumers', () => {
   const command = `docker run ${image(A)}`;
   const deploy = `kubectl set image deployment/api api=${image(A)}`;
@@ -125,6 +133,18 @@ test('background operations require a wait before later same-job consumers', () 
     `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${JSON.stringify(command)}\n        background: true\n      - wait-all:\n      - run: ${JSON.stringify(deploy)}`,
   );
   assert.equal(anonymousBackground.deployments[0].checks.test, 'proven');
+});
+test('ignored background failures do not prove that checks passed', () => {
+  const digest = image(A);
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: docker run ${digest}\n        background: true\n      - wait: test\n        continue-on-error: true\n      - run: trivy image ${digest}\n      - run: gh attestation verify oci://${digest}\n      - run: kubectl set image deployment/api api=${digest}`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+  assert.equal(report.deployments[0].state, 'unknown');
+  assert.equal(
+    report.findings.some((finding) => finding.severity === 'high'),
+    false,
+  );
 });
 test('background operations finish before dependent jobs start', () => {
   const report = analyze(
@@ -168,6 +188,12 @@ test('multi-platform OCI index digest does not prove a tested platform manifest'
     report.findings.some((finding) => finding.severity === 'high'),
     false,
   );
+
+  const platformSelected = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run --platform linux/amd64 ${image(A)}\n      - run: trivy image ${image(A)}\n      - run: gh attestation verify oci://${image(A)}\n      - run: kubectl set image deployment/api api=${image(A)}`,
+  );
+  assert.equal(platformSelected.deployments[0].checks.test, 'unknown');
+  assert.notEqual(platformSelected.deployments[0].state, 'proven');
 });
 test('parallel sibling jobs do not establish verification order', () => {
   const report = analyze(

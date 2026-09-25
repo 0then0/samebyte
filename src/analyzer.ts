@@ -95,9 +95,19 @@ export function analyzeWorkflow(
         unknownValue(value.text, 'Output unavailable before background wait'),
       );
     };
-    const releaseBackgroundOutputs = (stepId: string) => {
+    const releaseBackgroundOutputs = (stepId: string, mayHaveFailed = false) => {
       for (const [key, value] of pendingBackgroundOutputs.get(stepId) ?? [])
-        bind(scope, key, value);
+        bind(
+          scope,
+          key,
+          mayHaveFailed
+            ? {
+                ...value,
+                unknown: true,
+                trace: [...value.trace, 'Background result may have been ignored'],
+              }
+            : value,
+        );
       pendingBackgroundOutputs.delete(stepId);
     };
     for (const need of job.needs)
@@ -110,6 +120,7 @@ export function analyzeWorkflow(
         step['wait-all'] === true ||
         step['wait-all'] === null
       ) {
+        const mayHaveFailed = !!step['continue-on-error'] || step.if !== undefined;
         const targets =
           step['wait-all'] === true || step['wait-all'] === null
             ? [...backgroundOperations.keys()]
@@ -117,9 +128,11 @@ export function analyzeWorkflow(
               ? step.wait
               : [step.wait as string];
         for (const target of targets) {
-          for (const operation of backgroundOperations.get(target) ?? [])
+          for (const operation of backgroundOperations.get(target) ?? []) {
             operation.completionStep = index;
-          releaseBackgroundOutputs(target);
+            operation.guarded ||= mayHaveFailed;
+          }
+          releaseBackgroundOutputs(target, mayHaveFailed);
           backgroundOperations.delete(target);
         }
         continue;
@@ -149,6 +162,15 @@ export function analyzeWorkflow(
         hasParallelBlock ||
         !!job['continue-on-error'] ||
         !!step['continue-on-error'];
+      const guardedByJobCondition =
+        guarded &&
+        job.if !== undefined &&
+        !isExplicitSuccess(job.if) &&
+        step.if === undefined &&
+        job.strategy === undefined &&
+        !job['continue-on-error'] &&
+        !step['continue-on-error'] &&
+        !hasParallelBlock;
       const prefix = `${workflow.file}#${jobId}.${stepId}`;
       const record = (
         kind: OperationKind,
@@ -165,6 +187,7 @@ export function analyzeWorkflow(
           }),
           label,
           order: operations.length,
+          guardedByJobCondition: guardedByJobCondition && !extraGuard,
           completionStep: step.background === true ? job.steps.length : undefined,
           guarded: guarded || extraGuard,
           location: {
@@ -358,7 +381,14 @@ export function analyzeWorkflow(
             record(
               consumer.kind,
               consumer.reference
-                ? { ...resolved, text: consumer.reference }
+                ? {
+                    ...resolved,
+                    text: consumer.reference,
+                    unknown: resolved.unknown || consumer.identityUnknown !== undefined,
+                    trace: consumer.identityUnknown
+                      ? [...resolved.trace, consumer.identityUnknown]
+                      : resolved.trace,
+                  }
                 : consumer.kind === 'source-test'
                   ? unknownValue(
                       'local application build',

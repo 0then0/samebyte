@@ -105,11 +105,7 @@ export function analyzeRules(
             return (
               safeCondition(job.if) &&
               operationStepConditionIsSafe(operationStep?.if) &&
-              (!op.guarded ||
-                (job.if !== undefined &&
-                  operationStep?.if === undefined &&
-                  job.strategy === undefined &&
-                  !job['continue-on-error']))
+              (!op.guarded || op.guardedByJobCondition === true)
             );
           if (
             job.strategy !== undefined ||
