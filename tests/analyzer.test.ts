@@ -3,8 +3,8 @@ import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { analyzeWorkflow, validateConfig } from '../src/analyzer.js';
-import { identity, resolveValue } from '../src/expressions.js';
-import { sarifReport, textReport } from '../src/output.js';
+import { hasStatusCheck, identity, resolveValue } from '../src/expressions.js';
+import { graphReport, sarifReport, textReport } from '../src/output.js';
 import { parseWorkflow } from '../src/parser.js';
 
 const A = `sha256:${'a'.repeat(64)}`;
@@ -132,7 +132,57 @@ test('statically disabled deployments do not produce findings', () => {
     const report = analyze(workflow);
     assert.deepEqual(report.deployments, []);
     assert.deepEqual(report.findings, []);
+    assert.deepEqual(report.operations, []);
+    assert.deepEqual(report.artifacts, []);
+    assert.doesNotMatch(graphReport(report), /deploy/);
   }
+});
+test('status functions inside string literals do not override skipped prerequisites', () => {
+  for (const name of ['success', 'failure', 'cancelled', 'always']) {
+    for (const condition of [
+      `inputs.mode == '${name}()'`,
+      `inputs.mode == 'it''s ${name}()'`,
+      `\${{ inputs.mode == '${name}()' }}`,
+    ]) {
+      const report = analyze(
+        `jobs:\n  disabled:\n    if: false\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker build -t api .\n  deploy:\n    needs: disabled\n    if: ${JSON.stringify(condition)}\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api:latest`,
+      );
+      assert.deepEqual(report.findings, [], condition);
+      assert.deepEqual(report.deployments, [], condition);
+      assert.deepEqual(report.operations, [], condition);
+      assert.deepEqual(report.artifacts, [], condition);
+    }
+  }
+});
+test('status detection recognizes calls and conservatively handles unreadable conditions', () => {
+  for (const name of ['success', 'failure', 'cancelled', 'always']) {
+    assert.equal(hasStatusCheck(`\${{ ${name}() && inputs.enabled }}`), true);
+    assert.equal(hasStatusCheck(`(${name.toUpperCase()} ())`), true);
+    assert.equal(hasStatusCheck(`contains(inputs.mode, '${name}()')`), false);
+  }
+  assert.equal(hasStatusCheck("inputs.mode == 'unterminated"), true);
+  assert.equal(hasStatusCheck(undefined), false);
+});
+test('graph removes disabled consumers without removing their shared active artifact', () => {
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - if: false\n        run: docker run ${image(A)}\n      - run: trivy image ${image(A)}\n      - run: kubectl set image deployment/api api=${image(A)}`,
+  );
+  assert.deepEqual(
+    report.operations.map((operation) => operation.kind),
+    ['scan', 'deploy'],
+  );
+  assert.equal(report.artifacts.length, 1);
+  assert.equal(report.artifacts[0].consumers.length, 2);
+  assert.doesNotMatch(graphReport(report), /-> test/);
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+});
+test('unknown conditions retain operations in the graph', () => {
+  const report = analyze(
+    `jobs:\n  release:\n    if: inputs.enabled\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=${image(A)}`,
+  );
+  assert.equal(report.operations.length, 1);
+  assert.equal(report.artifacts.length, 1);
+  assert.match(graphReport(report), /deploy/);
 });
 test('skipped prerequisite jobs make dependent deployments unreachable', () => {
   const direct = analyze(
@@ -146,12 +196,16 @@ test('skipped prerequisite jobs make dependent deployments unreachable', () => {
   );
   assert.deepEqual(transitive.deployments, []);
   assert.deepEqual(transitive.findings, []);
+  assert.deepEqual(transitive.operations, []);
+  assert.deepEqual(transitive.artifacts, []);
 });
 test('always-conditioned deployments remain analyzable after skipped needs', () => {
   const report = analyze(
     `jobs:\n  disabled:\n    runs-on: ubuntu-latest\n    if: false\n    steps:\n      - run: echo disabled\n  deploy:\n    needs: disabled\n    runs-on: ubuntu-latest\n    if: always()\n    steps:\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api:latest`,
   );
   assert.equal(report.deployments.length, 1);
+  assert.equal(report.operations.length, 1);
+  assert.match(graphReport(report), /deploy/);
   assert.deepEqual(
     report.findings.map((finding) => finding.ruleId),
     ['SB005'],

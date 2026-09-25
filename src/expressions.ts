@@ -6,8 +6,25 @@ import {
   IndexAccess,
   Literal,
 } from '@actions/expressions/ast';
+import { TokenType } from '@actions/expressions/lexer';
 import { type Identity, unknownValue, type Value } from './model.js';
 export type Scope = Map<string, Value>;
+export function hasStatusCheck(condition: unknown): boolean {
+  const expression = String(condition ?? '').replace(/^\s*\$\{\{\s*|\s*\}\}\s*$/g, '');
+  try {
+    const { tokens } = new Lexer(expression).lex();
+    return tokens.some(
+      (token, index) =>
+        token.type === TokenType.IDENTIFIER &&
+        /^(success|failure|cancelled|always)$/i.test(token.lexeme) &&
+        tokens[index + 1]?.type === TokenType.LEFT_PAREN &&
+        tokens[index - 1]?.type !== TokenType.DOT,
+    );
+  } catch {
+    // An unreadable condition cannot prove that a dependency skip propagates.
+    return true;
+  }
+}
 function access(expr: Expr): string | undefined {
   if (expr instanceof Grouping) return access(expr.group);
   if (expr instanceof ContextAccess) return expr.name.lexeme;

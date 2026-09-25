@@ -25,6 +25,28 @@ test('graph, explain, help and version are runnable', () => {
   assert.match(cli('--help').stdout, /Usage:/);
   assert.equal(cli('--version').stdout.trim(), '0.1.0');
 });
+test('skipped deployments exit successfully and are absent from JSON and graph', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'samebyte-test-'));
+  try {
+    const file = join(dir, 'skipped.yml');
+    await writeFile(
+      file,
+      `jobs:\n  disabled:\n    if: false\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo disabled\n  deploy:\n    needs: disabled\n    if: inputs.mode == 'always()'\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api:latest\n`,
+    );
+    const result = cli(file, '--format', 'json');
+    assert.equal(result.status, 0, result.stderr);
+    const report = JSON.parse(result.stdout);
+    assert.deepEqual(report.findings, []);
+    assert.deepEqual(report.deployments, []);
+    assert.deepEqual(report.operations, []);
+    assert.deepEqual(report.artifacts, []);
+    const graph = cli('graph', file);
+    assert.equal(graph.status, 0, graph.stderr);
+    assert.doesNotMatch(graph.stdout, /deploy|artifact-1/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
 test('invalid and empty workflows produce analysis errors', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'samebyte-test-'));
   try {

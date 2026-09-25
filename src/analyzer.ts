@@ -18,7 +18,7 @@ import type {
   Value,
   Workflow,
 } from './model.js';
-import { analyzeRules } from './rules.js';
+import { analyzeRules, operationIsUnreachable } from './rules.js';
 import { balancedQuotes, tokenize } from './shell.js';
 export interface Annotation {
   workflow: string;
@@ -476,8 +476,13 @@ export function analyzeWorkflow(
       bind(outputs, key, resolveValue(raw, scope));
     jobOutputs.set(jobId, outputs);
   }
+  const reachableOperations = operations.filter(
+    (operation) => !operationIsUnreachable(operation, workflow),
+  );
   const artifacts: Artifact[] = [];
-  for (const operation of operations.filter((op) => op.kind !== 'source-test')) {
+  for (const operation of reachableOperations.filter(
+    (op) => op.kind !== 'source-test',
+  )) {
     let artifact =
       operation.identity.kind === 'immutable'
         ? artifacts.find((a) => a.identity.key === operation.identity.key)
@@ -495,7 +500,7 @@ export function analyzeWorkflow(
       operation.id,
     );
   }
-  const result = analyzeRules(operations, workflow);
+  const result = analyzeRules(reachableOperations, workflow);
   const diagnostics = Object.entries(workflow.jobs)
     .filter(([, job]) => job.steps.some((step) => step.parallel !== undefined))
     .map(([job]) => ({
@@ -505,7 +510,7 @@ export function analyzeWorkflow(
   return {
     version: 1,
     workflows: [workflow.file],
-    operations,
+    operations: reachableOperations,
     artifacts,
     ...result,
     diagnostics,

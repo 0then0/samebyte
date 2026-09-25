@@ -1,3 +1,4 @@
+import { hasStatusCheck } from './expressions.js';
 import type { Deployment, Finding, Operation, State, Workflow } from './model.js';
 
 const normalizedCondition = (condition: unknown) =>
@@ -9,8 +10,6 @@ const normalizedCondition = (condition: unknown) =>
     .toLowerCase();
 const explicitSuccess = (condition: unknown) =>
   condition === undefined || normalizedCondition(condition) === 'success()';
-const hasStatusCheck = (condition: unknown) =>
-  /\b(?:success|failure|cancelled|always)\s*\(/i.test(String(condition));
 const bypassesSuccess = (condition: unknown) =>
   hasStatusCheck(condition) && !explicitSuccess(condition);
 const neverRuns = (condition: unknown) => normalizedCondition(condition) === 'false';
@@ -33,6 +32,10 @@ function jobIsSkippedByNeeds(
   visiting.delete(jobId);
   return skipped;
 }
+
+export const operationIsUnreachable = (operation: Operation, workflow: Workflow) =>
+  isDisabled(operation, workflow) ||
+  jobIsSkippedByNeeds(operation.location.job, workflow);
 
 function jobDependsOn(from: string, to: string, workflow: Workflow): boolean {
   if (from === to) return true;
@@ -66,10 +69,7 @@ export function analyzeRules(
       path: op.identity.trace,
     }));
   for (const deploy of operations.filter(
-    (op) =>
-      op.kind === 'deploy' &&
-      !isDisabled(op, workflow) &&
-      !jobIsSkippedByNeeds(op.location.job, workflow),
+    (op) => op.kind === 'deploy' && !operationIsUnreachable(op, workflow),
   )) {
     const checks: Deployment['checks'] = {
       test: 'unknown',
