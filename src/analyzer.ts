@@ -42,6 +42,15 @@ const invalidateTrivyInput = (scope: Scope) => {
   bind(scope, 'env.TRIVY_INPUT', value);
   scope.set('shell.TRIVY_INPUT', value);
 };
+const hasUnknownShellArgumentBeforeReference = (
+  tokens: string[],
+  reference: string,
+) => {
+  const index = tokens.findIndex((token) => token.includes(reference));
+  return tokens
+    .slice(0, index < 0 ? tokens.length : index)
+    .some((token) => token.includes('__samebyte_unknown__'));
+};
 export function validateConfig(raw: unknown): Config {
   const config = raw as Config;
   if (!config || !Array.isArray(config.annotations))
@@ -420,17 +429,15 @@ export function analyzeWorkflow(
                     text: consumer.reference,
                     // An unrelated unresolved variable in a test command must
                     // not erase an image identity that was parsed separately.
-                    // Unknown symbolic values retain their own text, which lets
-                    // us keep the reference unknown when that value is the image.
+                    // Unknown shell expansions before the image may shift its
+                    // argument position, so their boundary remains unresolved.
+                    // Expansions after the image cannot change its identity.
                     unknown:
                       consumer.identityUnknown !== undefined ||
                       consumer.reference.includes('__samebyte_unknown__') ||
-                      [...stepScope.values()].some(
-                        (value) =>
-                          value.unknown &&
-                          value.text.length > 0 &&
-                          (consumer.reference?.includes(value.text) ||
-                            consumer.reference === value.text.split(/\s/, 1)[0]),
+                      hasUnknownShellArgumentBeforeReference(
+                        tokens,
+                        consumer.reference,
                       ),
                     trace: consumer.identityUnknown
                       ? [...resolved.trace, consumer.identityUnknown]

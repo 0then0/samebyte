@@ -65,7 +65,7 @@ export function resolveValue(raw: unknown, scope: Scope): Value {
       if (value) {
         trace.push(...value.trace, body.trim());
         unknown ||= value.unknown;
-        return value.text;
+        return value.unknown ? '__samebyte_unknown__' : value.text;
       }
     } catch {
       /* Invalid and unsupported expressions cannot prove identity. */
@@ -121,7 +121,7 @@ export function shellValue(raw: string, scope: Scope): Value {
       }
       result.unknown ||= value.unknown;
       result.trace.push(...value.trace, `$${name}`);
-      return value.text;
+      return value.unknown ? '__samebyte_unknown__' : value.text;
     },
   );
   return result;

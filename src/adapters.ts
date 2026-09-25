@@ -48,10 +48,79 @@ export function actionConsumption(
   // Unknown deployment actions need explicit annotations instead of guesses.
   return [];
 }
+const kubectlGlobalValueFlags = new Set([
+  '--as',
+  '--as-group',
+  '--as-uid',
+  '--as-user-extra',
+  '--cache-dir',
+  '--certificate-authority',
+  '--client-certificate',
+  '--client-key',
+  '--cluster',
+  '--context',
+  '--kubeconfig',
+  '--kuberc',
+  '--log-flush-frequency',
+  '--namespace',
+  '--password',
+  '--profile',
+  '--profile-output',
+  '--proxy-url',
+  '--request-timeout',
+  '--server',
+  '--tls-server-name',
+  '--token',
+  '--user',
+  '--username',
+  '--v',
+  '--vmodule',
+  '-n',
+  '-s',
+  '-v',
+]);
+const kubectlGlobalBooleanFlags = new Set([
+  '--disable-compression',
+  '--insecure-skip-tls-verify',
+  '--match-server-version',
+  '--warnings-as-errors',
+]);
+function stripKubectlGlobalFlags(tokens: string[]): {
+  tokens: string[];
+  unknown: boolean;
+} {
+  const command = ['kubectl'];
+  for (let i = 1; i < tokens.length; ) {
+    const token = tokens[i];
+    const flagName = token.split('=', 1)[0];
+    if (kubectlGlobalValueFlags.has(flagName)) {
+      i += token.includes('=') ? 1 : 2;
+      continue;
+    }
+    if (kubectlGlobalBooleanFlags.has(flagName)) {
+      i++;
+      continue;
+    }
+    if (token.startsWith('-')) {
+      const setImage = tokens.some(
+        (candidate, index) => candidate === 'set' && tokens[index + 1] === 'image',
+      );
+      return { tokens, unknown: setImage };
+    }
+    command.push(...tokens.slice(i));
+    return { tokens: command, unknown: false };
+  }
+  return { tokens: command, unknown: false };
+}
 export function shellConsumption(
   tokens: string[],
   env: Record<string, string> = {},
 ): Consumption[] {
+  if (tokens[0] === 'kubectl') {
+    const normalized = stripKubectlGlobalFlags(tokens);
+    if (normalized.unknown) return [{ kind: 'deploy' }];
+    tokens = normalized.tokens;
+  }
   const helmDryRun =
     tokens[0] === 'helm' &&
     tokens

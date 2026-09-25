@@ -931,11 +931,33 @@ test('kubectl dry-run none remains a deployment while non-mutating modes are ign
   assert.equal(localFalse.deployments.length, 1);
   assert.ok(localFalse.findings.some((finding) => finding.ruleId === 'SB005'));
 });
+test('kubectl global namespace flags before set image preserve deployment detection', () => {
+  for (const flags of ['--namespace prod', '-n prod', '--namespace=prod']) {
+    const report = simple(
+      `kubectl ${flags} set image deployment/api api=ghcr.io/acme/api:release`,
+    );
+    assert.equal(report.deployments.length, 1, flags);
+    assert.ok(
+      report.findings.some((finding) => finding.ruleId === 'SB005'),
+      flags,
+    );
+  }
+});
 test('unresolved shell variables after a docker image do not erase its identity', () => {
   const report = analyze(
-    `jobs:\n  build:\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.image.outputs.digest }}\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n        with:\n          push: true\n  test:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ghcr.io/acme/api@\${{ needs.build.outputs.digest }} sh -c 'echo "$UNAVAILABLE"'\n  deploy:\n    needs: [build, test]\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ needs.build.outputs.digest }}`,
+    `jobs:\n  build:\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.image.outputs.digest }}\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n        with:\n          push: true\n  test:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ghcr.io/acme/api@\${{ needs.build.outputs.digest }} sh -c "echo $UNAVAILABLE"\n  deploy:\n    needs: [build, test]\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ needs.build.outputs.digest }}`,
   );
   assert.equal(report.deployments[0].checks.test, 'proven');
+});
+test('unknown shell values before a docker image keep its identity unknown', () => {
+  const report = analyze(
+    `env:\n  OPTS: KEY=initial\njobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n      - id: build\n        uses: docker/build-push-action@v6\n      - run: echo "OPTS=KEY=updated" >> "$GITHUB_ENV"\n      - run: docker run --env $OPTS ghcr.io/acme/api@\${{ steps.build.outputs.digest }} npm test\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ steps.build.outputs.digest }}`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+  assert.equal(
+    report.findings.some((finding) => finding.ruleId === 'SB001'),
+    false,
+  );
 });
 test('Docker Scout only counts supported scan commands', () => {
   const imageRef = `ghcr.io/acme/api@${A}`;
