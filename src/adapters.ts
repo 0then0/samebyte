@@ -3,6 +3,7 @@ import { flag, runImage } from './shell.js';
 export interface Consumption {
   kind: OperationKind;
   reference?: string;
+  usedInputs?: string[];
 }
 export function actionConsumption(
   uses: string,
@@ -17,12 +18,19 @@ export function actionConsumption(
           inputs['scan-type'] && inputs['scan-type'] !== 'image'
             ? undefined
             : inputs['image-ref'],
+        usedInputs: ['scan-type', 'image-ref'],
       },
     ];
-  if (action === 'docker/scout-action')
-    return [{ kind: 'scan', reference: inputs.image }];
+  if (action === 'docker/scout-action') {
+    const commands = (inputs.command ?? '').split(',').map((command) => command.trim());
+    if (commands.some((command) => ['cves', 'quickview', 'compare'].includes(command)))
+      return [
+        { kind: 'scan', reference: inputs.image, usedInputs: ['command', 'image'] },
+      ];
+    return [];
+  }
   if (action === 'anchore/scan-action')
-    return [{ kind: 'scan', reference: inputs.image }];
+    return [{ kind: 'scan', reference: inputs.image, usedInputs: ['image'] }];
   if (['actions/attest', 'actions/attest-build-provenance'].includes(action))
     return [
       {
@@ -30,6 +38,7 @@ export function actionConsumption(
         reference: inputs['subject-digest']
           ? `${inputs['subject-name'] ? `${inputs['subject-name']}@` : ''}${inputs['subject-digest']}`
           : undefined,
+        usedInputs: ['subject-name', 'subject-digest'],
       },
     ];
   // Unknown deployment actions need explicit annotations instead of guesses.
@@ -138,30 +147,9 @@ export function shellConsumption(tokens: string[]): Consumption[] {
     return references;
   }
   if (tokens[0] === 'helm' && ['upgrade', 'install'].includes(tokens[1])) {
-    const values: Record<string, string> = {};
-    for (let i = 2; i < tokens.length; i++) {
-      if (
-        ['--set', '--set-string'].includes(tokens[i]) ||
-        /^--set(?:-string)?=/.test(tokens[i])
-      ) {
-        const input = tokens[i].includes('=')
-          ? tokens[i].slice(tokens[i].indexOf('=') + 1)
-          : tokens[++i];
-        for (const pair of (input ?? '').split(',')) {
-          const at = pair.indexOf('=');
-          if (at > 0) values[pair.slice(0, at)] = pair.slice(at + 1);
-        }
-      }
-    }
-    const repo = values['image.repository'];
-    return [
-      {
-        kind: 'deploy',
-        reference: repo
-          ? `${repo}${values['image.digest'] ? `@${values['image.digest']}` : `:${values['image.tag'] || 'latest'}`}`
-          : values.image,
-      },
-    ];
+    // Values do not prove what an arbitrary chart renders. Keep deployment
+    // detection, but let chart-aware analysis or an explicit annotation resolve it.
+    return [{ kind: 'deploy' }];
   }
   if (
     ['npm', 'pnpm', 'yarn'].includes(tokens[0]) &&

@@ -14,7 +14,7 @@ const analyze = (source: string) =>
   analyzeWorkflow(parseWorkflow(source, resolve('fixture.yml')));
 const simple = (...commands: string[]) =>
   analyze(
-    `jobs:\n  release:\n    steps:\n${commands.map((command) => `      - run: ${JSON.stringify(command)}`).join('\n')}`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n${commands.map((command) => `      - run: ${JSON.stringify(command)}`).join('\n')}`,
   );
 const fixture = async (name: string) =>
   analyze(await readFile(`tests/fixtures/${name}.yml`, 'utf8'));
@@ -87,18 +87,18 @@ test('conditional, matrix and ignored failures do not prove tests', () => {
     'continue-on-error: true',
   ]) {
     const report = analyze(
-      `jobs:\n  release:\n    steps:\n      - run: docker run ${image(A)}\n        ${guard}\n      - run: kubectl set image deployment/api api=${image(A)}`,
+      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ${image(A)}\n        ${guard}\n      - run: kubectl set image deployment/api api=${image(A)}`,
     );
     assert.equal(report.deployments[0].checks.test, 'unknown');
   }
   const report = analyze(
-    `jobs:\n  release:\n    strategy:\n      matrix:\n        node: [20, 22]\n    steps:\n      - run: docker run ${image(A)}\n      - run: kubectl set image deployment/api api=${image(A)}`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    strategy:\n      matrix:\n        node: [20, 22]\n    steps:\n      - run: docker run ${image(A)}\n      - run: kubectl set image deployment/api api=${image(A)}`,
   );
   assert.equal(report.deployments[0].checks.test, 'unknown');
 });
 test('parallel sibling jobs do not establish verification order', () => {
   const report = analyze(
-    `jobs:\n  test:\n    steps:\n      - run: docker run ${image(A)}\n  deploy:\n    steps:\n      - run: kubectl set image deployment/api api=${image(A)}`,
+    `jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ${image(A)}\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=${image(A)}`,
   );
   assert.equal(report.deployments[0].checks.test, 'unknown');
 });
@@ -122,14 +122,13 @@ test('unknown shell variables and detached docker runs remain unknown', () => {
       'unknown',
     );
 });
-test('Helm digest values are consumed', () => {
-  assert.equal(
-    simple(
-      `docker run ${image(A)}`,
-      `helm upgrade api ./chart --set image.repository=ghcr.io/acme/api,image.digest=${A}`,
-    ).deployments[0].checks.test,
-    'proven',
+test('Helm values do not prove what the chart deploys', () => {
+  const report = simple(
+    `docker run ${image(A)}`,
+    `helm upgrade api ./chart --set image.repository=ghcr.io/acme/api,image.digest=${A}`,
   );
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+  assert.equal(report.findings.at(-1)?.ruleId, 'SB006');
 });
 test('known scanners parse image operands', () => {
   for (const scan of [
@@ -174,7 +173,7 @@ test('digests require full SHA256 and source sha is not an OCI digest', () => {
 });
 test('explicit annotation resolves custom deployment', () => {
   const workflow = parseWorkflow(
-    `jobs:\n  release:\n    steps:\n      - run: docker run ${image(A)}\n      - id: ship\n        run: ./ship.sh`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ${image(A)}\n      - id: ship\n        run: ./ship.sh`,
     'fixture.yml',
   );
   const report = analyzeWorkflow(
@@ -203,7 +202,7 @@ test('SARIF includes finding locations and evidence', () => {
 test('single quotes and escaped variables do not consume the env image', () => {
   for (const command of ["docker run '$IMAGE'", 'docker run \\$IMAGE']) {
     const report = analyze(
-      `env:\n  IMAGE: ${image(A)}\njobs:\n  release:\n    steps:\n      - run: ${JSON.stringify(command)}\n      - run: kubectl set image deployment/api api=${image(A)}`,
+      `env:\n  IMAGE: ${image(A)}\njobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${JSON.stringify(command)}\n      - run: kubectl set image deployment/api api=${image(A)}`,
     );
     assert.equal(report.deployments[0].checks.test, 'unknown');
   }
@@ -222,14 +221,14 @@ test('heredocs, sourced files and custom shells cannot establish tests', () => {
     );
   assert.equal(
     analyze(
-      `jobs:\n  release:\n    steps:\n      - run: docker run ${image(A)}\n        shell: python\n      - run: kubectl set image deployment/api api=${image(A)}`,
+      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ${image(A)}\n        shell: python\n      - run: kubectl set image deployment/api api=${image(A)}`,
     ).deployments[0].checks.test,
     'unknown',
   );
 });
 test('shell variable names retain case sensitivity', () => {
   const report = analyze(
-    `env:\n  IMAGE: ${image(A)}\n  image: ${image(B)}\njobs:\n  release:\n    steps:\n      - run: docker run $IMAGE\n      - run: kubectl set image deployment/api api=${image(A)}`,
+    `env:\n  IMAGE: ${image(A)}\n  image: ${image(B)}\njobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run $IMAGE\n      - run: kubectl set image deployment/api api=${image(A)}`,
   );
   assert.equal(report.deployments[0].checks.test, 'proven');
 });
@@ -242,19 +241,19 @@ test('commands within one straight-line step have execution order', () => {
 });
 test('intermediate always job cannot establish predecessor checks', () => {
   const report = analyze(
-    `jobs:\n  test:\n    steps:\n      - run: docker run ${image(A)}\n  bridge:\n    needs: test\n    if: always()\n    steps:\n      - run: echo bridge\n  deploy:\n    needs: bridge\n    steps:\n      - run: kubectl set image deployment/api api=${image(A)}`,
+    `jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ${image(A)}\n  bridge:\n    runs-on: ubuntu-latest\n    needs: test\n    if: always()\n    steps:\n      - run: echo bridge\n  deploy:\n    runs-on: ubuntu-latest\n    needs: bridge\n    steps:\n      - run: kubectl set image deployment/api api=${image(A)}`,
   );
   assert.equal(report.deployments[0].checks.test, 'unknown');
 });
 test('GITHUB_ENV changes invalidate later environment reads', () => {
   const report = analyze(
-    `env:\n  IMAGE: ${image(A)}\njobs:\n  release:\n    steps:\n      - run: echo "IMAGE=${image(B)}" >> "$GITHUB_ENV"\n      - run: docker run $IMAGE\n      - run: kubectl set image deployment/api api=${image(A)}`,
+    `env:\n  IMAGE: ${image(A)}\njobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo "IMAGE=${image(B)}" >> "$GITHUB_ENV"\n      - run: docker run $IMAGE\n      - run: kubectl set image deployment/api api=${image(A)}`,
   );
   assert.equal(report.deployments[0].checks.test, 'unknown');
 });
 test('independent symbolic builds do not prove different bytes', () => {
   const report = analyze(
-    `jobs:\n  release:\n    steps:\n      - id: first\n        uses: docker/build-push-action@v6\n      - run: docker run ghcr.io/acme/api@\${{ steps.first.outputs.digest }}\n      - id: second\n        uses: docker/build-push-action@v6\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ steps.second.outputs.digest }}`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: first\n        uses: docker/build-push-action@v6\n      - run: docker run ghcr.io/acme/api@\${{ steps.first.outputs.digest }}\n      - id: second\n        uses: docker/build-push-action@v6\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ steps.second.outputs.digest }}`,
   );
   assert.equal(report.deployments[0].checks.test, 'unknown');
   assert.equal(report.findings.length, 0);
@@ -280,7 +279,7 @@ test('multiline quoted text and shell builtins cannot establish tests', () => {
     `read IMAGE\ndocker run $IMAGE`,
   ]) {
     const report = analyze(
-      `env:\n  IMAGE: ${image(A)}\njobs:\n  release:\n    steps:\n      - run: ${JSON.stringify(command)}\n      - run: kubectl set image deployment/api api=${image(A)}`,
+      `env:\n  IMAGE: ${image(A)}\njobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${JSON.stringify(command)}\n      - run: kubectl set image deployment/api api=${image(A)}`,
     );
     assert.equal(report.deployments[0].checks.test, 'unknown');
   }
@@ -288,7 +287,7 @@ test('multiline quoted text and shell builtins cannot establish tests', () => {
 test('unsupported output writes invalidate previously recognized outputs', () => {
   const command = `echo "image=${image(A)}" >> "$GITHUB_OUTPUT"\nprintf "image=${image(B)}\\n" >> "$GITHUB_OUTPUT"`;
   const report = analyze(
-    `jobs:\n  release:\n    steps:\n      - run: docker run ${image(A)}\n      - id: forward\n        run: ${JSON.stringify(command)}\n      - run: kubectl set image deployment/api api=\${{ steps.forward.outputs.image }}`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ${image(A)}\n      - id: forward\n        run: ${JSON.stringify(command)}\n      - run: kubectl set image deployment/api api=\${{ steps.forward.outputs.image }}`,
   );
   assert.equal(report.deployments[0].checks.test, 'unknown');
   assert.equal(report.findings[0].ruleId, 'SB006');
@@ -324,4 +323,96 @@ test('dry-run deployments and kubectl selector values are not production images'
   );
   assert.equal(report.deployments.length, 1);
   assert.equal(report.findings.length, 0);
+});
+test('Docker Scout only counts supported scan commands', () => {
+  const imageRef = `ghcr.io/acme/api@${A}`;
+  const deploy = `kubectl set image deployment/api api=${imageRef}`;
+  const source = `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: docker/scout-action@v1\n        with:\n          command: environment\n          image: ${imageRef}\n      - run: ${JSON.stringify(deploy)}`;
+  const environmentAction = analyze(source);
+  assert.equal(
+    environmentAction.operations.some((op) => op.kind === 'scan'),
+    false,
+  );
+  assert.equal(environmentAction.deployments[0].checks.scan, 'unknown');
+
+  const cves = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: docker/scout-action@v1\n        with:\n          command: cves\n          image: ${imageRef}\n          registry-password: DUMMY_SECRET\n      - run: ${JSON.stringify(deploy)}`,
+  );
+  assert.equal(cves.deployments[0].checks.scan, 'proven');
+  assert.equal(JSON.stringify(cves).includes('DUMMY_SECRET'), false);
+});
+test('SB001 ignores unrelated tests and recognizes a test of the linked digest', () => {
+  const unrelated = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.build.outputs.digest }}\n    steps:\n      - run: npm test\n      - run: docker run postgres@${A}\n      - id: build\n        uses: docker/build-push-action@v6\n        with:\n          push: true\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ steps.build.outputs.digest }}`,
+  );
+  assert.deepEqual(
+    unrelated.findings.map((finding) => finding.ruleId),
+    ['SB001'],
+  );
+  assert.equal(unrelated.deployments[0].checks.test, 'mismatch');
+
+  const tested = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.build.outputs.digest }}\n    steps:\n      - run: npm test\n      - id: build\n        uses: docker/build-push-action@v6\n        with:\n          push: true\n      - run: docker run ghcr.io/acme/api@\${{ steps.build.outputs.digest }}\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ steps.build.outputs.digest }}`,
+  );
+  assert.equal(
+    tested.findings.some((finding) => finding.ruleId === 'SB001'),
+    false,
+  );
+  assert.equal(tested.deployments[0].checks.test, 'proven');
+});
+test('matching mutable tags only produce a medium confidence SB001 candidate', () => {
+  const report = simple(
+    'npm test',
+    'docker build -t ghcr.io/acme/api:release .',
+    'kubectl set image deployment/api api=ghcr.io/acme/api:release',
+  );
+  const finding = report.findings.find((item) => item.ruleId === 'SB001');
+  assert.equal(finding?.severity, 'medium');
+  assert.equal(finding?.state, 'unknown');
+  assert.equal(finding?.confidence, 'medium');
+  assert.ok(report.findings.some((item) => item.ruleId === 'SB005'));
+});
+test('shell command arguments are excluded from finding evidence', () => {
+  const report = simple(
+    `docker run --env TOKEN=DUMMY_SHELL_SECRET ${image(A)}`,
+    `kubectl set image deployment/api api=${image(B)}`,
+  );
+  assert.equal(JSON.stringify(report).includes('DUMMY_SHELL_SECRET'), false);
+  assert.equal(textReport(report, true).includes('DUMMY_SHELL_SECRET'), false);
+  assert.equal(
+    JSON.stringify(sarifReport(report)).includes('DUMMY_SHELL_SECRET'),
+    false,
+  );
+});
+test('invalid nested inputs and job output values are rejected', () => {
+  for (const source of [
+    'jobs: {release: {runs-on: ubuntu-latest, outputs: {digest: [sha256, abc]}, steps: [{run: echo ok}]}}',
+    'jobs: {release: {runs-on: ubuntu-latest, steps: [{uses: docker/scout-action@v1, with: {image: {repository: ghcr.io/acme/api}}}]}}',
+  ])
+    assert.throws(() => analyze(source));
+});
+
+test('normal jobs require a valid runner, reusable workflow jobs do not', () => {
+  assert.throws(
+    () => parseWorkflow('jobs: {release: {steps: [{run: echo ok}]}}', 'fixture.yml'),
+    /runs-on is required/,
+  );
+  assert.throws(
+    () =>
+      parseWorkflow(
+        'jobs: {release: {runs-on: {group: ubuntu}, steps: [{run: echo ok}]}}',
+        'fixture.yml',
+      ),
+    /runs-on must be a string or string array/,
+  );
+  assert.throws(
+    () => parseWorkflow('jobs: {release: {uses: null}}', 'fixture.yml'),
+    /uses must be a non-empty string/,
+  );
+  assert.doesNotThrow(() =>
+    parseWorkflow(
+      'jobs: {release: {uses: acme/repo/.github/workflows/reuse.yml@main}}',
+      'fixture.yml',
+    ),
+  );
 });

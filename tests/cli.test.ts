@@ -33,6 +33,9 @@ test('invalid and empty workflows produce analysis errors', async () => {
     const result = cli(dir, '--format', 'json');
     assert.equal(result.status, 2);
     assert.equal(JSON.parse(result.stdout).diagnostics.length, 1);
+    const invalidOutput = cli('tests/fixtures/invalid-output.yml', '--format', 'json');
+    assert.equal(invalidOutput.status, 2);
+    assert.match(JSON.parse(invalidOutput.stdout).diagnostics[0].message, /outputs/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

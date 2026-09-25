@@ -20,7 +20,7 @@ export function resolveValue(raw: unknown, scope: Scope): Value {
   const text = String(raw ?? '');
   let unknown = false;
   const trace: string[] = [];
-  const result = text.replace(/\$\{\{([\s\S]*?)\}\}/g, (expression, body: string) => {
+  const result = text.replace(/\$\{\{([\s\S]*?)\}\}/g, (_expression, body: string) => {
     try {
       const ast = new Parser(
         new Lexer(body).lex().tokens,
@@ -53,7 +53,7 @@ export function resolveValue(raw: unknown, scope: Scope): Value {
     } catch {
       /* Invalid and unsupported expressions cannot prove identity. */
     }
-    trace.push(`Unresolved expression: ${expression}`);
+    trace.push('Unresolved GitHub expression');
     unknown = true;
     return '__samebyte_unknown__';
   });

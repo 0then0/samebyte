@@ -32,12 +32,55 @@ export function parseWorkflow(source: string, file: string): Workflow {
     if (value !== undefined && !mapping(value))
       throw new Error(`Invalid ${label}: expected mapping`);
   };
-  validateMap(raw.env, 'workflow env');
+  const validateScalarMap = (value: unknown, label: string) => {
+    validateMap(value, label);
+    if (
+      mapping(value) &&
+      Object.values(value).some(
+        (item) => item === null || (typeof item === 'object' && item !== null),
+      )
+    )
+      throw new Error(`Invalid ${label}: values must be scalar`);
+  };
+  validateScalarMap(raw.env, 'workflow env');
+  validateMap(raw.defaults, 'workflow defaults');
+  if (mapping(raw.defaults)) {
+    validateMap(raw.defaults.run, 'workflow defaults.run');
+    if (
+      mapping(raw.defaults.run) &&
+      raw.defaults.run.shell !== undefined &&
+      typeof raw.defaults.run.shell !== 'string'
+    )
+      throw new Error('Invalid workflow defaults.run.shell: expected string');
+  }
   const jobs: Record<string, Job> = {};
   for (const [id, value] of Object.entries(raw.jobs)) {
     if (!mapping(value)) throw new Error(`Invalid job ${id}`);
-    validateMap(value.env, `${id} env`);
+    if (value.uses !== undefined && (typeof value.uses !== 'string' || !value.uses))
+      throw new Error(`Invalid job ${id}: uses must be a non-empty string`);
+    if (
+      value.uses !== undefined &&
+      (value.steps !== undefined || value['runs-on'] !== undefined)
+    )
+      throw new Error(
+        `Invalid job ${id}: reusable workflow jobs cannot define steps or runs-on`,
+      );
+    if (value.uses === undefined && value['runs-on'] === undefined)
+      throw new Error(`Invalid job ${id}: runs-on is required`);
+    if (
+      value['runs-on'] !== undefined &&
+      typeof value['runs-on'] !== 'string' &&
+      (!Array.isArray(value['runs-on']) ||
+        value['runs-on'].some((runner) => typeof runner !== 'string'))
+    )
+      throw new Error(`Invalid job ${id}: runs-on must be a string or string array`);
+    validateScalarMap(value.env, `${id} env`);
     validateMap(value.outputs, `${id} outputs`);
+    if (
+      mapping(value.outputs) &&
+      Object.values(value.outputs).some((output) => typeof output !== 'string')
+    )
+      throw new Error(`Invalid ${id} outputs: values must be strings or expressions`);
     const needs =
       value.needs === undefined
         ? []
@@ -57,8 +100,15 @@ export function parseWorkflow(source: string, file: string): Workflow {
         (typeof step.run !== 'string' && typeof step.uses !== 'string')
       )
         throw new Error(`Invalid step ${id}[${index}]`);
-      validateMap(step.env, `${id} step env`);
+      validateScalarMap(step.env, `${id} step env`);
       validateMap(step.with, `${id} step inputs`);
+      if (
+        mapping(step.with) &&
+        Object.values(step.with).some(
+          (input) => input === null || (typeof input === 'object' && input !== null),
+        )
+      )
+        throw new Error(`Invalid ${id} step inputs: values must be scalar`);
       if (step.run !== undefined && step.uses !== undefined)
         throw new Error(`Step in ${id} cannot contain both run and uses`);
       if (step.id !== undefined) {

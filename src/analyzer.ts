@@ -162,16 +162,19 @@ export function analyzeWorkflow(
               Object.entries(inputs).map(([key, value]) => [key, value.text]),
             ),
           )) {
+            const usedInputs = consumer.usedInputs ?? [];
             record(
               consumer.kind,
               consumer.reference
                 ? {
                     text: consumer.reference,
-                    unknown: Object.values(inputs).some((v) => v.unknown),
-                    trace: Object.entries(inputs).flatMap(([key, value]) => [
-                      ...value.trace,
-                      `with.${key} = ${value.text}`,
-                    ]),
+                    unknown: usedInputs.some((key) => inputs[key]?.unknown),
+                    trace: usedInputs.flatMap((key) => {
+                      const value = inputs[key];
+                      return value
+                        ? [...value.trace, `with.${key} = ${value.text}`]
+                        : [];
+                    }),
                   }
                 : unknownValue(step.uses, 'Unsupported or missing image input'),
               step.uses,
@@ -216,7 +219,7 @@ export function analyzeWorkflow(
           if (output && step.id) {
             const value =
               complex || unknownOutputWrite
-                ? unknownValue(line, 'Complex shell output')
+                ? unknownValue('unknown step output', 'Complex shell output')
                 : output[1] === "'"
                   ? resolveValue(output[3], stepScope)
                   : shellValue(output[3], stepScope);
@@ -228,7 +231,10 @@ export function analyzeWorkflow(
             for (const target of [scope, stepScope])
               for (const key of target.keys())
                 if (key.startsWith('env.') || key.startsWith('shell.'))
-                  target.set(key, unknownValue(line, 'GITHUB_ENV mutation'));
+                  target.set(
+                    key,
+                    unknownValue('unknown environment value', 'GITHUB_ENV mutation'),
+                  );
           }
           const resolved = shellValue(line, stepScope);
           const tokens = complex ? undefined : tokenize(resolved.text);
@@ -236,15 +242,18 @@ export function analyzeWorkflow(
             if (/\b(kubectl|helm)\b/.test(line))
               record(
                 'deploy',
-                unknownValue(line, 'Unsupported shell syntax'),
-                line,
+                unknownValue(
+                  'unknown deployment reference',
+                  'Unsupported shell syntax',
+                ),
+                'unsupported shell command',
                 true,
               );
             if (/\bdocker\s+(?:run|compose)\b/.test(line))
               record(
                 'test',
-                unknownValue(line, 'Unsupported shell syntax'),
-                line,
+                unknownValue('unknown image reference', 'Unsupported shell syntax'),
+                'unsupported shell command',
                 true,
               );
             continue;
@@ -264,10 +273,13 @@ export function analyzeWorkflow(
                 : consumer.kind === 'source-test'
                   ? unknownValue(
                       'local application build',
-                      `${line}: source tests do not establish OCI identity`,
+                      'source tests do not establish OCI identity',
                     )
-                  : unknownValue(line, 'Image reference could not be resolved'),
-              line,
+                  : unknownValue(
+                      'unknown image reference',
+                      'Image reference could not be resolved',
+                    ),
+              tokens.slice(0, 2).join(' '),
             );
           // Assignment and external scripts may mutate env or external state.
           // Do not read local scripts or infer their behavior from their names.
@@ -278,11 +290,20 @@ export function analyzeWorkflow(
           ) {
             for (const key of stepScope.keys())
               if (key.startsWith('env.') || key.startsWith('shell.'))
-                stepScope.set(key, unknownValue(line, 'Shell environment mutation'));
+                stepScope.set(
+                  key,
+                  unknownValue(
+                    'unknown environment value',
+                    'Shell environment mutation',
+                  ),
+                );
             if (line.includes('GITHUB_ENV'))
               for (const key of scope.keys())
                 if (key.startsWith('env.') || key.startsWith('shell.'))
-                  scope.set(key, unknownValue(line, 'GITHUB_ENV mutation'));
+                  scope.set(
+                    key,
+                    unknownValue('unknown environment value', 'GITHUB_ENV mutation'),
+                  );
           }
         }
       }

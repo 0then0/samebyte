@@ -118,25 +118,38 @@ export function analyzeRules(
     const builds = operations.filter(
       (op) => op.kind === 'build' && !op.guarded && precedes(op, deploy, workflow),
     );
-    const rebuilt = builds.find(
+    const sourceCheckedBefore = (build: Operation) =>
+      sourceTests.some((test) => precedes(test, build, workflow));
+    const stronglyLinkedBuild = builds.find(
       (build) =>
-        sourceTests.some((test) => precedes(test, build, workflow)) &&
-        (build.identity.key === deploy.identity.key ||
-          (deploy.identity.kind === 'mutable' &&
-            build.producedReference === deploy.identity.reference)),
+        build.identity.kind === 'immutable' &&
+        deploy.identity.kind === 'immutable' &&
+        build.identity.key === deploy.identity.key &&
+        sourceCheckedBefore(build),
     );
-    const possibleImageTest = operations.some(
-      (op) => op.kind === 'test' && precedes(op, deploy, workflow),
+    const weaklyLinkedBuild = builds.find(
+      (build) =>
+        deploy.identity.kind === 'mutable' &&
+        build.producedReference === deploy.identity.reference &&
+        sourceCheckedBefore(build),
     );
-    if (rebuilt && !possibleImageTest && !deploy.guarded) {
+    if (stronglyLinkedBuild && checks.test === 'unknown' && !deploy.guarded) {
       checks.test = 'mismatch';
       add(
         'SB001',
-        'Production artifact was never tested. The production OCI image was created after source tests; no recognized image test consumes it.',
+        'Production artifact was never tested. Source tests ran, but no recognized OCI test consumes the deployed digest.',
         'mismatch',
-        [...sourceTests, rebuilt],
+        [...sourceTests, stronglyLinkedBuild],
       );
     }
+    if (weaklyLinkedBuild && checks.test === 'unknown' && !deploy.guarded)
+      add(
+        'SB001',
+        'A candidate production image was built after source tests, but a mutable tag cannot prove which bytes were deployed.',
+        'unknown',
+        [...sourceTests, weaklyLinkedBuild],
+        false,
+      );
     const state = Object.values(checks).includes('mismatch')
       ? 'mismatch'
       : Object.values(checks).every((value) => value === 'proven')

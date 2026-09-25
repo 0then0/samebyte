@@ -1,0 +1,7 @@
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      digest: [sha256, abc]
+    steps:
+      - run: echo ok

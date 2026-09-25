@@ -136,15 +136,15 @@ This is a lineage example, not a complete registry/cluster setup. Configure the 
 
 - **Build:** `docker/build-push-action`, `docker build`, `docker buildx build`. Shell builds record a producer and supported `-t`/`--tag` reference, but do not invent an externally accessible digest output.
 - **Test:** foreground `docker run` with common flags. This means that the image is exercised; SameByte does not assess its test command or coverage. `npm test`, `pnpm test`, and `yarn test` are source tests, not OCI tests. `docker compose run` is recognized with unknown identity because Compose file interpretation is outside this MVP.
-- **Scan:** `aquasecurity/trivy-action` (`image-ref`), `docker/scout-action` (`image`), `anchore/scan-action` (`image`); simple `trivy image`, `grype`, and `docker scout cves`/`quickview` commands.
+- **Scan:** `aquasecurity/trivy-action` (`image-ref`), `docker/scout-action` (`image` with `command: cves`, `quickview`, or `compare`), `anchore/scan-action` (`image`); simple `trivy image`, `grype`, and `docker scout cves`/`quickview` commands. Scout commands such as `environment` and `attestation-add` are not treated as scans.
 - **Attestation:** `actions/attest`, `actions/attest-build-provenance` (`subject-name`, `subject-digest`), and `gh attestation verify oci://...`. This tracks the subject identity; it does not validate signatures or policy itself.
-- **Deploy:** simple `kubectl set image` container assignments and `helm upgrade`/`helm install` with explicit `--set`/`--set-string` `image.repository` plus `image.digest` or `image.tag`, or an `image` value. Helm support assumes those conventional values select the image; templates, values files, and subcharts are not interpreted. Custom deployment actions require annotations.
+- **Deploy:** simple `kubectl set image` container assignments and `helm upgrade`/`helm install`. Helm chart values alone do not prove what a chart renders, so Helm deployments have unknown identity unless an explicit annotation describes the image. Custom deployment actions require annotations.
 
 Adapters recognize the action repository independently of the pinned ref. This assumes that the referenced action implements its documented interface; SameByte does not audit the action's code. Unsupported flags and inputs may reduce coverage to unknown.
 
 ## Findings
 
-- **SB001:** a linked production image was built after source tests, and no preceding recognized OCI test could cover it. Builds are linked by digest output or an explicit matching build/deploy reference.
+- **SB001:** a production image with a proven digest link was built after source tests, and no recognized OCI test consumes that digest. A matching mutable tag only yields a medium confidence candidate because it cannot establish which bytes the registry served. Unrelated image tests never suppress this finding.
 - **SB002:** preceding tests use a different concrete digest from deployment for the same repository.
 - **SB003:** preceding scans use a different concrete digest from deployment for the same repository.
 - **SB004:** preceding attestation operations use a different concrete digest from deployment for the same repository.
@@ -182,14 +182,14 @@ Annotations replace automatic interpretation of that step. They are trusted user
 The repository includes a composite [action.yml](action.yml). After making your version available on GitHub, pin it to a reviewed commit:
 
 ```yaml
-- uses: actions/checkout@v4
+- uses: actions/checkout@v5
 - uses: 0then0/samebyte@<reviewed-commit-sha>
   with:
     path: .github/workflows
     format: text
 ```
 
-The action uses Node 22 and builds the CLI from its lockfile. It accepts optional `config` and preserves the CLI exit status. SARIF output is printed to stdout; uploading it to GitHub Code Scanning is a separate workflow step. No release, remote workflow execution, or publication is performed by this checkout.
+The action uses Node 22 and builds the CLI from its npm lockfile, including development dependencies needed by esbuild even when the calling workflow sets `NODE_ENV=production`. It accepts optional `config` and preserves the CLI exit status. SARIF output is printed to stdout; uploading it to GitHub Code Scanning is a separate workflow step. No release, remote workflow execution, or publication is performed by this checkout.
 
 ## Development
 
