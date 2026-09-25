@@ -11,17 +11,19 @@ export function actionConsumption(
   inputs: Record<string, string>,
 ): Consumption[] {
   const action = uses.split('@')[0].toLowerCase();
-  if (action === 'aquasecurity/trivy-action')
+  if (action === 'aquasecurity/trivy-action') {
+    const archiveInput = inputs.input?.trim();
     return [
       {
         kind: 'scan',
         reference:
-          inputs['scan-type'] && inputs['scan-type'] !== 'image'
+          (inputs['scan-type'] && inputs['scan-type'] !== 'image') || archiveInput
             ? undefined
             : inputs['image-ref'],
-        usedInputs: ['scan-type', 'image-ref'],
+        usedInputs: ['scan-type', 'image-ref', 'input'],
       },
     ];
+  }
   if (action === 'docker/scout-action') {
     const commands = (inputs.command ?? '').split(',').map((command) => command.trim());
     if (commands.some((command) => ['cves', 'quickview', 'compare'].includes(command)))

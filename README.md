@@ -70,7 +70,7 @@ samebyte . --config samebyte.config.json
 
 A repository path scans `.github/workflows/*.yml` and `*.yaml`. A directory path scans its immediate YAML files. Files are analyzed independently: identity is not joined across workflow runs.
 
-Text findings include source locations and evidence paths. `explain` explicitly selects the same detailed text view. `graph` shows artifacts, producers, and consumers; `--format json` exposes the structured graph, operations, findings, diagnostics, and deployment checks. `--format sarif` emits SARIF 2.1.0 results with workflow line locations and evidence properties.
+Text findings include source locations and evidence paths. `explain` also prints known reasons that an identity remains unknown, including untracked OCI platform selection. `graph` shows artifacts, producers, and consumers; `--format json` exposes the structured graph, operations, findings, diagnostics, and deployment checks. `--format sarif` emits SARIF 2.1.0 results with workflow line locations and evidence properties.
 
 Exit codes:
 
@@ -140,7 +140,7 @@ This is a lineage example, not a complete registry/cluster setup. Configure the 
 
 - **Build:** `docker/build-push-action`, `docker build`, `docker buildx build`. Shell builds record a producer and supported `-t`/`--tag` reference, but do not invent an externally accessible digest output.
 - **Test:** foreground `docker run` with common flags. This means that the image is exercised; SameByte does not assess its test command or coverage. `npm test`, `pnpm test`, and `yarn test` are source tests, not OCI tests. `docker compose run` is recognized with unknown identity because Compose file interpretation is outside this MVP.
-- **Scan:** `aquasecurity/trivy-action` (`image-ref`), `docker/scout-action` (`image` with `command: cves`, `quickview`, or `compare`), `anchore/scan-action` (`image`); simple `trivy image`, `grype`, and `docker scout cves`/`quickview` commands. Scout commands such as `environment` and `attestation-add` are not treated as scans.
+- **Scan:** `aquasecurity/trivy-action` (`image-ref`), `docker/scout-action` (`image` with `command: cves`, `quickview`, or `compare`), `anchore/scan-action` (`image`); simple `trivy image`, `grype`, and `docker scout cves`/`quickview` commands. Trivy's `input` archive option takes precedence over the image reference and therefore remains unknown. Scout commands such as `environment` and `attestation-add` are not treated as scans.
 - **Attestation:** `actions/attest`, `actions/attest-build-provenance` (`subject-name`, `subject-digest`), and `gh attestation verify oci://...`. This tracks the subject identity; it does not validate signatures or policy itself.
 - **Deploy:** simple `kubectl set image` container assignments and `helm upgrade`/`helm install`. Helm chart values alone do not prove what a chart renders, so Helm deployments have unknown identity unless an explicit annotation describes the image. Custom deployment actions require annotations.
 

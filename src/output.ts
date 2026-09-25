@@ -24,6 +24,20 @@ export function textReport(report: Report, explain = false): string {
         ([kind, state]) => `  ${kind}: ${state}`,
       ),
     );
+    if (explain && operation) {
+      for (const kind of ['test', 'scan', 'attest'] as const) {
+        if (deployment.checks[kind] !== 'unknown') continue;
+        for (const uncertain of report.operations.filter(
+          (op) =>
+            op.kind === kind &&
+            op.runtimeIdentityUnknown !== undefined &&
+            op.identity.key === operation.identity.key,
+        ))
+          lines.push(
+            `  ${kind} identity unknown (${uncertain.location.file}:${uncertain.location.line}): ${uncertain.runtimeIdentityUnknown}`,
+          );
+      }
+    }
   }
   if (!report.deployments.length)
     lines.push('No supported deployments found. Artifact lineage was not verified.');

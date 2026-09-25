@@ -120,13 +120,15 @@ export function analyzeRules(
       const same = candidates.find(
         (op) =>
           guaranteed(op) &&
-          op.runtimeIdentityUnknown === undefined &&
           op.identity.kind === 'immutable' &&
           deploy.identity.kind === 'immutable' &&
           op.identity.key === deploy.identity.key,
       );
       if (same) {
-        checks[kind] = 'proven';
+        // The exact digest was checked, but an OCI index may select a different
+        // runtime manifest. Keep that result unknown and do not compare other
+        // test digests as though the deployed digest had never been tested.
+        if (same.runtimeIdentityUnknown === undefined) checks[kind] = 'proven';
         continue;
       }
       // Compare only concrete digests of the same named repository. Independent

@@ -45,6 +45,18 @@ test('different concrete digests identify test, scan and attestation mismatches'
     ['SB002', 'SB003', 'SB004'],
   );
 });
+test('a matching tested digest is not reported as mismatched because another digest was also tested', () => {
+  const report = simple(
+    `docker run ${image(A)}`,
+    `docker run ${image(B)}`,
+    `kubectl set image deployment/api api=${image(B)}`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+  assert.equal(
+    report.findings.some((finding) => finding.ruleId === 'SB002'),
+    false,
+  );
+});
 test('different repositories are not compared as mismatches', () => {
   assert.equal(
     simple(
@@ -148,15 +160,15 @@ test('ignored background failures do not prove that checks passed', () => {
     false,
   );
 });
-test('ignored or cancelled background tests stay unknown in conditional jobs', () => {
-  const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
+test('ignored and cancelled background tests in conditional jobs stay unknown', () => {
+  const digest = 'ghcr.io/acme/api@${{ needs.build.outputs.digest }}';
+  const workflow = (control: string) =>
+    `jobs:\n  build:\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.image.outputs.digest }}\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n  verify:\n    needs: build\n    runs-on: ubuntu-latest\n    if: github.ref == 'refs/heads/main'\n    steps:\n      - id: test\n        run: docker run ${digest}\n        background: true\n      - ${control}\n  deploy:\n    needs: [build, verify]\n    runs-on: ubuntu-latest\n    steps:\n      - run: trivy image ${digest}\n      - run: gh attestation verify oci://${digest}\n      - run: kubectl set image deployment/api api=${digest}`;
   for (const control of [
     'wait: test\n        continue-on-error: true',
     'cancel: test',
   ]) {
-    const report = analyze(
-      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    if: github.ref == 'refs/heads/main'\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n      - id: test\n        run: docker run ${digest}\n        background: true\n      - ${control}\n      - run: trivy image ${digest}\n      - run: gh attestation verify oci://${digest}\n      - run: kubectl set image deployment/api api=${digest}`,
-    );
+    const report = analyze(workflow(control));
     assert.equal(report.deployments[0].checks.test, 'unknown', control);
     assert.notEqual(report.deployments[0].state, 'proven', control);
     assert.equal(
@@ -164,11 +176,12 @@ test('ignored or cancelled background tests stay unknown in conditional jobs', (
       false,
     );
   }
+  assert.equal(analyze(workflow('wait: test')).deployments[0].checks.test, 'proven');
 });
 test('an explicit success condition on a background wait preserves the result', () => {
-  const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
+  const digest = 'ghcr.io/acme/api@${{ needs.build.outputs.digest }}';
   const report = analyze(
-    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n      - id: test\n        run: docker run ${digest}\n        background: true\n      - wait: test\n        if: success()\n      - run: kubectl set image deployment/api api=${digest}`,
+    `jobs:\n  build:\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.image.outputs.digest }}\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n  verify:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: docker run ${digest}\n        background: true\n      - wait: test\n        if: success()\n  deploy:\n    needs: [build, verify]\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=${digest}`,
   );
   assert.equal(report.deployments[0].checks.test, 'proven');
 });
@@ -238,6 +251,7 @@ test('an external concrete digest does not prove which OCI index child was teste
       ?.runtimeIdentityUnknown ?? '',
     /OCI index/,
   );
+  assert.match(textReport(report, true), /selected platform manifest is not tracked/);
 });
 test('parallel sibling jobs do not establish verification order', () => {
   const report = analyze(
@@ -296,6 +310,24 @@ test('invalid workflow structures and dependencies fail analysis', () => {
   assert.throws(() =>
     analyze('jobs: {a: {runs-on: ubuntu-latest, steps: [{wait: missing}]}}'),
   );
+});
+test('Trivy archive input does not count image-ref as the scanned artifact', () => {
+  const digest = image(A);
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ${digest}\n      - uses: aquasecurity/trivy-action@v0\n        with:\n          image-ref: ${digest}\n          input: ./unrelated-image.tar\n      - run: kubectl set image deployment/api api=${digest}`,
+  );
+  assert.equal(report.deployments[0].checks.scan, 'unknown');
+  assert.equal(
+    report.findings.some((finding) => finding.ruleId === 'SB003'),
+    false,
+  );
+});
+test('Trivy archive input resolved from an expression also remains unknown', () => {
+  const digest = image(A);
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    env:\n      ARCHIVE: ./unrelated-image.tar\n    steps:\n      - uses: aquasecurity/trivy-action@v0\n        with:\n          image-ref: ${digest}\n          input: \${{ env.ARCHIVE }}\n      - run: kubectl set image deployment/api api=${digest}`,
+  );
+  assert.equal(report.deployments[0].checks.scan, 'unknown');
 });
 test('GitHub expression AST handles bracket notation and case-insensitive contexts', () => {
   const scope = new Map([
