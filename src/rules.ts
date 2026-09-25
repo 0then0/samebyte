@@ -143,13 +143,11 @@ export function analyzeRules(
         };
         return visit(deploy.location.job);
       };
-      const same = candidates.find(
-        (op) =>
-          guaranteed(op) &&
-          op.identity.kind === 'immutable' &&
-          deploy.identity.kind === 'immutable' &&
-          op.identity.key === deploy.identity.key,
-      );
+      const sameIdentity = (op: Operation) =>
+        op.identity.kind === 'immutable' &&
+        deploy.identity.kind === 'immutable' &&
+        op.identity.key === deploy.identity.key;
+      const same = candidates.find((op) => guaranteed(op) && sameIdentity(op));
       if (same) {
         // The exact digest was checked, but an OCI index may select a different
         // runtime manifest. Keep that result unknown and do not compare other
@@ -161,6 +159,18 @@ export function analyzeRules(
             line: same.location.line,
             reason: same.runtimeIdentityUnknown,
           };
+        continue;
+      }
+      // A reachable conditional consumer may check this exact artifact on the
+      // runs where deployment occurs. Without evaluating condition correlation,
+      // do not turn a different unconditional digest into a proven mismatch.
+      const possibleSame = candidates.find(sameIdentity);
+      if (possibleSame) {
+        checkReasons[kind] = {
+          file: possibleSame.location.file,
+          line: possibleSame.location.line,
+          reason: `A preceding ${kind} consumer references the deployed artifact, but its condition is not proven to run.`,
+        };
         continue;
       }
       // A recognized consumer with an unresolved identity may refer to the
@@ -253,7 +263,22 @@ export function analyzeRules(
         op.label === 'unsupported shell command'
       );
     });
-    if (stronglyLinkedBuild && checks.test === 'unknown' && !possibleTestOfDeployed) {
+    const conditionalTestOfDeployed = operations.some(
+      (op) =>
+        op.kind === 'test' &&
+        precedes(op, deploy, workflow) &&
+        deploy.identity.kind === 'immutable' &&
+        op.identity.kind === 'immutable' &&
+        op.identity.key === deploy.identity.key &&
+        !bypassesSuccess(deployJob.if) &&
+        !bypassesSuccess(deployStep?.if),
+    );
+    if (
+      stronglyLinkedBuild &&
+      checks.test === 'unknown' &&
+      !possibleTestOfDeployed &&
+      !conditionalTestOfDeployed
+    ) {
       checks.test = 'mismatch';
       add(
         'SB001',

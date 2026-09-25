@@ -45,6 +45,78 @@ test('different concrete digests identify test, scan and attestation mismatches'
     ['SB002', 'SB003', 'SB004'],
   );
 });
+test('conditional matching consumers keep test, scan and attestation lineage unknown', () => {
+  const kinds = [
+    {
+      kind: 'test',
+      old: `docker run ${image(A)} test`,
+      matching: `docker run ${image(B)} test`,
+      deployment: `kubectl set image deployment/api api=${image(B)}`,
+      finding: 'SB002',
+    },
+    {
+      kind: 'scan',
+      old: `trivy image ${image(A)}`,
+      matching: `trivy image ${image(B)}`,
+      deployment: `kubectl set image deployment/api api=${image(B)}`,
+      finding: 'SB003',
+    },
+    {
+      kind: 'attest',
+      old: `gh attestation verify oci://${image(A)}`,
+      matching: `gh attestation verify oci://${image(B)}`,
+      deployment: `kubectl set image deployment/api api=${image(B)}`,
+      finding: 'SB004',
+    },
+  ] as const;
+  for (const scenario of kinds) {
+    const report = analyze(
+      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${JSON.stringify(scenario.old)}\n      - if: github.ref == 'refs/heads/main'\n        run: ${JSON.stringify(scenario.matching)}\n      - if: github.ref == 'refs/heads/main'\n        run: ${JSON.stringify(scenario.deployment)}`,
+    );
+    assert.equal(report.deployments[0].checks[scenario.kind], 'unknown', scenario.kind);
+    assert.equal(
+      report.findings.some((finding) => finding.ruleId === scenario.finding),
+      false,
+      scenario.kind,
+    );
+    assert.match(
+      report.deployments[0].checkReasons?.[scenario.kind]?.reason ?? '',
+      /condition is not proven to run/,
+      scenario.kind,
+    );
+  }
+});
+test('a conditional OCI test of the deployed digest does not produce SB001', () => {
+  const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n      - id: image\n        uses: docker/build-push-action@v6\n      - if: github.ref == 'refs/heads/main'\n        run: docker run ${digest}\n      - if: github.ref == 'refs/heads/main'\n        run: kubectl set image deployment/api api=${digest}`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+  assert.equal(
+    report.findings.some((finding) => finding.ruleId === 'SB001'),
+    false,
+  );
+});
+test('a matching consumer with a different dynamic condition keeps lineage unknown', () => {
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: trivy image ${image(A)}\n      - if: github.ref == 'refs/heads/main'\n        run: trivy image ${image(B)}\n      - if: github.ref == 'refs/heads/release'\n        run: kubectl set image deployment/api api=${image(B)}`,
+  );
+  assert.equal(report.deployments[0].checks.scan, 'unknown');
+  assert.equal(
+    report.findings.some((finding) => finding.ruleId === 'SB003'),
+    false,
+  );
+});
+test('a statically disabled matching consumer does not hide a real mismatch', () => {
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: trivy image ${image(A)}\n      - if: false\n        run: trivy image ${image(B)}\n      - run: kubectl set image deployment/api api=${image(B)}`,
+  );
+  assert.equal(report.deployments[0].checks.scan, 'mismatch');
+  assert.equal(
+    report.findings.some((finding) => finding.ruleId === 'SB003'),
+    true,
+  );
+});
 test('an unresolved preceding consumer keeps a digest mismatch unknown', () => {
   const cases = [
     {
