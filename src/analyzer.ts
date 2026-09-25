@@ -45,8 +45,10 @@ const invalidateTrivyInput = (scope: Scope) => {
 const hasUnknownShellArgumentBeforeReference = (
   tokens: string[],
   reference: string,
+  referenceIndex?: number,
 ) => {
-  const index = tokens.findIndex((token) => token.includes(reference));
+  const index =
+    referenceIndex ?? tokens.findIndex((token) => token.includes(reference));
   return tokens
     .slice(0, index < 0 ? tokens.length : index)
     .some((token) => token.includes('__samebyte_unknown__'));
@@ -438,6 +440,7 @@ export function analyzeWorkflow(
                       hasUnknownShellArgumentBeforeReference(
                         tokens,
                         consumer.reference,
+                        consumer.referenceIndex,
                       ),
                     trace: consumer.identityUnknown
                       ? [...resolved.trace, consumer.identityUnknown]

@@ -38,7 +38,9 @@ export function flag(tokens: string[], ...names: string[]): string | undefined {
     }
   return undefined;
 }
-export function runImage(tokens: string[]): string | undefined {
+export function runImage(
+  tokens: string[],
+): { reference: string; index: number } | undefined {
   const argumentFlags = new Set([
     '-e',
     '--env',
@@ -72,7 +74,7 @@ export function runImage(tokens: string[]): string | undefined {
     )
       continue;
     if (token.startsWith('-')) return undefined;
-    return token;
+    return { reference: token, index: i };
   }
   return undefined;
 }

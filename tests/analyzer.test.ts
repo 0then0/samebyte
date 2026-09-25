@@ -959,6 +959,19 @@ test('unknown shell values before a docker image keep its identity unknown', () 
     false,
   );
 });
+test('repeated image references use the docker run image argument position', () => {
+  const imageArgument = 'ghcr.io/acme/api@${{ steps.build.outputs.digest }}';
+  const deploy = `kubectl set image deployment/api api=${imageArgument}`;
+  const withUnknownOption = analyze(
+    `env:\n  OPTS: KEY=initial\njobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: build\n        uses: docker/build-push-action@v6\n      - run: echo "OPTS=KEY=updated" >> "$GITHUB_ENV"\n      - run: docker run --env BASE=${imageArgument} --env $OPTS ${imageArgument} npm test\n      - run: ${deploy}`,
+  );
+  assert.equal(withUnknownOption.deployments[0].checks.test, 'unknown');
+
+  const withoutUnknownOption = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: build\n        uses: docker/build-push-action@v6\n      - run: docker run --env BASE=${imageArgument} ${imageArgument} npm test\n      - run: ${deploy}`,
+  );
+  assert.equal(withoutUnknownOption.deployments[0].checks.test, 'proven');
+});
 test('Docker Scout only counts supported scan commands', () => {
   const imageRef = `ghcr.io/acme/api@${A}`;
   const deploy = `kubectl set image deployment/api api=${imageRef}`;

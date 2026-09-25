@@ -3,6 +3,7 @@ import { flag, runImage } from './shell.js';
 export interface Consumption {
   kind: OperationKind;
   reference?: string;
+  referenceIndex?: number;
   usedInputs?: string[];
   identityUnknown?: string;
 }
@@ -143,11 +144,13 @@ export function shellConsumption(
     tokens[0] === 'kubectl' &&
     tokens.some((token) => token === '--local' || token === '--local=true');
   if (helmDryRun || kubectlDryRun || kubectlLocal) return [];
-  if (tokens[0] === 'docker' && tokens[1] === 'run')
+  if (tokens[0] === 'docker' && tokens[1] === 'run') {
+    const image = runImage(tokens);
     return [
       {
         kind: 'test',
-        reference: runImage(tokens),
+        reference: image?.reference,
+        referenceIndex: image?.index,
         identityUnknown: tokens.some(
           (token, index) =>
             token === '--platform' ||
@@ -158,6 +161,7 @@ export function shellConsumption(
           : undefined,
       },
     ];
+  }
   if (tokens[0] === 'docker' && tokens[1] === 'compose' && tokens.includes('run'))
     return [{ kind: 'test' }];
   if (tokens[0] === 'trivy' && tokens[1] === 'image')
