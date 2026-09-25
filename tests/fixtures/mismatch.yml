@@ -1,0 +1,13 @@
+name: Different digests
+on: push
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - run: docker run --rm ghcr.io/acme/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa npm test
+      - run: trivy image ghcr.io/acme/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/acme/api
+          subject-digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      - run: kubectl set image deployment/api api=ghcr.io/acme/api@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb

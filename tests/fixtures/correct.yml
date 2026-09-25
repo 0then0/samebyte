@@ -1,0 +1,37 @@
+name: Build once
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ghcr.io/acme/api:release
+  verify:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/acme/api@${{ needs.build.outputs.digest }}
+    outputs:
+      image: ${{ steps.forward.outputs.image }}
+    steps:
+      - run: docker run --rm "$IMAGE" npm test
+      - uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ env.IMAGE }}
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/acme/api
+          subject-digest: ${{ needs.build.outputs.digest }}
+      - id: forward
+        run: echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/api api=${{ needs.verify.outputs.image }}

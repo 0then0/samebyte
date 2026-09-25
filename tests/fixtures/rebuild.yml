@@ -1,0 +1,25 @@
+name: Rebuild after tests
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: npm ci
+      - run: npm run build
+      - run: npm test
+  image:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ghcr.io/acme/api:${{ github.sha }}
+  deploy:
+    needs: image
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/api api=ghcr.io/acme/api@${{ needs.image.outputs.digest }}

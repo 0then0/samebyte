@@ -1,0 +1,53 @@
+{
+  "name": "samebyte",
+  "version": "0.1.0",
+  "description": "Test the same bytes you deploy. Static OCI artifact lineage analysis for GitHub Actions.",
+  "scripts": {
+    "build": "esbuild src/cli.ts --bundle --external:yaml --platform=node --format=esm --target=node22 --outfile=dist/cli.js",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "npm run build && esbuild tests/*.test.ts --bundle --external:yaml --platform=node --format=esm --target=node22 --outdir=.test-dist && node --test .test-dist/*.test.js",
+    "prepack": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0then0/samebyte.git"
+  },
+  "keywords": [
+    "github-actions",
+    "oci",
+    "docker",
+    "artifact",
+    "lineage",
+    "static-analysis"
+  ],
+  "author": "",
+  "license": "Apache-2.0",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/0then0/samebyte/issues"
+  },
+  "homepage": "https://github.com/0then0/samebyte#readme",
+  "dependencies": {
+    "@actions/expressions": "^0.3.61",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
+    "@types/node": "^26.6.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^7.0.2"
+  },
+  "bin": {
+    "samebyte": "dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}

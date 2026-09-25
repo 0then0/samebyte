@@ -1,0 +1,35 @@
+name: SameByte
+description: Check that GitHub Actions tests, scans, attests and deploys the same OCI artifact.
+inputs:
+  path:
+    description: Repository, workflow directory or YAML file to analyze.
+    default: '.'
+  format:
+    description: 'Output format: text, json or sarif.'
+    default: text
+  config:
+    description: Optional SameByte JSON annotations file.
+    default: ''
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    - name: Install SameByte
+      shell: bash
+      run: |
+        npm ci --prefix "$GITHUB_ACTION_PATH" --ignore-scripts
+        npm run build --prefix "$GITHUB_ACTION_PATH"
+    - name: Check artifact lineage
+      shell: bash
+      env:
+        SAMEBYTE_PATH: ${{ inputs.path }}
+        SAMEBYTE_FORMAT: ${{ inputs.format }}
+        SAMEBYTE_CONFIG: ${{ inputs.config }}
+      run: |
+        args=("$SAMEBYTE_PATH" --format "$SAMEBYTE_FORMAT")
+        if [[ -n "$SAMEBYTE_CONFIG" ]]; then
+          args+=(--config "$SAMEBYTE_CONFIG")
+        fi
+        node "$GITHUB_ACTION_PATH/dist/cli.js" "${args[@]}"

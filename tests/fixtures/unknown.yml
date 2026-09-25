@@ -1,0 +1,10 @@
+on: push
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - id: build
+        uses: docker/build-push-action@v6
+      - id: transform
+        run: echo "image=$(./transform.sh '${{ steps.build.outputs.digest }}')" >> "$GITHUB_OUTPUT"
+      - run: kubectl set image deployment/api api=${{ steps.transform.outputs.image }}

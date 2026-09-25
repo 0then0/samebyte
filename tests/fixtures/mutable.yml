@@ -1,0 +1,8 @@
+name: Mutable deployment
+on: push
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - run: docker run --rm ghcr.io/acme/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa npm test
+      - run: kubectl set image deployment/api api=ghcr.io/acme/api:latest
