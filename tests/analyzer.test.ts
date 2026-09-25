@@ -97,6 +97,36 @@ test('a conditional OCI test of the deployed digest does not produce SB001', () 
     false,
   );
 });
+test('a matching OCI test with compound success conditions does not produce SB001', () => {
+  const digest = 'ghcr.io/acme/api@${{ needs.build.outputs.digest }}';
+  const condition = "${{ success() && github.ref == 'refs/heads/main' }}";
+  const report = analyze(
+    `jobs:\n  build:\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.image.outputs.digest }}\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n  test:\n    needs: build\n    runs-on: ubuntu-latest\n    if: ${JSON.stringify(condition)}\n    steps:\n      - run: docker run ${digest} test\n  deploy:\n    needs: [build, test]\n    runs-on: ubuntu-latest\n    if: ${JSON.stringify(condition)}\n    steps:\n      - run: kubectl set image deployment/api api=${digest}`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+  assert.equal(
+    report.findings.some((finding) => finding.ruleId === 'SB001'),
+    false,
+  );
+});
+test('compound success conditions at step level preserve a possible matching OCI test', () => {
+  const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
+  for (const condition of [
+    "${{ success() && github.ref == 'refs/heads/main' }}",
+    "${{ !cancelled() && github.ref == 'refs/heads/main' }}",
+    'always()',
+  ]) {
+    const report = analyze(
+      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n      - run: docker run ${digest} test\n        if: ${JSON.stringify(condition)}\n      - run: kubectl set image deployment/api api=${digest}\n        if: ${JSON.stringify(condition)}`,
+    );
+    assert.equal(report.deployments[0].checks.test, 'unknown', condition);
+    assert.equal(
+      report.findings.some((finding) => finding.ruleId === 'SB001'),
+      false,
+      condition,
+    );
+  }
+});
 test('a matching consumer with a different dynamic condition keeps lineage unknown', () => {
   const report = analyze(
     `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: trivy image ${image(A)}\n      - if: github.ref == 'refs/heads/main'\n        run: trivy image ${image(B)}\n      - if: github.ref == 'refs/heads/release'\n        run: kubectl set image deployment/api api=${image(B)}`,
@@ -1007,7 +1037,7 @@ test('a conditional required test job proves the deployed digest only when its d
   assert.notEqual(bypass.deployments[0].checks.test, 'proven');
   assert.equal(
     bypass.findings.some((item) => item.ruleId === 'SB001'),
-    true,
+    false,
   );
 
   const stepAlways = analyze(
@@ -1019,6 +1049,6 @@ test('a conditional required test job proves the deployed digest only when its d
   assert.notEqual(stepAlways.deployments[0].checks.test, 'proven');
   assert.equal(
     stepAlways.findings.some((item) => item.ruleId === 'SB001'),
-    true,
+    false,
   );
 });

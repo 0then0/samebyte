@@ -269,9 +269,7 @@ export function analyzeRules(
         precedes(op, deploy, workflow) &&
         deploy.identity.kind === 'immutable' &&
         op.identity.kind === 'immutable' &&
-        op.identity.key === deploy.identity.key &&
-        !bypassesSuccess(deployJob.if) &&
-        !bypassesSuccess(deployStep?.if),
+        op.identity.key === deploy.identity.key,
     );
     if (
       stronglyLinkedBuild &&
