@@ -45,6 +45,50 @@ test('different concrete digests identify test, scan and attestation mismatches'
     ['SB002', 'SB003', 'SB004'],
   );
 });
+test('an unresolved preceding consumer keeps a digest mismatch unknown', () => {
+  const cases = [
+    {
+      kind: 'test',
+      known: `docker run ${image(A)}`,
+      unknown: `docker run --cap-add NET_ADMIN ${image(B)} test`,
+      rule: 'SB002',
+    },
+    {
+      kind: 'scan',
+      known: `trivy image ${image(A)}`,
+      unknown: `trivy image --input ./image-b.tar ${image(B)}`,
+      rule: 'SB003',
+    },
+    {
+      kind: 'attest',
+      known: `gh attestation verify oci://${image(A)}`,
+      unknown: 'gh attestation verify',
+      rule: 'SB004',
+    },
+  ] as const;
+  const deploy = `kubectl set image deployment/api api=${image(B)}`;
+  for (const scenario of cases) {
+    const report = simple(scenario.known, scenario.unknown, deploy);
+    assert.equal(report.deployments[0].checks[scenario.kind], 'unknown', scenario.kind);
+    assert.equal(
+      report.findings.some((finding) => finding.ruleId === scenario.rule),
+      false,
+      scenario.kind,
+    );
+  }
+});
+test('an unresolved consumer after deployment cannot suppress a known mismatch', () => {
+  const report = simple(
+    `docker run ${image(A)}`,
+    `kubectl set image deployment/api api=${image(B)}`,
+    `docker run --cap-add NET_ADMIN ${image(B)} test`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'mismatch');
+  assert.equal(
+    report.findings.some((finding) => finding.ruleId === 'SB002'),
+    true,
+  );
+});
 test('a matching tested digest is not reported as mismatched because another digest was also tested', () => {
   const report = simple(
     `docker run ${image(A)}`,

@@ -138,6 +138,10 @@ export function analyzeRules(
           };
         continue;
       }
+      // A recognized consumer with an unresolved identity may refer to the
+      // deployed digest. Do not claim a mismatch while that possibility is
+      // still in the lineage; the check remains unknown instead.
+      if (candidates.some((op) => op.identity.kind === 'unknown')) continue;
       // Compare only concrete digests of the same named repository. Independent
       // symbolic build outputs can still represent identical bytes.
       const different = candidates.filter(
