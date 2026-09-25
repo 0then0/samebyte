@@ -194,18 +194,25 @@ export function analyzeRules(
       );
       if (
         op.kind !== 'test' ||
-        !dependsOn(op, deploy, workflow) ||
-        (op.location.job === deploy.location.job && op.order >= deploy.order) ||
-        op.runtimeIdentityUnknown !== undefined ||
-        op.identity.kind !== 'immutable' ||
+        !precedes(op, deploy, workflow) ||
         deploy.identity.kind !== 'immutable' ||
-        op.identity.key !== deploy.identity.key ||
+        !(
+          op.identity.kind === 'unknown' ||
+          (op.identity.kind === 'immutable' &&
+            op.identity.key === deploy.identity.key) ||
+          (op.identity.kind === 'mutable' &&
+            op.identity.repository === deploy.identity.repository)
+        ) ||
         bypassesSuccess(deployJob.if) ||
         bypassesSuccess(deployStep?.if) ||
         intermediateBypasses
       )
         return false;
-      return !op.guarded || op.guardedByJobCondition === true;
+      return (
+        !op.guarded ||
+        op.guardedByJobCondition === true ||
+        op.label === 'unsupported shell command'
+      );
     });
     if (stronglyLinkedBuild && checks.test === 'unknown' && !possibleTestOfDeployed) {
       checks.test = 'mismatch';

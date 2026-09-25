@@ -209,8 +209,11 @@ test('background step outputs become available only after waiting', () => {
   const beforeWait = analyze(
     `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n      - id: image\n        uses: docker/build-push-action@v6\n        background: true\n      - run: docker run ghcr.io/acme/api@\${{ steps.image.outputs.digest }}\n      - wait: image\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ steps.image.outputs.digest }}`,
   );
-  assert.equal(beforeWait.deployments[0].checks.test, 'mismatch');
-  assert.ok(beforeWait.findings.some((finding) => finding.ruleId === 'SB001'));
+  assert.equal(beforeWait.deployments[0].checks.test, 'unknown');
+  assert.equal(
+    beforeWait.findings.some((finding) => finding.ruleId === 'SB001'),
+    false,
+  );
 
   const afterWait = analyze(
     `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n        background: true\n      - wait: image\n      - run: docker run ghcr.io/acme/api@\${{ steps.image.outputs.digest }}\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ steps.image.outputs.digest }}`,
@@ -386,6 +389,51 @@ test('Trivy environment variable names preserve case', () => {
     );
     assert.equal(report.deployments[0].checks.scan, 'proven');
   }
+});
+test('new TRIVY_INPUT shell assignments cannot prove later scans', () => {
+  const digest = image(A);
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: |\n          export TRIVY_INPUT=./unrelated-image.tar\n          trivy image ${digest}\n      - run: kubectl set image deployment/api api=${digest}`,
+  );
+  assert.equal(report.deployments[0].checks.scan, 'unknown');
+  assert.notEqual(report.deployments[0].state, 'proven');
+});
+test('new TRIVY_INPUT written to GITHUB_ENV cannot prove later action scans', () => {
+  const digest = image(A);
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo "TRIVY_INPUT=./unrelated-image.tar" >> "$GITHUB_ENV"\n      - uses: aquasecurity/trivy-action@v0\n        with:\n          image-ref: ${digest}\n      - run: kubectl set image deployment/api api=${digest}`,
+  );
+  assert.equal(report.deployments[0].checks.scan, 'unknown');
+  assert.notEqual(report.deployments[0].state, 'proven');
+});
+test('unresolved OCI tests remain unknown instead of producing SB001', () => {
+  const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
+  const workflow = (testCommand: string) =>
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n      - id: image\n        uses: docker/build-push-action@v6\n        with:\n          push: true\n      - run: ${JSON.stringify(testCommand)}\n      - run: kubectl set image deployment/api api=${digest}`;
+
+  for (const command of [
+    `docker run --cap-add NET_ADMIN ${digest} npm test`,
+    `docker run --platform linux/amd64 ${digest} npm test`,
+    `docker run ${digest} npm test && echo passed`,
+    `docker compose run integration-test`,
+  ]) {
+    const report = analyze(workflow(command));
+    assert.equal(report.deployments[0].checks.test, 'unknown', command);
+    assert.notEqual(report.deployments[0].state, 'mismatch', command);
+    assert.equal(
+      report.findings.some((finding) => finding.ruleId === 'SB001'),
+      false,
+      command,
+    );
+  }
+
+  const unrelated = analyze(workflow(`docker run postgres@${B} npm test`));
+  assert.ok(unrelated.findings.some((finding) => finding.ruleId === 'SB001'));
+
+  const notAwaited = analyze(
+    `jobs:\n  source:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n  build:\n    needs: source\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.image.outputs.digest }}\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n  verify-and-deploy:\n    needs: build\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: docker run ghcr.io/acme/api@\${{ needs.build.outputs.digest }} npm test\n        background: true\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ needs.build.outputs.digest }}`,
+  );
+  assert.ok(notAwaited.findings.some((finding) => finding.ruleId === 'SB001'));
 });
 test('GitHub expression AST handles bracket notation and case-insensitive contexts', () => {
   const scope = new Map([

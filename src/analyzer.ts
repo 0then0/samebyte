@@ -37,6 +37,11 @@ const isExplicitSuccess = (condition: unknown): boolean =>
     .replace(/^\((.*)\)$/s, '$1')
     .trim()
     .toLowerCase() === 'success()';
+const invalidateTrivyInput = (scope: Scope) => {
+  const value = unknownValue('unknown TRIVY_INPUT value', 'Shell environment mutation');
+  bind(scope, 'env.TRIVY_INPUT', value);
+  scope.set('shell.TRIVY_INPUT', value);
+};
 export function validateConfig(raw: unknown): Config {
   const config = raw as Config;
   if (!config || !Array.isArray(config.annotations))
@@ -367,6 +372,8 @@ export function analyzeWorkflow(
                     key,
                     unknownValue('unknown environment value', 'GITHUB_ENV mutation'),
                   );
+            invalidateTrivyInput(scope);
+            invalidateTrivyInput(stepScope);
           }
           const resolved = shellValue(line, stepScope);
           const tokens = complex ? undefined : tokenize(resolved.text);
@@ -443,6 +450,11 @@ export function analyzeWorkflow(
                     'Shell environment mutation',
                   ),
                 );
+            const assignedTrivyInput =
+              /^TRIVY_INPUT=/.test(line) ||
+              (tokens[0] === 'export' &&
+                tokens.slice(1).some((token) => /^TRIVY_INPUT(?:=|$)/.test(token)));
+            if (assignedTrivyInput) invalidateTrivyInput(stepScope);
             if (line.includes('GITHUB_ENV'))
               for (const key of scope.keys())
                 if (key.startsWith('env.') || key.startsWith('shell.'))
@@ -450,6 +462,7 @@ export function analyzeWorkflow(
                     key,
                     unknownValue('unknown environment value', 'GITHUB_ENV mutation'),
                   );
+            if (line.includes('GITHUB_ENV')) invalidateTrivyInput(scope);
           }
         }
       }
