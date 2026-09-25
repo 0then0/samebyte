@@ -134,6 +134,29 @@ test('statically disabled deployments do not produce findings', () => {
     assert.deepEqual(report.findings, []);
   }
 });
+test('skipped prerequisite jobs make dependent deployments unreachable', () => {
+  const direct = analyze(
+    `jobs:\n  verify:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ${image(A)}\n  disabled:\n    runs-on: ubuntu-latest\n    if: false\n    steps:\n      - run: echo disabled\n  deploy:\n    needs: [verify, disabled]\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=${image(B)}`,
+  );
+  assert.deepEqual(direct.deployments, []);
+  assert.deepEqual(direct.findings, []);
+
+  const transitive = analyze(
+    `jobs:\n  disabled:\n    runs-on: ubuntu-latest\n    if: false\n    steps:\n      - run: echo disabled\n  middle:\n    needs: disabled\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo middle\n  deploy:\n    needs: middle\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api:latest`,
+  );
+  assert.deepEqual(transitive.deployments, []);
+  assert.deepEqual(transitive.findings, []);
+});
+test('always-conditioned deployments remain analyzable after skipped needs', () => {
+  const report = analyze(
+    `jobs:\n  disabled:\n    runs-on: ubuntu-latest\n    if: false\n    steps:\n      - run: echo disabled\n  deploy:\n    needs: disabled\n    runs-on: ubuntu-latest\n    if: always()\n    steps:\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api:latest`,
+  );
+  assert.equal(report.deployments.length, 1);
+  assert.deepEqual(
+    report.findings.map((finding) => finding.ruleId),
+    ['SB005'],
+  );
+});
 test('an unresolved consumer after deployment cannot suppress a known mismatch', () => {
   const report = simple(
     `docker run ${image(A)}`,

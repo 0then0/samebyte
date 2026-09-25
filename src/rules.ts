@@ -18,6 +18,21 @@ const isDisabled = (operation: Operation, workflow: Workflow) => {
   const job = workflow.jobs[operation.location.job];
   return neverRuns(job.if) || neverRuns(job.steps[operation.location.step]?.if);
 };
+function jobIsSkippedByNeeds(
+  jobId: string,
+  workflow: Workflow,
+  visiting = new Set<string>(),
+): boolean {
+  const job = workflow.jobs[jobId];
+  if (neverRuns(job.if)) return true;
+  if (bypassesSuccess(job.if) || visiting.has(jobId)) return false;
+  visiting.add(jobId);
+  const skipped = job.needs.some((need) =>
+    jobIsSkippedByNeeds(need, workflow, visiting),
+  );
+  visiting.delete(jobId);
+  return skipped;
+}
 
 function jobDependsOn(from: string, to: string, workflow: Workflow): boolean {
   if (from === to) return true;
@@ -51,7 +66,10 @@ export function analyzeRules(
       path: op.identity.trace,
     }));
   for (const deploy of operations.filter(
-    (op) => op.kind === 'deploy' && !isDisabled(op, workflow),
+    (op) =>
+      op.kind === 'deploy' &&
+      !isDisabled(op, workflow) &&
+      !jobIsSkippedByNeeds(op.location.job, workflow),
   )) {
     const checks: Deployment['checks'] = {
       test: 'unknown',
