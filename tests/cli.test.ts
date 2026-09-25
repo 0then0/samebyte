@@ -36,6 +36,13 @@ test('invalid and empty workflows produce analysis errors', async () => {
     const invalidOutput = cli('tests/fixtures/invalid-output.yml', '--format', 'json');
     assert.equal(invalidOutput.status, 2);
     assert.match(JSON.parse(invalidOutput.stdout).diagnostics[0].message, /outputs/);
+    await writeFile(
+      join(dir, 'parallel.yml'),
+      'jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - parallel:\n          - run: docker run ghcr.io/acme/api:latest\n',
+    );
+    const parallel = cli(join(dir, 'parallel.yml'), '--format', 'json');
+    assert.equal(parallel.status, 2);
+    assert.match(JSON.parse(parallel.stdout).diagnostics[0].message, /parallel block/);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

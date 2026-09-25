@@ -33,6 +33,7 @@ export interface Operation {
   label: string;
   guarded: boolean;
   order: number;
+  completionStep?: number;
   producedReference?: string;
 }
 export interface Artifact {
@@ -73,6 +74,11 @@ export interface Step {
   with?: Record<string, unknown>;
   if?: unknown;
   'continue-on-error'?: unknown;
+  background?: unknown;
+  wait?: unknown;
+  'wait-all'?: unknown;
+  cancel?: unknown;
+  parallel?: unknown;
   line: number;
   shell?: string;
 }

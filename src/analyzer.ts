@@ -31,6 +31,12 @@ export interface Annotation {
 export interface Config {
   annotations: Annotation[];
 }
+const isExplicitSuccess = (condition: unknown): boolean =>
+  String(condition)
+    .replace(/^\s*\$\{\{\s*|\s*\}\}\s*$/g, '')
+    .replace(/^\((.*)\)$/s, '$1')
+    .trim()
+    .toLowerCase() === 'success()';
 export function validateConfig(raw: unknown): Config {
   const config = raw as Config;
   if (!config || !Array.isArray(config.annotations))
@@ -66,17 +72,81 @@ export function analyzeWorkflow(
     .slice(0, 16);
   for (const [jobId, job] of Object.entries(workflow.jobs)) {
     let scope: Scope = new Map();
+    const backgroundOperations = new Map<string, Operation[]>();
+    const pendingBackgroundOutputs = new Map<string, Map<string, Value>>();
+    const hasParallelBlock = job.steps.some((step) => step.parallel !== undefined);
+    const publishStepOutput = (
+      stepId: string,
+      name: string,
+      value: Value,
+      background: boolean,
+    ) => {
+      const key = `steps.${stepId}.outputs.${name}`;
+      if (!background) {
+        bind(scope, key, value);
+        return;
+      }
+      const outputs = pendingBackgroundOutputs.get(stepId) ?? new Map<string, Value>();
+      outputs.set(key, value);
+      pendingBackgroundOutputs.set(stepId, outputs);
+      bind(
+        scope,
+        key,
+        unknownValue(value.text, 'Output unavailable before background wait'),
+      );
+    };
+    const releaseBackgroundOutputs = (stepId: string) => {
+      for (const [key, value] of pendingBackgroundOutputs.get(stepId) ?? [])
+        bind(scope, key, value);
+      pendingBackgroundOutputs.delete(stepId);
+    };
     for (const need of job.needs)
       for (const [key, value] of jobOutputs.get(need) ?? [])
         bind(scope, `needs.${need}.outputs.${key}`, value);
     scope = environment(environment(scope, workflow.env), job.env);
     for (const [index, step] of job.steps.entries()) {
+      if (
+        step.wait !== undefined ||
+        step['wait-all'] === true ||
+        step['wait-all'] === null
+      ) {
+        const targets =
+          step['wait-all'] === true || step['wait-all'] === null
+            ? [...backgroundOperations.keys()]
+            : Array.isArray(step.wait)
+              ? step.wait
+              : [step.wait as string];
+        for (const target of targets) {
+          for (const operation of backgroundOperations.get(target) ?? [])
+            operation.completionStep = index;
+          releaseBackgroundOutputs(target);
+          backgroundOperations.delete(target);
+        }
+        continue;
+      }
+      if (step.cancel !== undefined) {
+        const targets = Array.isArray(step.cancel)
+          ? step.cancel
+          : [step.cancel as string];
+        for (const target of targets) {
+          for (const operation of backgroundOperations.get(target) ?? []) {
+            operation.completionStep = index;
+            operation.guarded = true;
+          }
+          pendingBackgroundOutputs.delete(target);
+          backgroundOperations.delete(target);
+        }
+        continue;
+      }
+      const firstOperation = operations.length;
+      const backgroundId = step.id ?? `__samebyte_background_${index}`;
       const stepScope = environment(scope, step.env);
       const stepId = step.id ?? String(index + 1);
       const guarded =
-        job.if !== undefined ||
-        step.if !== undefined ||
+        (job.if !== undefined && !isExplicitSuccess(job.if)) ||
+        (step.if !== undefined && !isExplicitSuccess(step.if)) ||
         job.strategy !== undefined ||
+        hasParallelBlock ||
         !!job['continue-on-error'] ||
         !!step['continue-on-error'];
       const prefix = `${workflow.file}#${jobId}.${stepId}`;
@@ -95,6 +165,7 @@ export function analyzeWorkflow(
           }),
           label,
           order: operations.length,
+          completionStep: step.background === true ? job.steps.length : undefined,
           guarded: guarded || extraGuard,
           location: {
             file: workflow.file,
@@ -106,17 +177,28 @@ export function analyzeWorkflow(
         operations.push(operation);
         return operation;
       };
-      const produce = (label: string, output?: string, reference?: Value) => {
+      const produce = (
+        label: string,
+        output?: string,
+        reference?: Value,
+        unknownIdentity = false,
+      ) => {
         const digest: Value = {
           text: `__samebyte_digest_${namespace}_${++digestSequence}__`,
-          unknown: guarded,
-          trace: [`${jobId}.${stepId}: ${label}`, 'OCI digest output'],
+          unknown: guarded || unknownIdentity,
+          trace: [
+            `${jobId}.${stepId}: ${label}`,
+            ...(unknownIdentity
+              ? ['multi-platform child manifest identity is not tracked']
+              : []),
+            'OCI digest output',
+          ],
         };
         const build = record('build', digest, label);
         if (reference && !reference.unknown && !/[\s,]/.test(reference.text))
           build.producedReference = reference.text;
         if (output && step.id)
-          bind(scope, `steps.${step.id}.outputs.${output}`, digest);
+          publishStepOutput(step.id, output, digest, step.background === true);
       };
       const annotations = config.annotations.filter(
         (a) =>
@@ -139,15 +221,22 @@ export function analyzeWorkflow(
               'User-declared artifact consumer',
             );
         }
+        if (step.background === true)
+          backgroundOperations.set(backgroundId, operations.slice(firstOperation));
         continue;
       }
       if (step.uses) {
         const action = step.uses.split('@')[0].toLowerCase();
         if (action === 'docker/build-push-action') {
+          const platforms = String(step.with?.platforms ?? '').trim();
+          const multiPlatform =
+            platforms.includes('${{') ||
+            platforms.split(/[\s,]+/).filter(Boolean).length > 1;
           produce(
             step.uses,
             'digest',
             step.with?.tags ? resolveValue(step.with.tags, stepScope) : undefined,
+            multiPlatform,
           );
         } else {
           const inputs = Object.fromEntries(
@@ -224,7 +313,7 @@ export function analyzeWorkflow(
                   ? resolveValue(output[3], stepScope)
                   : shellValue(output[3], stepScope);
             value.unknown ||= guarded;
-            bind(scope, `steps.${step.id}.outputs.${output[2]}`, value);
+            publishStepOutput(step.id, output[2], value, step.background === true);
             continue;
           }
           if (line.includes('GITHUB_ENV')) {
@@ -307,7 +396,11 @@ export function analyzeWorkflow(
           }
         }
       }
+      if (step.background === true)
+        backgroundOperations.set(backgroundId, operations.slice(firstOperation));
     }
+    for (const stepId of pendingBackgroundOutputs.keys())
+      releaseBackgroundOutputs(stepId);
     const outputs: Scope = new Map();
     for (const [key, raw] of Object.entries(job.outputs ?? {}))
       bind(outputs, key, resolveValue(raw, scope));
@@ -333,13 +426,19 @@ export function analyzeWorkflow(
     );
   }
   const result = analyzeRules(operations, workflow);
+  const diagnostics = Object.entries(workflow.jobs)
+    .filter(([, job]) => job.steps.some((step) => step.parallel !== undefined))
+    .map(([job]) => ({
+      file: workflow.file,
+      message: `Job ${job} contains a parallel block whose nested operations are not analyzed; artifact lineage is incomplete.`,
+    }));
   return {
     version: 1,
     workflows: [workflow.file],
     operations,
     artifacts,
     ...result,
-    diagnostics: [],
+    diagnostics,
   };
 }
 export function mergeReports(reports: Report[]): Report {

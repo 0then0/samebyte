@@ -1,16 +1,37 @@
 import type { Deployment, Finding, Operation, State, Workflow } from './model.js';
 
-export function precedes(a: Operation, b: Operation, workflow: Workflow): boolean {
-  if (a.location.job === b.location.job) return a.order < b.order;
+const normalizedCondition = (condition: unknown) =>
+  String(condition)
+    .replace(/^\s*\$\{\{\s*|\s*\}\}\s*$/g, '')
+    .trim()
+    .replace(/^\((.*)\)$/s, '$1')
+    .trim()
+    .toLowerCase();
+const explicitSuccess = (condition: unknown) =>
+  condition === undefined || normalizedCondition(condition) === 'success()';
+const hasStatusCheck = (condition: unknown) =>
+  /\b(?:success|failure|cancelled|always)\s*\(/i.test(String(condition));
+const bypassesSuccess = (condition: unknown) =>
+  hasStatusCheck(condition) && !explicitSuccess(condition);
+
+function jobDependsOn(from: string, to: string, workflow: Workflow): boolean {
+  if (from === to) return true;
   const seen = new Set<string>();
   const visit = (job: string): boolean => {
     if (seen.has(job)) return false;
     seen.add(job);
-    return workflow.jobs[job].needs.some(
-      (need) => need === a.location.job || visit(need),
-    );
+    return workflow.jobs[job].needs.some((need) => need === from || visit(need));
   };
-  return visit(b.location.job);
+  return visit(to);
+}
+function dependsOn(a: Operation, b: Operation, workflow: Workflow): boolean {
+  return jobDependsOn(a.location.job, b.location.job, workflow);
+}
+export function precedes(a: Operation, b: Operation, workflow: Workflow): boolean {
+  if (!dependsOn(a, b, workflow)) return false;
+  if (a.location.job !== b.location.job) return true;
+  if (a.order >= b.order) return false;
+  return a.completionStep === undefined || a.completionStep < b.location.step;
 }
 export function analyzeRules(
   operations: Operation[],
@@ -66,27 +87,34 @@ export function analyzeRules(
         (op) => op.kind === kind && precedes(op, deploy, workflow),
       );
       const guaranteed = (op: Operation): boolean => {
-        const hasStatusCheck = (condition: unknown) =>
-          /\b(?:success|failure|cancelled|always)\s*\(/i.test(String(condition));
+        const safeCondition = (condition: unknown) =>
+          condition === undefined ||
+          explicitSuccess(condition) ||
+          !hasStatusCheck(condition);
+        const operationStepConditionIsSafe = (condition: unknown) =>
+          condition === undefined || explicitSuccess(condition);
         const operationJob = workflow.jobs[op.location.job];
         const operationStep = operationJob.steps[op.location.step];
         const deploymentJob = workflow.jobs[deploy.location.job];
         const deploymentStep = deploymentJob.steps[deploy.location.step];
-        if (hasStatusCheck(deploymentStep?.if)) return false;
-        const onlyDefaultJobCondition =
-          operationJob.if !== undefined &&
-          operationJob.strategy === undefined &&
-          !operationJob['continue-on-error'] &&
-          operationStep?.if === undefined &&
-          !operationStep?.['continue-on-error'] &&
-          !hasStatusCheck(operationJob.if);
+        if (!safeCondition(deploymentJob.if) || !safeCondition(deploymentStep?.if))
+          return false;
         const visit = (id: string): boolean => {
           const job = workflow.jobs[id];
-          if (id === op.location.job) return !op.guarded || onlyDefaultJobCondition;
+          if (id === op.location.job)
+            return (
+              safeCondition(job.if) &&
+              operationStepConditionIsSafe(operationStep?.if) &&
+              (!op.guarded ||
+                (job.if !== undefined &&
+                  operationStep?.if === undefined &&
+                  job.strategy === undefined &&
+                  !job['continue-on-error']))
+            );
           if (
             job.strategy !== undefined ||
             job['continue-on-error'] ||
-            hasStatusCheck(job.if)
+            !safeCondition(job.if)
           )
             return false;
           return job.needs.some(visit);
@@ -147,7 +175,42 @@ export function analyzeRules(
         build.producedReference === deploy.identity.reference &&
         sourceCheckedBefore(build),
     );
-    if (stronglyLinkedBuild && checks.test === 'unknown') {
+    const deployJob = workflow.jobs[deploy.location.job];
+    const deployStep = deployJob.steps[deploy.location.step];
+    const possibleTestOfDeployed = operations.some((op) => {
+      const intermediateBypasses = Object.entries(workflow.jobs).some(
+        ([jobId, job]) =>
+          jobId !== op.location.job &&
+          jobId !== deploy.location.job &&
+          bypassesSuccess(job.if) &&
+          jobDependsOn(op.location.job, jobId, workflow) &&
+          jobDependsOn(jobId, deploy.location.job, workflow),
+      );
+      if (
+        op.kind !== 'test' ||
+        !dependsOn(op, deploy, workflow) ||
+        (op.location.job === deploy.location.job && op.order >= deploy.order) ||
+        op.identity.kind !== 'immutable' ||
+        deploy.identity.kind !== 'immutable' ||
+        op.identity.key !== deploy.identity.key ||
+        bypassesSuccess(deployJob.if) ||
+        bypassesSuccess(deployStep?.if) ||
+        intermediateBypasses
+      )
+        return false;
+      const testJob = workflow.jobs[op.location.job];
+      const testStep = testJob.steps[op.location.step];
+      return (
+        !op.guarded ||
+        (testJob.if !== undefined &&
+          !bypassesSuccess(testJob.if) &&
+          testStep?.if === undefined &&
+          testJob.strategy === undefined &&
+          !testJob['continue-on-error'] &&
+          !testStep?.['continue-on-error'])
+      );
+    });
+    if (stronglyLinkedBuild && checks.test === 'unknown' && !possibleTestOfDeployed) {
       checks.test = 'mismatch';
       add(
         'SB001',

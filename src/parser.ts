@@ -116,10 +116,14 @@ export function parseWorkflow(source: string, file: string): Workflow {
     if (!value.uses && !Array.isArray(value.steps))
       throw new Error(`Job ${id} needs steps or uses`);
     const ids = new Set<string>();
+    const waitTargets: string[] = [];
+    const backgroundIds = new Set<string>();
     const steps = ((value.steps ?? []) as unknown[]).map((step, index) => {
       if (
         !mapping(step) ||
-        (typeof step.run !== 'string' && typeof step.uses !== 'string')
+        (typeof step.run !== 'string' &&
+          typeof step.uses !== 'string' &&
+          !['wait', 'wait-all', 'cancel', 'parallel'].some((key) => key in step))
       )
         throw new Error(`Invalid step ${id}[${index}]`);
       validateScalarMap(step.env, `${id} step env`);
@@ -133,10 +137,54 @@ export function parseWorkflow(source: string, file: string): Workflow {
         throw new Error(`Invalid ${id} step inputs: values must be scalar`);
       if (step.run !== undefined && step.uses !== undefined)
         throw new Error(`Step in ${id} cannot contain both run and uses`);
+      const controlKeys = ['wait', 'wait-all', 'cancel', 'parallel'].filter(
+        (key) => key in step,
+      );
+      if (
+        controlKeys.length > 1 ||
+        (controlKeys.length && (step.run !== undefined || step.uses !== undefined)) ||
+        (controlKeys.length && step.background === true)
+      )
+        throw new Error(`Invalid control step in ${id}[${index}]`);
+      if (step.background !== undefined && typeof step.background !== 'boolean')
+        throw new Error(`Invalid background value in ${id}[${index}]`);
+      if (
+        step['wait-all'] !== undefined &&
+        step['wait-all'] !== true &&
+        step['wait-all'] !== false &&
+        step['wait-all'] !== null
+      )
+        throw new Error(`Invalid wait-all value in ${id}[${index}]`);
+      for (const key of ['wait', 'cancel']) {
+        const target = step[key];
+        if (
+          target !== undefined &&
+          typeof target !== 'string' &&
+          (!Array.isArray(target) || target.some((item) => typeof item !== 'string'))
+        )
+          throw new Error(`Invalid ${key} target in ${id}[${index}]`);
+        if (typeof target === 'string') waitTargets.push(target);
+        if (Array.isArray(target)) waitTargets.push(...target);
+      }
+      if (
+        step.parallel !== undefined &&
+        (!Array.isArray(step.parallel) ||
+          step.parallel.some(
+            (parallelStep) =>
+              !mapping(parallelStep) ||
+              (typeof parallelStep.run !== 'string' &&
+                typeof parallelStep.uses !== 'string') ||
+              (parallelStep.run !== undefined && parallelStep.uses !== undefined),
+          ))
+      )
+        throw new Error(`Invalid parallel block in ${id}[${index}]`);
       if (step.id !== undefined) {
         if (typeof step.id !== 'string' || ids.has(step.id))
           throw new Error(`Invalid or duplicate step id in ${id}`);
         ids.add(step.id);
+      }
+      if (step.background === true) {
+        if (typeof step.id === 'string') backgroundIds.add(step.id);
       }
       const node = doc.getIn(['jobs', id, 'steps', index], true) as {
         range?: number[];
@@ -146,6 +194,10 @@ export function parseWorkflow(source: string, file: string): Workflow {
         line: lines.linePos(node?.range?.[0] ?? 0).line,
       } as Step;
     });
+    if (waitTargets.some((target) => !backgroundIds.has(target)))
+      throw new Error(
+        `Invalid wait or cancel target in ${id}: expected a background step id`,
+      );
     jobs[id] = { ...value, steps, needs } as Job;
   }
   const visited = new Set<string>();

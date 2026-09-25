@@ -96,6 +96,79 @@ test('conditional, matrix and ignored failures do not prove tests', () => {
   );
   assert.equal(report.deployments[0].checks.test, 'unknown');
 });
+test('explicit success conditions preserve a required test-to-deploy chain', () => {
+  const report = analyze(
+    `jobs:\n  build:\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.image.outputs.digest }}\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n  test:\n    runs-on: ubuntu-latest\n    needs: build\n    if: success()\n    steps:\n      - run: docker run ghcr.io/acme/api@\${{ needs.build.outputs.digest }}\n  deploy:\n    runs-on: ubuntu-latest\n    needs: [build, test]\n    steps:\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ needs.build.outputs.digest }}\n        if: success()`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'proven');
+  assert.deepEqual(report.findings, []);
+});
+test('background operations require a wait before later same-job consumers', () => {
+  const command = `docker run ${image(A)}`;
+  const deploy = `kubectl set image deployment/api api=${image(A)}`;
+  const pending = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: ${JSON.stringify(command)}\n        background: true\n      - run: ${JSON.stringify(deploy)}`,
+  );
+  assert.equal(pending.deployments[0].checks.test, 'unknown');
+  assert.equal(
+    pending.findings.some((finding) => finding.ruleId === 'SB001'),
+    false,
+  );
+
+  for (const waiter of ['wait: test', 'wait-all:']) {
+    const waited = analyze(
+      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: ${JSON.stringify(command)}\n        background: true\n      - ${waiter}\n      - run: ${JSON.stringify(deploy)}`,
+    );
+    assert.equal(waited.deployments[0].checks.test, 'proven', waiter);
+  }
+  const anonymousBackground = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${JSON.stringify(command)}\n        background: true\n      - wait-all:\n      - run: ${JSON.stringify(deploy)}`,
+  );
+  assert.equal(anonymousBackground.deployments[0].checks.test, 'proven');
+});
+test('background operations finish before dependent jobs start', () => {
+  const report = analyze(
+    `jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - id: check\n        run: docker run ${image(A)}\n        background: true\n  deploy:\n    runs-on: ubuntu-latest\n    needs: test\n    steps:\n      - run: kubectl set image deployment/api api=${image(A)}`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'proven');
+});
+test('background step outputs become available only after waiting', () => {
+  const beforeWait = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: npm test\n      - id: image\n        uses: docker/build-push-action@v6\n        background: true\n      - run: docker run ghcr.io/acme/api@\${{ steps.image.outputs.digest }}\n      - wait: image\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ steps.image.outputs.digest }}`,
+  );
+  assert.equal(beforeWait.deployments[0].checks.test, 'mismatch');
+  assert.ok(beforeWait.findings.some((finding) => finding.ruleId === 'SB001'));
+
+  const afterWait = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n        background: true\n      - wait: image\n      - run: docker run ghcr.io/acme/api@\${{ steps.image.outputs.digest }}\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ steps.image.outputs.digest }}`,
+  );
+  assert.equal(afterWait.deployments[0].checks.test, 'proven');
+});
+test('cancelled background tests and parallel blocks never prove lineage', () => {
+  const command = `docker run ${image(A)}`;
+  const deploy = `kubectl set image deployment/api api=${image(A)}`;
+  const cancelled = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: ${JSON.stringify(command)}\n        background: true\n      - cancel: test\n      - run: ${JSON.stringify(deploy)}`,
+  );
+  assert.equal(cancelled.deployments[0].checks.test, 'unknown');
+
+  const parallel = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - parallel:\n          - run: ${JSON.stringify(command)}\n      - run: ${JSON.stringify(deploy)}`,
+  );
+  assert.equal(parallel.deployments[0].checks.test, 'unknown');
+  assert.match(parallel.diagnostics[0]?.message ?? '', /parallel block/);
+});
+test('multi-platform OCI index digest does not prove a tested platform manifest', () => {
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n        with:\n          platforms: linux/amd64,linux/arm64\n      - run: docker run ghcr.io/acme/api@\${{ steps.image.outputs.digest }}\n      - run: kubectl set image deployment/api api=ghcr.io/acme/api@\${{ steps.image.outputs.digest }}`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+  assert.equal(report.deployments[0].state, 'unknown');
+  assert.equal(
+    report.findings.some((finding) => finding.severity === 'high'),
+    false,
+  );
+});
 test('parallel sibling jobs do not establish verification order', () => {
   const report = analyze(
     `jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ${image(A)}\n  deploy:\n    runs-on: ubuntu-latest\n    steps:\n      - run: kubectl set image deployment/api api=${image(A)}`,
@@ -150,6 +223,9 @@ test('invalid workflow structures and dependencies fail analysis', () => {
     'jobs: {a: {steps: [], steps: []}}',
   ])
     assert.throws(() => analyze(source));
+  assert.throws(() =>
+    analyze('jobs: {a: {runs-on: ubuntu-latest, steps: [{wait: missing}]}}'),
+  );
 });
 test('GitHub expression AST handles bracket notation and case-insensitive contexts', () => {
   const scope = new Map([

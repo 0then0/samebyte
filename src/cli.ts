@@ -80,13 +80,13 @@ async function main(): Promise<number> {
         : command === 'graph'
           ? [
               graphReport(report),
-              ...diagnostics.map((d) => `ERROR ${d.file}: ${d.message}`),
+              ...report.diagnostics.map((d) => `ERROR ${d.file}: ${d.message}`),
             ]
               .filter(Boolean)
               .join('\n')
           : textReport(report, true),
   );
-  return diagnostics.length
+  return report.diagnostics.length
     ? 2
     : report.findings.some((f) => f.confidence === 'high')
       ? 1
