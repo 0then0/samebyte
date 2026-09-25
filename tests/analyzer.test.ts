@@ -112,10 +112,12 @@ test('conditional job does not hide continue-on-error on its test step', () => {
   assert.notEqual(report.deployments[0].state, 'proven');
 });
 test('background operations require a wait before later same-job consumers', () => {
-  const command = `docker run ${image(A)}`;
-  const deploy = `kubectl set image deployment/api api=${image(A)}`;
+  const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
+  const command = `docker run ${digest}`;
+  const deploy = `kubectl set image deployment/api api=${digest}`;
+  const build = '      - id: image\n        uses: docker/build-push-action@v6\n';
   const pending = analyze(
-    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: ${JSON.stringify(command)}\n        background: true\n      - run: ${JSON.stringify(deploy)}`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n${build}      - id: test\n        run: ${JSON.stringify(command)}\n        background: true\n      - run: ${JSON.stringify(deploy)}`,
   );
   assert.equal(pending.deployments[0].checks.test, 'unknown');
   assert.equal(
@@ -125,19 +127,19 @@ test('background operations require a wait before later same-job consumers', () 
 
   for (const waiter of ['wait: test', 'wait-all:']) {
     const waited = analyze(
-      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: ${JSON.stringify(command)}\n        background: true\n      - ${waiter}\n      - run: ${JSON.stringify(deploy)}`,
+      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n${build}      - id: test\n        run: ${JSON.stringify(command)}\n        background: true\n      - ${waiter}\n      - run: ${JSON.stringify(deploy)}`,
     );
     assert.equal(waited.deployments[0].checks.test, 'proven', waiter);
   }
   const anonymousBackground = analyze(
-    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: ${JSON.stringify(command)}\n        background: true\n      - wait-all:\n      - run: ${JSON.stringify(deploy)}`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n${build}      - run: ${JSON.stringify(command)}\n        background: true\n      - wait-all:\n      - run: ${JSON.stringify(deploy)}`,
   );
   assert.equal(anonymousBackground.deployments[0].checks.test, 'proven');
 });
 test('ignored background failures do not prove that checks passed', () => {
-  const digest = image(A);
+  const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
   const report = analyze(
-    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: test\n        run: docker run ${digest}\n        background: true\n      - wait: test\n        continue-on-error: true\n      - run: trivy image ${digest}\n      - run: gh attestation verify oci://${digest}\n      - run: kubectl set image deployment/api api=${digest}`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n      - id: test\n        run: docker run ${digest}\n        background: true\n      - wait: test\n        continue-on-error: true\n      - run: trivy image ${digest}\n      - run: gh attestation verify oci://${digest}\n      - run: kubectl set image deployment/api api=${digest}`,
   );
   assert.equal(report.deployments[0].checks.test, 'unknown');
   assert.equal(report.deployments[0].state, 'unknown');
@@ -146,9 +148,34 @@ test('ignored background failures do not prove that checks passed', () => {
     false,
   );
 });
-test('background operations finish before dependent jobs start', () => {
+test('ignored or cancelled background tests stay unknown in conditional jobs', () => {
+  const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
+  for (const control of [
+    'wait: test\n        continue-on-error: true',
+    'cancel: test',
+  ]) {
+    const report = analyze(
+      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    if: github.ref == 'refs/heads/main'\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n      - id: test\n        run: docker run ${digest}\n        background: true\n      - ${control}\n      - run: trivy image ${digest}\n      - run: gh attestation verify oci://${digest}\n      - run: kubectl set image deployment/api api=${digest}`,
+    );
+    assert.equal(report.deployments[0].checks.test, 'unknown', control);
+    assert.notEqual(report.deployments[0].state, 'proven', control);
+    assert.equal(
+      report.findings.some((finding) => finding.severity === 'high'),
+      false,
+    );
+  }
+});
+test('an explicit success condition on a background wait preserves the result', () => {
+  const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
   const report = analyze(
-    `jobs:\n  test:\n    runs-on: ubuntu-latest\n    steps:\n      - id: check\n        run: docker run ${image(A)}\n        background: true\n  deploy:\n    runs-on: ubuntu-latest\n    needs: test\n    steps:\n      - run: kubectl set image deployment/api api=${image(A)}`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n      - id: test\n        run: docker run ${digest}\n        background: true\n      - wait: test\n        if: success()\n      - run: kubectl set image deployment/api api=${digest}`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'proven');
+});
+test('background operations finish before dependent jobs start', () => {
+  const digest = 'ghcr.io/acme/api@${{ needs.test.outputs.digest }}';
+  const report = analyze(
+    `jobs:\n  test:\n    runs-on: ubuntu-latest\n    outputs:\n      digest: \${{ steps.image.outputs.digest }}\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n      - id: check\n        run: docker run ghcr.io/acme/api@\${{ steps.image.outputs.digest }}\n        background: true\n  deploy:\n    runs-on: ubuntu-latest\n    needs: test\n    steps:\n      - run: kubectl set image deployment/api api=${digest}`,
   );
   assert.equal(report.deployments[0].checks.test, 'proven');
 });
@@ -194,6 +221,23 @@ test('multi-platform OCI index digest does not prove a tested platform manifest'
   );
   assert.equal(platformSelected.deployments[0].checks.test, 'unknown');
   assert.notEqual(platformSelected.deployments[0].state, 'proven');
+});
+test('an external concrete digest does not prove which OCI index child was tested', () => {
+  const digest = image(A);
+  const report = analyze(
+    `jobs:\n  test:\n    runs-on: ubuntu-24.04\n    steps:\n      - run: docker run ${digest}\n      - run: trivy image ${digest}\n      - run: gh attestation verify oci://${digest}\n  deploy:\n    runs-on: ubuntu-24.04-arm\n    needs: test\n    steps:\n      - run: kubectl set image deployment/api api=${digest}`,
+  );
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+  assert.notEqual(report.deployments[0].state, 'proven');
+  assert.equal(
+    report.findings.some((finding) => finding.severity === 'high'),
+    false,
+  );
+  assert.match(
+    report.operations.find((operation) => operation.kind === 'test')
+      ?.runtimeIdentityUnknown ?? '',
+    /OCI index/,
+  );
 });
 test('parallel sibling jobs do not establish verification order', () => {
   const report = analyze(
@@ -275,7 +319,7 @@ test('digests require full SHA256 and source sha is not an OCI digest', () => {
 });
 test('explicit annotation resolves custom deployment', () => {
   const workflow = parseWorkflow(
-    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run ${image(A)}\n      - id: ship\n        run: ./ship.sh`,
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n      - run: docker run ghcr.io/acme/api@\${{ steps.image.outputs.digest }}\n      - id: ship\n        run: ./ship.sh`,
     'fixture.yml',
   );
   const report = analyzeWorkflow(
@@ -287,7 +331,7 @@ test('explicit annotation resolves custom deployment', () => {
           job: 'release',
           step: 'ship',
           operation: 'deploy',
-          image: image(A),
+          image: 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}',
         },
       ],
     }),
@@ -332,12 +376,19 @@ test('shell variable names retain case sensitivity', () => {
   const report = analyze(
     `env:\n  IMAGE: ${image(A)}\n  image: ${image(B)}\njobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - run: docker run $IMAGE\n      - run: kubectl set image deployment/api api=${image(A)}`,
   );
-  assert.equal(report.deployments[0].checks.test, 'proven');
+  assert.equal(report.deployments[0].checks.test, 'unknown');
+  assert.equal(
+    report.operations.find((operation) => operation.kind === 'test')?.identity
+      .reference,
+    image(A),
+  );
 });
 test('commands within one straight-line step have execution order', () => {
+  const digest = 'ghcr.io/acme/api@${{ steps.image.outputs.digest }}';
   assert.equal(
-    simple(`docker run ${image(A)}\nkubectl set image deployment/api api=${image(A)}`)
-      .deployments[0].checks.test,
+    analyze(
+      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: image\n        uses: docker/build-push-action@v6\n      - run: ${JSON.stringify(`docker run ${digest}\nkubectl set image deployment/api api=${digest}`)}`,
+    ).deployments[0].checks.test,
     'proven',
   );
 });

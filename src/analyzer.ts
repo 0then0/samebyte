@@ -120,7 +120,9 @@ export function analyzeWorkflow(
         step['wait-all'] === true ||
         step['wait-all'] === null
       ) {
-        const mayHaveFailed = !!step['continue-on-error'] || step.if !== undefined;
+        const mayHaveFailed =
+          !!step['continue-on-error'] ||
+          (step.if !== undefined && !isExplicitSuccess(step.if));
         const targets =
           step['wait-all'] === true || step['wait-all'] === null
             ? [...backgroundOperations.keys()]
@@ -131,6 +133,7 @@ export function analyzeWorkflow(
           for (const operation of backgroundOperations.get(target) ?? []) {
             operation.completionStep = index;
             operation.guarded ||= mayHaveFailed;
+            if (mayHaveFailed) operation.guardedByJobCondition = false;
           }
           releaseBackgroundOutputs(target, mayHaveFailed);
           backgroundOperations.delete(target);
@@ -145,6 +148,7 @@ export function analyzeWorkflow(
           for (const operation of backgroundOperations.get(target) ?? []) {
             operation.completionStep = index;
             operation.guarded = true;
+            operation.guardedByJobCondition = false;
           }
           pendingBackgroundOutputs.delete(target);
           backgroundOperations.delete(target);
@@ -178,14 +182,25 @@ export function analyzeWorkflow(
         label: string,
         extraGuard = false,
       ) => {
+        const operationIdentity = identity({
+          ...value,
+          trace: [...value.trace, `${jobId} step ${index + 1}: ${label}`],
+        });
+        const runtimeIdentityUnknown =
+          kind === 'test' && operationIdentity.concrete
+            ? 'digest may reference an OCI index; selected platform manifest is not tracked'
+            : undefined;
         const operation: Operation = {
           id: `${prefix}:${operations.length}`,
           kind,
-          identity: identity({
-            ...value,
-            trace: [...value.trace, `${jobId} step ${index + 1}: ${label}`],
-          }),
+          identity: runtimeIdentityUnknown
+            ? {
+                ...operationIdentity,
+                trace: [...operationIdentity.trace, runtimeIdentityUnknown],
+              }
+            : operationIdentity,
           label,
+          runtimeIdentityUnknown,
           order: operations.length,
           guardedByJobCondition: guardedByJobCondition && !extraGuard,
           completionStep: step.background === true ? job.steps.length : undefined,

@@ -120,6 +120,7 @@ export function analyzeRules(
       const same = candidates.find(
         (op) =>
           guaranteed(op) &&
+          op.runtimeIdentityUnknown === undefined &&
           op.identity.kind === 'immutable' &&
           deploy.identity.kind === 'immutable' &&
           op.identity.key === deploy.identity.key,
@@ -186,6 +187,7 @@ export function analyzeRules(
         op.kind !== 'test' ||
         !dependsOn(op, deploy, workflow) ||
         (op.location.job === deploy.location.job && op.order >= deploy.order) ||
+        op.runtimeIdentityUnknown !== undefined ||
         op.identity.kind !== 'immutable' ||
         deploy.identity.kind !== 'immutable' ||
         op.identity.key !== deploy.identity.key ||
@@ -194,17 +196,7 @@ export function analyzeRules(
         intermediateBypasses
       )
         return false;
-      const testJob = workflow.jobs[op.location.job];
-      const testStep = testJob.steps[op.location.step];
-      return (
-        !op.guarded ||
-        (testJob.if !== undefined &&
-          !bypassesSuccess(testJob.if) &&
-          testStep?.if === undefined &&
-          testJob.strategy === undefined &&
-          !testJob['continue-on-error'] &&
-          !testStep?.['continue-on-error'])
-      );
+      return !op.guarded || op.guardedByJobCondition === true;
     });
     if (stronglyLinkedBuild && checks.test === 'unknown' && !possibleTestOfDeployed) {
       checks.test = 'mismatch';

@@ -33,6 +33,7 @@ export interface Operation {
   label: string;
   guarded: boolean;
   guardedByJobCondition?: boolean;
+  runtimeIdentityUnknown?: string;
   order: number;
   completionStep?: number;
   producedReference?: string;

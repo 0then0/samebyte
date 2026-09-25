@@ -93,6 +93,7 @@ The analysis separates workflow parsing, symbolic values, operation adapters, an
 - `background: true` steps only establish a check after `wait` or `wait-all`. Their outputs remain unknown until then. If waiting ignores failure with `continue-on-error`, the result stays unknown. A dependent job starts after background steps in its prerequisite job finish.
 - `parallel` syntax is accepted, but its nested operations are not analyzed yet. SameByte reports an analysis diagnostic and exits with code `2` instead of claiming lineage is verified.
 - A multi-platform build and `docker run --platform ...` do not prove a specific runtime manifest. SameByte keeps these identities unknown because the selected OCI child manifest can depend on the target platform.
+- A concrete digest used by `docker run` without a recognized single-platform producer also remains unknown for testing. It may identify an OCI index, and a test runner can select a different child manifest from the production platform. Identity mismatches between distinct concrete digests are still reported.
 
 The common supported pipeline is:
 
