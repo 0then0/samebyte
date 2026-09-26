@@ -972,6 +972,28 @@ test('repeated image references use the docker run image argument position', () 
   );
   assert.equal(withoutUnknownOption.deployments[0].checks.test, 'proven');
 });
+test('shell scanners use the selected image operand position', () => {
+  const imageArgument = 'ghcr.io/acme/api@${{ steps.build.outputs.digest }}';
+  const commands = [
+    `trivy image --output ${imageArgument} --severity $LEVEL ${imageArgument}`,
+    `grype --file ${imageArgument} --fail-on $LEVEL ${imageArgument}`,
+    `docker scout cves --format ${imageArgument} --only-severity $LEVEL ${imageArgument}`,
+  ];
+  for (const command of commands) {
+    const report = analyze(
+      `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: build\n        uses: docker/build-push-action@v6\n      - run: ${JSON.stringify(command)}\n      - run: ${JSON.stringify(`kubectl set image deployment/api api=${imageArgument}`)}`,
+    );
+    assert.equal(report.deployments[0].checks.scan, 'unknown', command);
+  }
+});
+test('kubectl image assignments retain source positions after global flags', () => {
+  const imageArgument = 'ghcr.io/acme/api@${{ steps.build.outputs.digest }}';
+  const report = analyze(
+    `jobs:\n  release:\n    runs-on: ubuntu-latest\n    steps:\n      - id: build\n        uses: docker/build-push-action@v6\n      - run: kubectl --namespace $NAMESPACE set image deployment/api api=${imageArgument} worker=${imageArgument}`,
+  );
+  assert.equal(report.deployments.length, 2);
+  assert.ok(report.deployments.every((item) => item.state === 'unknown'));
+});
 test('Docker Scout only counts supported scan commands', () => {
   const imageRef = `ghcr.io/acme/api@${A}`;
   const deploy = `kubectl set image deployment/api api=${imageRef}`;

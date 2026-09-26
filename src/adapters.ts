@@ -88,9 +88,11 @@ const kubectlGlobalBooleanFlags = new Set([
 ]);
 function stripKubectlGlobalFlags(tokens: string[]): {
   tokens: string[];
+  indexes: number[];
   unknown: boolean;
 } {
   const command = ['kubectl'];
+  const indexes = [0];
   for (let i = 1; i < tokens.length; ) {
     const token = tokens[i];
     const flagName = token.split('=', 1)[0];
@@ -106,21 +108,24 @@ function stripKubectlGlobalFlags(tokens: string[]): {
       const setImage = tokens.some(
         (candidate, index) => candidate === 'set' && tokens[index + 1] === 'image',
       );
-      return { tokens, unknown: setImage };
+      return { tokens, indexes: tokens.map((_, index) => index), unknown: setImage };
     }
     command.push(...tokens.slice(i));
-    return { tokens: command, unknown: false };
+    indexes.push(...tokens.slice(i).map((_, index) => i + index));
+    return { tokens: command, indexes, unknown: false };
   }
-  return { tokens: command, unknown: false };
+  return { tokens: command, indexes, unknown: false };
 }
 export function shellConsumption(
   tokens: string[],
   env: Record<string, string> = {},
 ): Consumption[] {
+  let originalIndexes = tokens.map((_, index) => index);
   if (tokens[0] === 'kubectl') {
     const normalized = stripKubectlGlobalFlags(tokens);
     if (normalized.unknown) return [{ kind: 'deploy' }];
     tokens = normalized.tokens;
+    originalIndexes = normalized.indexes;
   }
   const helmDryRun =
     tokens[0] === 'helm' &&
@@ -164,59 +169,69 @@ export function shellConsumption(
   }
   if (tokens[0] === 'docker' && tokens[1] === 'compose' && tokens.includes('run'))
     return [{ kind: 'test' }];
-  if (tokens[0] === 'trivy' && tokens[1] === 'image')
+  if (tokens[0] === 'trivy' && tokens[1] === 'image') {
+    const operand = simpleOperand(
+      tokens.slice(2),
+      [
+        '--severity',
+        '--format',
+        '-f',
+        '--output',
+        '-o',
+        '--exit-code',
+        '--scanners',
+        '--ignorefile',
+      ],
+      ['--quiet', '-q', '--no-progress', '--ignore-unfixed'],
+    );
     return [
       {
         kind: 'scan',
-        reference: env.TRIVY_INPUT?.trim()
-          ? undefined
-          : simpleOperand(
-              tokens.slice(2),
-              [
-                '--severity',
-                '--format',
-                '-f',
-                '--output',
-                '-o',
-                '--exit-code',
-                '--scanners',
-                '--ignorefile',
-              ],
-              ['--quiet', '-q', '--no-progress', '--ignore-unfixed'],
-            ),
+        reference: env.TRIVY_INPUT?.trim() ? undefined : operand?.reference,
+        referenceIndex: operand ? originalIndexes[operand.index + 2] : undefined,
       },
     ];
-  if (tokens[0] === 'grype')
+  }
+  if (tokens[0] === 'grype') {
+    const operand = simpleOperand(
+      tokens.slice(1),
+      ['--fail-on', '--output', '-o', '--file', '--scope'],
+      ['-q', '--quiet'],
+    );
     return [
       {
         kind: 'scan',
-        reference: simpleOperand(
-          tokens.slice(1),
-          ['--fail-on', '--output', '-o', '--file', '--scope'],
-          ['-q', '--quiet'],
-        ),
+        reference: operand?.reference,
+        referenceIndex: operand ? originalIndexes[operand.index + 1] : undefined,
       },
     ];
+  }
   if (
     tokens[0] === 'docker' &&
     tokens[1] === 'scout' &&
     ['cves', 'quickview'].includes(tokens[2])
-  )
+  ) {
+    const operand = simpleOperand(
+      tokens.slice(3),
+      ['--only-severity', '--format'],
+      ['--exit-code'],
+    );
     return [
       {
         kind: 'scan',
-        reference: simpleOperand(
-          tokens.slice(3),
-          ['--only-severity', '--format'],
-          ['--exit-code'],
-        ),
+        reference: operand?.reference,
+        referenceIndex: operand ? originalIndexes[operand.index + 3] : undefined,
       },
     ];
+  }
   if (tokens[0] === 'gh' && tokens[1] === 'attestation' && tokens[2] === 'verify')
     return [
       {
         kind: 'attest',
         reference: tokens[3]?.startsWith('oci://') ? tokens[3].slice(6) : undefined,
+        referenceIndex: tokens[3]?.startsWith('oci://')
+          ? originalIndexes[3]
+          : undefined,
       },
     ];
   if (tokens[0] === 'kubectl' && tokens[1] === 'set' && tokens[2] === 'image') {
@@ -252,6 +267,7 @@ export function shellConsumption(
         references.push({
           kind: 'deploy',
           reference: token.slice(token.indexOf('=') + 1),
+          referenceIndex: originalIndexes[i],
         });
     }
     return references;
@@ -272,8 +288,8 @@ function simpleOperand(
   tokens: string[],
   valueFlags: string[],
   switches: string[],
-): string | undefined {
-  const operands: string[] = [];
+): { reference: string; index: number } | undefined {
+  const operands: { reference: string; index: number }[] = [];
   for (let i = 0; i < tokens.length; i++) {
     if (valueFlags.includes(tokens[i])) {
       i++;
@@ -285,7 +301,7 @@ function simpleOperand(
     )
       continue;
     if (tokens[i].startsWith('-')) return undefined;
-    operands.push(tokens[i]);
+    operands.push({ reference: tokens[i], index: i });
   }
   return operands.length === 1 ? operands[0] : undefined;
 }
