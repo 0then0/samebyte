@@ -37,22 +37,25 @@ Artifact lineage verified.
 
 The output above abbreviates the symbolic digest. SameByte does not run a build or fetch its real digest. It proves that supported consumers reference the same output. Complete examples are in [tests/fixtures](tests/fixtures).
 
-## Install from source
+## Install a release
 
-Requires Node.js 22 or later and npm. This repository does not imply an existing npm release.
-
-```bash
-npm ci --ignore-scripts
-npm run build
-node dist/cli.js .
-```
-
-To install the local checkout as a CLI:
+SameByte requires Node.js 22 or later. Each stable `vX.Y.Z` tag creates a GitHub Release with a versioned npm package tarball and SHA-256 checksums. The package tarball installs through npm without a registry account:
 
 ```bash
-npm install --global .
+npm install --global https://github.com/0then0/samebyte/releases/download/v0.1.0/samebyte-0.1.0.tgz
 samebyte .
 ```
+
+Replace `0.1.0` in both places with the release version you want. To verify a downloaded asset before installing it:
+
+```bash
+curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.0/samebyte-0.1.0.tgz
+curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.0/SHA256SUMS
+sha256sum --check SHA256SUMS
+npm install --global ./samebyte-0.1.0.tgz
+```
+
+On macOS, use `shasum -a 256 --check SHA256SUMS` instead of `sha256sum --check`.
 
 ## Usage
 
@@ -101,13 +104,16 @@ The common supported pipeline is:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     outputs:
       digest: ${{ steps.build.outputs.digest }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Configure registry authentication for your own workflow.
       - id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           push: true
           tags: ghcr.io/acme/api:release
@@ -115,14 +121,19 @@ jobs:
   verify:
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+      artifact-metadata: write
     env:
       IMAGE: ghcr.io/acme/api@${{ needs.build.outputs.digest }}
     steps:
       - run: docker run --rm "$IMAGE" npm test
-      - uses: aquasecurity/trivy-action@0.33.1
+      - uses: aquasecurity/trivy-action@0.36.0
         with:
           image-ref: ${{ env.IMAGE }}
-      - uses: actions/attest-build-provenance@v2
+      - uses: actions/attest@v4
         with:
           subject-name: ghcr.io/acme/api
           subject-digest: ${{ needs.build.outputs.digest }}
@@ -138,10 +149,10 @@ This is a lineage example, not a complete registry/cluster setup. Configure the 
 
 ## Producers and consumers
 
-- **Build:** `docker/build-push-action`, `docker build`, `docker buildx build`. Shell builds record a producer and supported `-t`/`--tag` reference, but do not invent an externally accessible digest output.
+- **Build:** `docker/build-push-action` (v6 and v7), `docker build`, `docker buildx build`. Shell builds record a producer and supported `-t`/`--tag` reference, but do not invent an externally accessible digest output.
 - **Test:** foreground `docker run` with common flags. This means that the image is exercised; SameByte does not assess its test command or coverage. `npm test`, `pnpm test`, and `yarn test` are source tests, not OCI tests. `docker compose run` is recognized with unknown identity because Compose file interpretation is outside this MVP.
 - **Scan:** `aquasecurity/trivy-action` (`image-ref`), `docker/scout-action` (`image` with `command: cves`, `quickview`, or `compare`), `anchore/scan-action` (`image`); simple `trivy image`, `grype`, and `docker scout cves`/`quickview` commands. Trivy's `input` archive option takes precedence over the image reference and therefore remains unknown. Scout commands such as `environment` and `attestation-add` are not treated as scans.
-- **Attestation:** `actions/attest`, `actions/attest-build-provenance` (`subject-name`, `subject-digest`), and `gh attestation verify oci://...`. This tracks the subject identity; it does not validate signatures or policy itself.
+- **Attestation:** `actions/attest` and `actions/attest-build-provenance` (`subject-name`, `subject-digest`), plus `gh attestation verify oci://...`. This tracks the subject identity; it does not validate signatures or policy itself.
 - **Deploy:** simple `kubectl set image` container assignments and `helm upgrade`/`helm install`. Helm chart values alone do not prove what a chart renders, so Helm deployments have unknown identity unless an explicit annotation describes the image. Custom deployment actions require annotations.
 
 Adapters recognize the action repository independently of the pinned ref. This assumes that the referenced action implements its documented interface; SameByte does not audit the action's code. Unsupported flags and inputs may reduce coverage to unknown.
@@ -183,17 +194,30 @@ Annotations replace automatic interpretation of that step. They are trusted user
 
 ## GitHub Action
 
-The repository includes a composite [action.yml](action.yml). After making your version available on GitHub, pin it to a reviewed commit:
+The repository includes a composite [action.yml](action.yml). Use a release tag to select a version:
 
 ```yaml
-- uses: actions/checkout@v5
-- uses: 0then0/samebyte@<reviewed-commit-sha>
+- uses: actions/checkout@v7
+- uses: 0then0/samebyte@v0.1.0
   with:
     path: .github/workflows
     format: text
 ```
 
-The action uses Node 22 and builds the CLI from its npm lockfile, including development dependencies needed by esbuild even when the calling workflow sets `NODE_ENV=production`. It accepts optional `config` and preserves the CLI exit status. SARIF output is printed to stdout; uploading it to GitHub Code Scanning is a separate workflow step. No release, remote workflow execution, or publication is performed by this checkout.
+For stronger supply-chain protection, replace `v0.1.0` with the full reviewed commit SHA shown on that release.
+
+The action uses Node 22 and builds the CLI from its npm lockfile, including development dependencies needed by esbuild even when the calling workflow sets `NODE_ENV=production`. It accepts optional `config` and preserves the CLI exit status. SARIF output is printed to stdout; uploading it to GitHub Code Scanning is a separate workflow step.
+
+## Releases
+
+Push a stable SemVer tag matching `package.json` to run the release workflow. It reruns typecheck, lint, and tests, creates the npm package tarball, writes a SHA-256 checksum file, and publishes both as assets on a GitHub Release with generated release notes.
+
+```bash
+npm version patch
+git push origin main --follow-tags
+```
+
+`npm version` updates `package.json` and `package-lock.json`, creates the matching `vX.Y.Z` tag, and commits the version change. Review that commit and tag before pushing. The release workflow rejects tags that do not match the package version. Release assets can be installed directly with npm as shown above.
 
 ## Development
 
@@ -206,6 +230,8 @@ npm test
 npm run build
 npm pack --dry-run
 ```
+
+To install the current working tree locally during development, run `npm install --global .` after building.
 
 Biome handles formatting and linting. Tests use `node:test`, including CLI subprocess checks. Fixtures cover a correct pipeline, rebuild after source tests, and an unknown shell boundary; regression tests cover mismatches, mutable tags, expressions, dependency order, annotations, output formats, and conservative shell handling.
 
