@@ -1,4 +1,13 @@
+<p align="center">
+  <img src="assets/samebyte.svg" width="128" height="128" alt="SameByte: one OCI artifact connected to verification and deployment">
+</p>
+
 # SameByte
+
+[![CI](https://img.shields.io/github/actions/workflow/status/0then0/samebyte/ci.yml?branch=main&label=CI)](https://github.com/0then0/samebyte/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/0then0/samebyte)](https://github.com/0then0/samebyte/releases/latest)
+[![Node.js 22 or later](https://img.shields.io/badge/Node.js-%3E%3D22-43853d)](https://nodejs.org/)
+[![License: Apache-2.0](https://img.shields.io/github/license/0then0/samebyte)](LICENSE)
 
 **Test the same bytes you deploy.**
 

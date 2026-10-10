@@ -1,0 +1,27 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="192"
+  height="192"
+  viewBox="0 0 192 192"
+  role="img"
+  aria-labelledby="title description"
+>
+  <title id="title">SameByte</title>
+  <desc
+    id="description"
+  >A single OCI artifact branches to verification and deployment, preserving the same identity.</desc>
+  <rect x="4" y="4" width="184" height="184" rx="36" fill="#f1f5f9" />
+  <g fill="none" stroke="#334155" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m96 28 30 17v34L96 96 66 79V45Z" />
+    <path d="m66 45 30 17 30-17M96 62v34" />
+    <path d="M96 96v16H54v16m42-16h42v16" />
+  </g>
+  <g fill="#f1f5f9" stroke="#0f766e" stroke-width="4">
+    <rect x="34" y="128" width="40" height="40" rx="12" />
+    <rect x="118" y="128" width="40" height="40" rx="12" />
+  </g>
+  <g fill="none" stroke="#0f766e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m44 148 7 7 13-14" />
+    <path d="M138 155v-16m-7 7 7-7 7 7" />
+  </g>
+</svg>
