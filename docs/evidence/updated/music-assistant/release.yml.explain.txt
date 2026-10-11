@@ -1,0 +1,161 @@
+Analysis coverage is incomplete. Unsupported boundaries may hide operations.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:87, resolve)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:96, resolve): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:103, resolve)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE uninterpreted-command (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:103, resolve): python3
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:110, resolve): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:118, resolve)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:142, resolve)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:170, resolve): actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:180, resolve)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:191, resolve)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:204, resolve)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE reusable-workflow-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:346, preflight): ./.github/workflows/test.yml
+  Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:368, build_artifacts): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:375, build_artifacts): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE uninterpreted-command (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:382, build_artifacts): mkdir
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:390, build_artifacts)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:433, build_artifacts): actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:444, build_artifacts)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:456, build_artifacts): actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE uninterpreted-command (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:463, build_artifacts): python3
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:467, build_artifacts)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE uninterpreted-command (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:486, build_artifacts): python3
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:491, build_artifacts)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE uninterpreted-command (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:501, build_artifacts): python3
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:506, build_artifacts)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE uninterpreted-command (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:522, build_artifacts): python3
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:530, build_artifacts): actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:557, prepare_draft): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:564, prepare_draft): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:572, prepare_draft): actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:578, prepare_draft)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE uninterpreted-command (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:578, prepare_draft): python3
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE local-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:587, prepare_draft): ./.release-workflow/.github/actions/generate-release-notes
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:599, prepare_draft)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:633, prepare_draft)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:775, prepare_draft)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:805, prepare_draft)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:849, exact_image): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:856, exact_image): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:863, exact_image): actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:870, exact_image): docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:877, exact_image): docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:880, exact_image)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:939, exact_image)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1013, publish_release): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1020, publish_release): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1028, publish_release)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1072, publish_release): actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1079, publish_release)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1100, publish_release): actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1111, publish_release)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1123, publish_release)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1137, publish_release)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1152, publish_release)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1224, publish_release): docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1231, publish_release): docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1234, publish_release)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1263, promote_image): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1270, promote_image): docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1277, promote_image): docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1280, promote_image)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1403, update_addon): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1410, update_addon): actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1420, update_addon)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1436, update_addon)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1450, update_addon): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1459, update_addon)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1481, update_addon)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE uninterpreted-command (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1501, update_addon): python3
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1511, update_addon)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1554, update_remote_app): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1561, update_remote_app): actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1568, update_remote_app)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1588, update_remote_app): actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1598, update_remote_app)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:1609, update_remote_app)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+
+Unknown build identity (docs/evidence/music-assistant/upstream/.github/workflows/release.yml:914, exact_image): __samebyte_digest_839cef9f1b37e5b2_1__
+  exact_image.build: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+  multi-platform child manifest identity is not tracked
+  OCI digest output
+  exact_image step 7: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+  Conditions, strategy, or ignored failures prevent an unconditional proof.
+No supported deployments found. Artifact lineage was not verified.

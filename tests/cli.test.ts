@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -106,6 +106,100 @@ test('invalid and empty workflows produce analysis errors', async () => {
     const parallel = cli(join(dir, 'parallel.yml'), '--format', 'json');
     assert.equal(parallel.status, 2);
     assert.match(JSON.parse(parallel.stdout).diagnostics[0].message, /parallel block/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+test('coverage is visible in every CLI format without changing exit codes', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'samebyte-coverage-'));
+  try {
+    const file = join(dir, 'opaque.yml');
+    await writeFile(
+      file,
+      `jobs:
+  build:
+    uses: ./.github/workflows/build.yml
+  check:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: ./.github/actions/check
+`,
+    );
+    for (const command of ['check', 'explain', 'graph']) {
+      const result = cli(command, file);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /COVERAGE reusable-workflow-call/);
+      assert.match(result.stdout, /COVERAGE local-action-call/);
+      assert.doesNotMatch(result.stdout, /Artifact lineage verified/);
+      if (command !== 'graph')
+        assert.match(result.stdout, /No supported deployments found/);
+    }
+    const json = cli(file, '--format', 'json');
+    assert.equal(json.status, 0, json.stderr);
+    const report = JSON.parse(json.stdout);
+    assert.equal(report.coverage.length, 2);
+    assert.deepEqual(report.operations, []);
+    assert.deepEqual(report.findings, []);
+    assert.deepEqual(report.diagnostics, []);
+    const sarif = cli(file, '--format', 'sarif');
+    assert.equal(sarif.status, 0, sarif.stderr);
+    const run = JSON.parse(sarif.stdout).runs[0];
+    assert.deepEqual(run.results, []);
+    assert.equal(run.invocations[0].executionSuccessful, true);
+    assert.equal(run.invocations[0].toolExecutionNotifications.length, 2);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('annotated scripts retain coverage in every CLI format and preserve exit codes', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'samebyte-annotated-'));
+  try {
+    const file = join(dir, 'annotated.yml');
+    const config = join(dir, 'config.json');
+    const source = (await readFile('tests/fixtures/correct.yml', 'utf8')).replace(
+      '      - uses: actions/checkout@v4\n',
+      '',
+    );
+    await writeFile(
+      file,
+      `${source}      - id: extra\n        run: ./extra-deploy.sh\n`,
+    );
+    await writeFile(
+      config,
+      JSON.stringify({
+        annotations: [
+          {
+            workflow: 'annotated.yml',
+            job: 'deploy',
+            step: 'extra',
+            operation: 'scan',
+            image: '${{ needs.verify.outputs.image }}',
+          },
+        ],
+      }),
+    );
+    for (const args of [
+      [],
+      ['explain'],
+      ['graph'],
+      ['--format', 'json'],
+      ['--format', 'sarif'],
+    ]) {
+      const result = cli(...args, file, '--config', config);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /unsupported-shell/);
+      assert.doesNotMatch(result.stdout, /Artifact lineage verified/);
+      if (args.includes('json')) {
+        const report = JSON.parse(result.stdout);
+        assert.equal(report.deployments[0].state, 'proven');
+        assert.equal(report.coverage.length, 1);
+        assert.equal(report.operations.at(-1).kind, 'scan');
+      }
+      if (args.includes('sarif'))
+        assert.deepEqual(JSON.parse(result.stdout).runs[0].results, []);
+    }
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

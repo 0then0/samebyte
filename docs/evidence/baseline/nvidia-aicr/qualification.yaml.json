@@ -1,0 +1,15 @@
+{
+  "command": "node dist/evidence-baseline.js docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml"
+    ],
+    "operations": [],
+    "artifacts": [],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": []
+  }
+}

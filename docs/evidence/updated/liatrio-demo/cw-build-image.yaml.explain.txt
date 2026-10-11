@@ -1,0 +1,5 @@
+Analysis coverage is incomplete. Unsupported boundaries may hide operations.
+COVERAGE reusable-workflow-call (docs/evidence/liatrio-demo/upstream/.github/workflows/cw-build-image.yaml:21, attest-image-hp): liatrio/demo-gh-autogov-workflows/.github/workflows/rw-hp-build-image.yaml@788074ccc85737ee9c0cd24e576c07c077bc7113
+  Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call.
+
+No supported deployments found. Artifact lineage was not verified.

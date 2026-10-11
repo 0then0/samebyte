@@ -61,6 +61,20 @@ export interface Deployment {
     Record<'test' | 'scan' | 'attest', { file: string; line: number; reason: string }>
   >;
 }
+export interface CoverageNotice {
+  reason:
+    | 'reusable-workflow-call'
+    | 'local-action-call'
+    | 'unsupported-action-call'
+    | 'matrix-job'
+    | 'unsupported-shell'
+    | 'uninterpreted-command';
+  type: 'reusable-workflow' | 'action' | 'matrix' | 'shell';
+  // Job-level boundaries have no step index.
+  location: Omit<Location, 'step'> & { step?: number };
+  message: string;
+  target?: string;
+}
 export interface Report {
   version: 1;
   workflows: string[];
@@ -69,6 +83,7 @@ export interface Report {
   deployments: Deployment[];
   findings: Finding[];
   diagnostics: { file: string; message: string }[];
+  coverage: CoverageNotice[];
 }
 export interface Step {
   id?: string;
@@ -88,6 +103,7 @@ export interface Step {
   shell?: string;
 }
 export interface Job {
+  line: number;
   needs: string[];
   steps: Step[];
   env?: Record<string, unknown>;

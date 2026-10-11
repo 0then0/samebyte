@@ -1,0 +1,15 @@
+{
+  "command": "node dist/evidence-baseline.js docs/evidence/liatrio-demo/upstream/.github/workflows/cw-build-image.yaml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/liatrio-demo/upstream/.github/workflows/cw-build-image.yaml"
+    ],
+    "operations": [],
+    "artifacts": [],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": []
+  }
+}

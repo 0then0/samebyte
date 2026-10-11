@@ -1,0 +1,137 @@
+# Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Reusable workflow that generates SLSA build-provenance, CycloneDX SBOM and
+# OpenVEX attestations for the released container images. The SBOM and the VEX
+# land on each platform manifest digest; provenance lands on the index digest
+# and on each platform manifest, so the evidence set is complete at whichever
+# subject a consumer queries (see .github/actions/sbom-and-attest for the
+# subject policy and for why the three provenance predicates are identical).
+#
+# Running attestation generation from a *reusable* workflow is what makes the
+# provenance SLSA Build Level 3: the attestation's builder identity becomes this
+# workflow (`.github/workflows/attest-images.yaml`), a vetted, isolated builder
+# that callers cannot tamper with — verifiable with:
+#
+#   gh attestation verify oci://<image>@<digest> --repo NVIDIA/aicr \
+#     --signer-workflow NVIDIA/aicr/.github/workflows/attest-images.yaml
+#
+# Generating attestations directly in a top-level (caller) workflow only yields
+# Build Level 2. See:
+#   https://docs.github.com/actions/security-guides/using-artifact-attestations-and-reusable-workflows-to-achieve-slsa-v1-build-level-3
+
+name: Attest Images (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      candidate_tag:
+        description: 'Validated run-unique candidate tag'
+        required: true
+        type: string
+      digest_map:
+        description: 'Canonical seven-image candidate digest map'
+        required: true
+        type: string
+
+jobs:
+  validate-inputs:
+    name: Validate Attestation Inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    outputs:
+      candidate_tag: ${{ steps.validate.outputs.candidate_tag }}
+      digest_map: ${{ steps.validate.outputs.digest_map }}
+    steps:
+      - name: Validate inputs
+        id: validate
+        env:
+          INPUT_CANDIDATE_TAG: ${{ inputs.candidate_tag }}
+          INPUT_DIGEST_MAP: ${{ inputs.digest_map }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${INPUT_CANDIDATE_TAG}" || \
+            "${INPUT_CANDIDATE_TAG}" == *$'\n'* || \
+            "${INPUT_CANDIDATE_TAG}" == *$'\r'* || \
+            ! "${INPUT_CANDIDATE_TAG}" =~ ^candidate-[0-9]+-[0-9]+$ ]]; then
+            echo "::error::candidate_tag is invalid"
+            exit 1
+          fi
+          canonical="$(jq -cS -e '
+            if (
+              type == "object" and
+              keys == ["aicr", "aicrd", "aiperf-bench", "conformance", "deployment", "gate", "performance"] and
+              all(.[]; type == "string" and length == 71 and test("^sha256:[0-9a-f]{64}$"))
+            ) then .
+            else error("invalid digest map")
+            end
+          ' <<<"${INPUT_DIGEST_MAP}")" || {
+            echo "::error::digest_map must contain exactly the seven fixed digests"
+            exit 1
+          }
+          if [[ "${INPUT_DIGEST_MAP}" != "${canonical}" ]]; then
+            echo "::error::digest_map must be compact canonical JSON"
+            exit 1
+          fi
+          {
+            echo "candidate_tag=${INPUT_CANDIDATE_TAG}"
+            echo "digest_map=${canonical}"
+          } >> "$GITHUB_OUTPUT"
+
+  attest:
+    name: Attest Images
+    runs-on: ubuntu-latest
+    needs: [validate-inputs]
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - key: aicr
+            image: ghcr.io/nvidia/aicr
+          - key: aicrd
+            image: ghcr.io/nvidia/aicrd
+          - key: deployment
+            image: ghcr.io/nvidia/aicr-validators/deployment
+          - key: performance
+            image: ghcr.io/nvidia/aicr-validators/performance
+          - key: conformance
+            image: ghcr.io/nvidia/aicr-validators/conformance
+          - key: aiperf-bench
+            image: ghcr.io/nvidia/aicr-validators/aiperf-bench
+          - key: gate
+            image: ghcr.io/nvidia/aicr-gate
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Load versions
+        id: versions
+        uses: ./.github/actions/load-versions
+
+      - name: Attest ${{ matrix.key }} image
+        uses: ./.github/actions/attest-image-from-tag
+        with:
+          image_name: ${{ matrix.image }}
+          candidate_tag: ${{ needs.validate-inputs.outputs.candidate_tag }}
+          expected_digest: ${{ fromJSON(needs.validate-inputs.outputs.digest_map)[matrix.key] }}
+          crane_version: ${{ steps.versions.outputs.crane }}

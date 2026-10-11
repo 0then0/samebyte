@@ -221,6 +221,24 @@ export function analyzeRules(
           'mismatch',
           different,
         );
+      } else {
+        const symbolic = candidates.some(
+          (op) =>
+            op.identity.kind === 'immutable' &&
+            deploy.identity.kind === 'immutable' &&
+            op.identity.key !== deploy.identity.key &&
+            (!op.identity.concrete || !deploy.identity.concrete),
+        );
+        checkReasons[kind] = {
+          file: deploy.location.file,
+          line: deploy.location.line,
+          reason:
+            deploy.identity.kind !== 'immutable'
+              ? 'Deployment identity is unresolved or mutable; equality cannot be proven.'
+              : symbolic
+                ? 'Independent symbolic digests have no proven equality or inequality.'
+                : `No preceding supported ${kind} consumer proves identity and successful execution for this deployment.`,
+        };
       }
     }
     const sourceTests = operations.filter(
@@ -258,6 +276,7 @@ export function analyzeRules(
     );
     if (stronglyLinkedBuild && checks.test === 'unknown' && !possibleTestOfDeployed) {
       checks.test = 'mismatch';
+      delete checkReasons.test;
       add(
         'SB001',
         'Production artifact was never tested. Source tests ran, but no recognized OCI test consumes the deployed digest.',

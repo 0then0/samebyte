@@ -1,0 +1,28 @@
+{
+  "command": "node dist/cli.js docs/evidence/liatrio-demo/upstream/.github/workflows/cw-build-image.yaml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/liatrio-demo/upstream/.github/workflows/cw-build-image.yaml"
+    ],
+    "operations": [],
+    "artifacts": [],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": [],
+    "coverage": [
+      {
+        "reason": "reusable-workflow-call",
+        "type": "reusable-workflow",
+        "location": {
+          "file": "docs/evidence/liatrio-demo/upstream/.github/workflows/cw-build-image.yaml",
+          "line": 21,
+          "job": "attest-image-hp"
+        },
+        "target": "liatrio/demo-gh-autogov-workflows/.github/workflows/rw-hp-build-image.yaml@788074ccc85737ee9c0cd24e576c07c077bc7113",
+        "message": "Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call."
+      }
+    ]
+  }
+}

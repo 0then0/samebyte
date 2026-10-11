@@ -1,0 +1,236 @@
+{
+  "command": "node dist/cli.js docs/evidence/music-assistant/upstream/.github/workflows/test.yml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/music-assistant/upstream/.github/workflows/test.yml"
+    ],
+    "operations": [],
+    "artifacts": [],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": [],
+    "coverage": [
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 53,
+          "job": "changes",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@v7"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 63,
+          "job": "changes",
+          "step": 1
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 83,
+          "job": "changes",
+          "step": 2
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 117,
+          "job": "provider-scope",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@v7"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 121,
+          "job": "provider-scope",
+          "step": 1
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 133,
+          "job": "lint",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@v7"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 137,
+          "job": "lint",
+          "step": 1
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/setup-python@v7.0.0"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 142,
+          "job": "lint",
+          "step": 2
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884"
+      },
+      {
+        "reason": "uninterpreted-command",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 155,
+          "job": "lint",
+          "step": 3
+        },
+        "message": "This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.",
+        "target": "uv"
+      },
+      {
+        "reason": "uninterpreted-command",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 159,
+          "job": "lint",
+          "step": 4
+        },
+        "message": "This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.",
+        "target": "SKIP=no-commit-to-branch"
+      },
+      {
+        "reason": "matrix-job",
+        "type": "matrix",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 163,
+          "job": "pytest"
+        },
+        "message": "Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 181,
+          "job": "pytest",
+          "step": 0
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 183,
+          "job": "pytest",
+          "step": 1
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@v7"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 187,
+          "job": "pytest",
+          "step": 2
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884"
+      },
+      {
+        "reason": "uninterpreted-command",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 199,
+          "job": "pytest",
+          "step": 3
+        },
+        "message": "This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.",
+        "target": "uv"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 205,
+          "job": "pytest",
+          "step": 4
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 217,
+          "job": "pytest",
+          "step": 5
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 261,
+          "job": "pytest",
+          "step": 6
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "codecov/codecov-action@v7"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/test.yml",
+          "line": 278,
+          "job": "test",
+          "step": 0
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      }
+    ]
+  }
+}

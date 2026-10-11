@@ -1,0 +1,16 @@
+{
+  "repository": "liatrio/demo-autogov-hello-world-app",
+  "commit": "57bf1b1498271c6d97d4c68d7258b9e7a402f8d1",
+  "files": [
+    {
+      "path": ".github/workflows/cw-build-image.yaml",
+      "url": "https://raw.githubusercontent.com/liatrio/demo-autogov-hello-world-app/57bf1b1498271c6d97d4c68d7258b9e7a402f8d1/.github/workflows/cw-build-image.yaml",
+      "sha256": "6aeab509ab562a02364ecd59c87476f1c18ccb0a2675f46119b24d01d8fc0f4f"
+    },
+    {
+      "path": ".github/actions/build-image/action.yaml",
+      "url": "https://raw.githubusercontent.com/liatrio/demo-autogov-hello-world-app/57bf1b1498271c6d97d4c68d7258b9e7a402f8d1/.github/actions/build-image/action.yaml",
+      "sha256": "26e873ef70f1860a6e2eda1b5d4d31d4d8d551f52cd4d5f016c2431c36ee6b46"
+    }
+  ]
+}

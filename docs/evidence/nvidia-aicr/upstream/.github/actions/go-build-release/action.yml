@@ -1,0 +1,133 @@
+# Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: 'Go Build and Release'
+description: 'Setup build tools, authenticate to registry, and run release process'
+
+inputs:
+  registry:
+    description: 'Container registry (e.g. ghcr.io)'
+    required: false
+    default: 'ghcr.io'
+  ko_version:
+    description: 'ko version (e.g. v0.18.0)'
+    required: false
+    default: 'v0.18.0'
+  goreleaser_version:
+    description: 'GoReleaser version (from .settings.yaml)'
+    required: true
+  go_licenses_version:
+    description: 'go-licenses version (from .settings.yaml)'
+    required: true
+  candidate_tag:
+    description: 'Run-unique candidate image tag'
+    required: true
+
+outputs:
+  release_outcome:
+    description: 'Outcome of the release step (success/failure)'
+    value: ${{ steps.release.outcome }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate inputs
+      id: validate
+      shell: bash
+      env:
+        INPUT_REGISTRY: ${{ inputs.registry }}
+        INPUT_KO_VERSION: ${{ inputs.ko_version }}
+        INPUT_GORELEASER_VERSION: ${{ inputs.goreleaser_version }}
+        INPUT_GO_LICENSES_VERSION: ${{ inputs.go_licenses_version }}
+        INPUT_CANDIDATE_TAG: ${{ inputs.candidate_tag }}
+      run: |
+        set -euo pipefail
+        # shellcheck source=.github/actions/release-input-validation.sh
+        source "${GITHUB_ACTION_PATH}/../release-input-validation.sh"
+        for pair in \
+          "registry:${INPUT_REGISTRY}" \
+          "ko_version:${INPUT_KO_VERSION}" \
+          "goreleaser_version:${INPUT_GORELEASER_VERSION}" \
+          "go_licenses_version:${INPUT_GO_LICENSES_VERSION}" \
+          "candidate_tag:${INPUT_CANDIDATE_TAG}"; do
+          reject_newline "${pair%%:*}" "${pair#*:}"
+        done
+        if [[ "${INPUT_REGISTRY}" != "ghcr.io" ]]; then
+          echo "::error::registry must be ghcr.io"
+          exit 1
+        fi
+        for version in "${INPUT_KO_VERSION}" "${INPUT_GORELEASER_VERSION}" "${INPUT_GO_LICENSES_VERSION}"; do
+          if [[ ! "${version}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::tool versions must use vMAJOR.MINOR.PATCH"
+            exit 1
+          fi
+        done
+        if [[ ! "${INPUT_CANDIDATE_TAG}" =~ ^candidate-[0-9]+-[0-9]+$ ]]; then
+          echo "::error::candidate_tag must match candidate-RUN_ID-RUN_ATTEMPT"
+          exit 1
+        fi
+        {
+          echo "registry=${INPUT_REGISTRY}"
+          echo "ko_version=${INPUT_KO_VERSION}"
+          echo "goreleaser_version=${INPUT_GORELEASER_VERSION}"
+          echo "go_licenses_version=${INPUT_GO_LICENSES_VERSION}"
+          echo "candidate_tag=${INPUT_CANDIDATE_TAG}"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Setup build tools
+      uses: ./.github/actions/setup-build-tools
+      with:
+        install_ko: 'true'
+        ko_version: ${{ steps.validate.outputs.ko_version }}
+        install_syft: 'true'
+        install_goreleaser: 'true'
+        goreleaser_version: ${{ steps.validate.outputs.goreleaser_version }}
+
+    # Pinning GOFLAGS is a correctness requirement for go-licenses (see
+    # install-go-licenses/action.yml). Keep the build here centralized so the
+    # notices guard can cover all of .github/ without flagging a duplicate.
+    - name: Install go-licenses
+      uses: ./.github/actions/install-go-licenses
+      with:
+        version: ${{ steps.validate.outputs.go_licenses_version }}
+
+    - name: Authenticate to registry
+      uses: ./.github/actions/ghcr-login
+      with:
+        registry: ${{ steps.validate.outputs.registry }}
+
+    # Note: the Rekor v2 signing config (AICR_SIGNING_CONFIG) is fetched and
+    # exported by the generate-slsa-predicate action, co-located with
+    # SLSA_PREDICATE, so it is present here without a separate step. See #1650.
+
+    - name: Verify release target
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        RELEASE_TAG: ${{ github.ref_name }}
+        GITHUB_SHA: ${{ github.sha }}
+      run: |
+        set -euo pipefail
+        .github/scripts/release-images.sh release-target
+
+    - name: Build and Release
+      id: release
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        AICR_CANDIDATE_TAG: ${{ steps.validate.outputs.candidate_tag }}
+        # Repository paths are fully specified in .goreleaser.yaml kos.repositories
+      run: |
+        set -euo pipefail
+        make release

@@ -1,9 +1,18 @@
 import { relative } from 'node:path';
-import type { Report } from './model.js';
+import type { CoverageNotice, Report } from './model.js';
+
+const coverageText = (notice: CoverageNotice): string =>
+  `COVERAGE ${notice.reason} (${notice.location.file}:${notice.location.line}, ${notice.location.job})${notice.target ? `: ${notice.target}` : ''}\n  ${notice.message}`;
 export function textReport(report: Report, explain = false): string {
   const lines: string[] = [];
   for (const diagnostic of report.diagnostics)
     lines.push(`ERROR ${diagnostic.file}: ${diagnostic.message}`);
+  if (report.coverage.length)
+    lines.push(
+      'Analysis coverage is incomplete. Unsupported boundaries may hide operations.',
+      ...report.coverage.map(coverageText),
+      '',
+    );
   for (const finding of report.findings) {
     lines.push(
       `${finding.ruleId} ${finding.severity.toUpperCase()} [${finding.state}]`,
@@ -16,6 +25,26 @@ export function textReport(report: Report, explain = false): string {
     }
     lines.push('');
   }
+  for (const operation of report.operations) {
+    if (
+      operation.kind === 'source-test' ||
+      (operation.identity.kind !== 'unknown' && !operation.runtimeIdentityUnknown)
+    )
+      continue;
+    lines.push(
+      `Unknown ${operation.kind} identity (${operation.location.file}:${operation.location.line}, ${operation.location.job}): ${operation.identity.reference}`,
+      ...[
+        ...new Set([
+          ...operation.identity.trace,
+          ...(operation.guarded
+            ? [
+                'Conditions, strategy, or ignored failures prevent an unconditional proof.',
+              ]
+            : []),
+        ]),
+      ].map((reason) => `  ${reason}`),
+    );
+  }
   for (const deployment of report.deployments) {
     const operation = report.operations.find((op) => op.id === deployment.operation);
     lines.push(
@@ -24,7 +53,7 @@ export function textReport(report: Report, explain = false): string {
         ([kind, state]) => `  ${kind}: ${state}`,
       ),
     );
-    if (explain && operation) {
+    if (operation) {
       for (const kind of ['test', 'scan', 'attest'] as const) {
         if (deployment.checks[kind] !== 'unknown') continue;
         const reason = deployment.checkReasons?.[kind];
@@ -37,20 +66,26 @@ export function textReport(report: Report, explain = false): string {
   }
   if (!report.deployments.length)
     lines.push('No supported deployments found. Artifact lineage was not verified.');
+  if (report.diagnostics.length)
+    lines.push('Analysis failed. Artifact lineage was not verified.');
   else if (
+    report.deployments.length &&
     report.deployments.every((d) => d.state === 'proven') &&
-    !report.findings.length &&
-    !report.diagnostics.length
+    !report.findings.length
   )
-    lines.push('Artifact lineage verified.');
-  else if (!report.findings.length)
+    lines.push(
+      report.coverage.length
+        ? 'Detected deployment lineage is proven. Pipeline coverage is incomplete.'
+        : 'Artifact lineage verified within the supported analysis scope.',
+    );
+  else if (report.deployments.length && !report.findings.length)
     lines.push(
       'No high-confidence violations found. Incomplete lineage remains unknown.',
     );
   return lines.join('\n');
 }
 export function graphReport(report: Report): string {
-  return report.artifacts
+  const artifacts = report.artifacts
     .map((artifact) =>
       [
         `${artifact.id} [${artifact.identity.kind}]`,
@@ -62,6 +97,7 @@ export function graphReport(report: Report): string {
       ].join('\n'),
     )
     .join('\n\n');
+  return [artifacts, ...report.coverage.map(coverageText)].filter(Boolean).join('\n\n');
 }
 export function sarifReport(report: Report): unknown {
   return {
@@ -81,10 +117,32 @@ export function sarifReport(report: Report): unknown {
         invocations: [
           {
             executionSuccessful: report.diagnostics.length === 0,
-            toolExecutionNotifications: report.diagnostics.map((d) => ({
-              level: 'error',
-              message: { text: `${d.file}: ${d.message}` },
-            })),
+            toolExecutionNotifications: [
+              ...report.diagnostics.map((d) => ({
+                level: 'error',
+                message: { text: `${d.file}: ${d.message}` },
+              })),
+              ...report.coverage.map((notice) => ({
+                level: 'note',
+                descriptor: { id: notice.reason },
+                message: { text: coverageText(notice) },
+                locations: [
+                  {
+                    physicalLocation: {
+                      artifactLocation: {
+                        uri: relative(process.cwd(), notice.location.file)
+                          .split('/')
+                          .map(encodeURIComponent)
+                          .join('/'),
+                        uriBaseId: '%SRCROOT%',
+                      },
+                      region: { startLine: notice.location.line },
+                    },
+                  },
+                ],
+                properties: { type: notice.type, target: notice.target },
+              })),
+            ],
           },
         ],
         results: report.findings.map((finding) => ({

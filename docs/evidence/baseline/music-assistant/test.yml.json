@@ -1,0 +1,15 @@
+{
+  "command": "node dist/evidence-baseline.js docs/evidence/music-assistant/upstream/.github/workflows/test.yml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/music-assistant/upstream/.github/workflows/test.yml"
+    ],
+    "operations": [],
+    "artifacts": [],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": []
+  }
+}

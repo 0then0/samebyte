@@ -1,0 +1,31 @@
+Analysis coverage is incomplete. Unsupported boundaries may hide operations.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:56, test): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:63, test): ./.github/actions/load-versions
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:67, test): ./.github/actions/go-test
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:87, lint): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:93, lint): ./.github/actions/load-versions
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:97, lint): ./.github/actions/go-lint
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:117, cli-e2e): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:123, cli-e2e): ./.github/actions/load-versions
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:127, cli-e2e): ./.github/actions/cli-e2e
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:144, e2e): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:150, e2e): ./.github/actions/load-versions
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:154, e2e): ./.github/actions/e2e
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:173, security-scan): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml:179, security-scan): ./.github/actions/security-scan
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+
+No supported deployments found. Artifact lineage was not verified.

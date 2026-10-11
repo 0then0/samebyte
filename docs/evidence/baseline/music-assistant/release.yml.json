@@ -1,0 +1,60 @@
+{
+  "command": "node dist/evidence-baseline.js docs/evidence/music-assistant/upstream/.github/workflows/release.yml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/music-assistant/upstream/.github/workflows/release.yml"
+    ],
+    "operations": [
+      {
+        "id": "docs/evidence/music-assistant/upstream/.github/workflows/release.yml#exact_image.build:0",
+        "kind": "build",
+        "identity": {
+          "reference": "__samebyte_digest_839cef9f1b37e5b2_1__",
+          "trace": [
+            "exact_image.build: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "exact_image step 7: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+        "order": 0,
+        "guardedByJobCondition": false,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/music-assistant/upstream/.github/workflows/release.yml",
+          "line": 914,
+          "job": "exact_image",
+          "step": 6
+        }
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "docs/evidence/music-assistant/upstream/.github/workflows/release.yml#artifact-1",
+        "identity": {
+          "reference": "__samebyte_digest_839cef9f1b37e5b2_1__",
+          "trace": [
+            "exact_image.build: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "exact_image step 7: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [
+          "docs/evidence/music-assistant/upstream/.github/workflows/release.yml#exact_image.build:0"
+        ],
+        "consumers": []
+      }
+    ],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": []
+  }
+}

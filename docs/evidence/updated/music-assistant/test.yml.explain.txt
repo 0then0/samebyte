@@ -1,0 +1,41 @@
+Analysis coverage is incomplete. Unsupported boundaries may hide operations.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:53, changes): actions/checkout@v7
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:63, changes)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:83, changes)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:117, provider-scope): actions/checkout@v7
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:121, provider-scope)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:133, lint): actions/checkout@v7
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:137, lint): actions/setup-python@v7.0.0
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:142, lint): astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE uninterpreted-command (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:155, lint): uv
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE uninterpreted-command (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:159, lint): SKIP=no-commit-to-branch
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE matrix-job (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:163, pytest)
+  Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:181, pytest)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:183, pytest): actions/checkout@v7
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:187, pytest): astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE uninterpreted-command (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:199, pytest): uv
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:205, pytest)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:217, pytest)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:261, pytest): codecov/codecov-action@v7
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/music-assistant/upstream/.github/workflows/test.yml:278, test)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+
+No supported deployments found. Artifact lineage was not verified.

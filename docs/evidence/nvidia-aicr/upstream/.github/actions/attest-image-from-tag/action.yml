@@ -1,0 +1,145 @@
+# Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: 'Resolve digest and attest image'
+description: 'Resolves an image digest from a tag and generates CycloneDX SBOM, OpenVEX and provenance attestations'
+
+inputs:
+  image_name:
+    description: 'Full image name (without tag or digest), e.g. ghcr.io/org/image'
+    required: true
+  candidate_tag:
+    description: 'Run-unique candidate tag to resolve'
+    required: true
+  expected_digest:
+    description: 'Authoritative digest that the candidate must resolve to'
+    required: true
+  crane_version:
+    description: 'crane version to install (e.g. v0.20.6)'
+    required: false
+    default: 'v0.20.6'
+
+outputs:
+  image_digest:
+    description: 'Resolved image digest (sha256:...)'
+    value: ${{ steps.digest.outputs.image_digest }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate inputs
+      id: validate
+      shell: bash
+      env:
+        INPUT_IMAGE_NAME: ${{ inputs.image_name }}
+        INPUT_CANDIDATE_TAG: ${{ inputs.candidate_tag }}
+        INPUT_EXPECTED_DIGEST: ${{ inputs.expected_digest }}
+        INPUT_CRANE_VERSION: ${{ inputs.crane_version }}
+      run: |
+        set -euo pipefail
+        # shellcheck source=.github/actions/release-input-validation.sh
+        source "${GITHUB_ACTION_PATH}/../release-input-validation.sh"
+        reject_newline image_name "${INPUT_IMAGE_NAME}"
+        reject_newline candidate_tag "${INPUT_CANDIDATE_TAG}"
+        reject_newline expected_digest "${INPUT_EXPECTED_DIGEST}"
+        reject_newline crane_version "${INPUT_CRANE_VERSION}"
+        require_release_image "${INPUT_IMAGE_NAME}"
+        if [[ ! "${INPUT_CANDIDATE_TAG}" =~ ^candidate-[0-9]+-[0-9]+$ ]]; then
+          echo "::error::candidate_tag must match candidate-RUN_ID-RUN_ATTEMPT"
+          exit 1
+        fi
+        if [[ ! "${INPUT_EXPECTED_DIGEST}" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+          echo "::error::expected_digest is malformed"
+          exit 1
+        fi
+        if [[ ! "${INPUT_CRANE_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::crane_version must use vMAJOR.MINOR.PATCH"
+          exit 1
+        fi
+        {
+          echo "image_name=${INPUT_IMAGE_NAME}"
+          echo "candidate_tag=${INPUT_CANDIDATE_TAG}"
+          echo "expected_digest=${INPUT_EXPECTED_DIGEST}"
+          echo "crane_version=${INPUT_CRANE_VERSION}"
+        } >> "$GITHUB_OUTPUT"
+
+    - name: Authenticate to registry
+      uses: ./.github/actions/ghcr-login
+
+    - name: Setup crane
+      uses: ./.github/actions/setup-build-tools
+      with:
+        install_crane: 'true'
+        crane_version: ${{ steps.validate.outputs.crane_version }}
+
+    - name: Resolve image digest
+      id: digest
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ steps.validate.outputs.image_name }}
+        CANDIDATE_TAG: ${{ steps.validate.outputs.candidate_tag }}
+        EXPECTED_DIGEST: ${{ steps.validate.outputs.expected_digest }}
+      run: |
+        set -euo pipefail
+        DIGEST="$(timeout --foreground 120s crane digest "${IMAGE_NAME}:${CANDIDATE_TAG}")"
+        if [[ ! "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+          echo "::error::unexpected digest format: $DIGEST"
+          exit 1
+        fi
+        if [[ "${DIGEST}" != "${EXPECTED_DIGEST}" ]]; then
+          echo "::error::resolved digest does not match expected digest"
+          exit 1
+        fi
+        echo "image_digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+    # `crane digest <ref>` returns the multi-arch *index* digest, which is the
+    # right subject for provenance but the wrong one for an SBOM or a VEX: both
+    # describe exactly one root filesystem, and a consumer that resolved
+    # linux/amd64 enumerates referrers on that child manifest, not on the index
+    # (#1957, #2426). `crane digest --platform` resolves the index to that
+    # platform's child manifest and errors out ("no child with platform ...")
+    # if the platform is absent, so a release that silently lost an
+    # architecture fails here instead of shipping two SBOMs pinned to the same
+    # subject.
+    - name: Resolve per-platform manifest digests
+      id: platforms
+      shell: bash
+      env:
+        IMAGE_NAME: ${{ steps.validate.outputs.image_name }}
+        INDEX_DIGEST: ${{ steps.digest.outputs.image_digest }}
+      run: |
+        set -euo pipefail
+        for arch in amd64 arm64; do
+          platform_digest="$(timeout --foreground 120s crane digest \
+            --platform "linux/${arch}" "${IMAGE_NAME}@${INDEX_DIGEST}")"
+          if [[ ! "${platform_digest}" =~ ^sha256:[a-f0-9]{64}$ ]]; then
+            echo "::error::unexpected linux/${arch} manifest digest format: ${platform_digest}"
+            exit 1
+          fi
+          # crane returns the reference's own digest when it is a plain image
+          # manifest, so equality here means the release image is single-arch.
+          if [[ "${platform_digest}" == "${INDEX_DIGEST}" ]]; then
+            echo "::error::linux/${arch} resolved to the index digest; ${IMAGE_NAME} is not a multi-platform index"
+            exit 1
+          fi
+          echo "${arch}_digest=${platform_digest}" >> "$GITHUB_OUTPUT"
+        done
+
+    - name: Generate SBOM and attestations
+      uses: ./.github/actions/sbom-and-attest
+      with:
+        image_name: ${{ steps.validate.outputs.image_name }}
+        image_digest: ${{ steps.validate.outputs.expected_digest }}
+        amd64_digest: ${{ steps.platforms.outputs.amd64_digest }}
+        arm64_digest: ${{ steps.platforms.outputs.arm64_digest }}

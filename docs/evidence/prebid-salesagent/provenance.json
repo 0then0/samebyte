@@ -1,0 +1,11 @@
+{
+  "repository": "prebid/salesagent",
+  "commit": "08e3d8c16f627ce1299bdfb7d0a6bf3976e4448e",
+  "files": [
+    {
+      "path": ".github/workflows/release-please.yml",
+      "url": "https://raw.githubusercontent.com/prebid/salesagent/08e3d8c16f627ce1299bdfb7d0a6bf3976e4448e/.github/workflows/release-please.yml",
+      "sha256": "5131613300636824a1d12693f329e8466c443211fab452d1b1f174fde18e4d35"
+    }
+  ]
+}

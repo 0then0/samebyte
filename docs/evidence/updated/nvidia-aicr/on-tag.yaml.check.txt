@@ -1,0 +1,180 @@
+Analysis coverage is incomplete. Unsupported boundaries may hide operations.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:58, detect)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE reusable-workflow-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:88, tests): ./.github/workflows/qualification.yaml
+  Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:113, build-ko): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:119, build-ko)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:123, build-ko): ./.github/actions/load-versions
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:127, build-ko): actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:154, build-ko): ./.github/actions/setup-dgxc-goproxy
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:164, build-ko)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:201, build-ko)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:208, build-ko): sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:216, build-ko): ./.github/actions/generate-slsa-predicate
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:240, build-ko): ./.github/actions/setup-dgxc-goproxy
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:245, build-ko): ./.github/actions/go-build-release
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:254, build-ko): ./.github/actions/malware-scan
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:263, build-ko)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:278, build-ko)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:302, build-ko): actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE uninterpreted-command (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:318, build-ko): rm
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE matrix-job (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:328, build-docker)
+  Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:354, build-docker): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:359, build-docker)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:363, build-docker): docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:366, build-docker): ./.github/actions/ghcr-login
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:369, build-docker): ./.github/actions/load-versions
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:373, build-docker): actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:382, build-docker): ./.github/actions/setup-dgxc-goproxy
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:388, build-docker)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE uninterpreted-command (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:400, build-docker): ./tools/build-validator-binaries
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE uninterpreted-command (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:408, build-docker): rm
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE matrix-job (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:443, build-gate)
+  Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:465, build-gate): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:470, build-gate)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:474, build-gate): docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:477, build-gate): ./.github/actions/ghcr-login
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:483, build-gate): ./.github/actions/load-versions
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:487, build-gate): actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:498, build-gate): ./.github/actions/setup-dgxc-goproxy
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:503, build-gate)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:522, build-gate)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE uninterpreted-command (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:555, build-gate): rm
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:573, docker-manifest): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:578, docker-manifest): ./.github/actions/ghcr-login
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:581, docker-manifest): docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:587, docker-manifest)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:602, docker-manifest)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:644, resolve-candidates): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:649, resolve-candidates): ./.github/actions/load-versions
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:653, resolve-candidates): ./.github/actions/ghcr-login
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:656, resolve-candidates): ./.github/actions/setup-build-tools
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:662, resolve-candidates)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:675, resolve-candidates): actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE matrix-job (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:688, image-vuln-scan)
+  Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:721, image-vuln-scan): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:726, image-vuln-scan): ./.github/actions/ghcr-login
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:750, image-vuln-scan): github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:758, image-vuln-scan)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE reusable-workflow-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:786, attest): ./.github/workflows/attest-images.yaml
+  Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:805, release-check)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:840, promote-images): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:845, promote-images): ./.github/actions/load-versions
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:849, promote-images): ./.github/actions/ghcr-login
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:852, promote-images): ./.github/actions/setup-build-tools
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:858, promote-images)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:873, promote-images)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:895, publish): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:900, publish)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:928, publish-homebrew): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:933, publish-homebrew): actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:942, publish-homebrew)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:955, publish-homebrew)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:1061, attach-source): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:1066, attach-source): ./.github/actions/load-versions
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:1070, attach-source): ./.github/actions/ghcr-login
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:1073, attach-source): ./.github/actions/setup-build-tools
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:1080, attach-source): sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:1085, attach-source)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:1131, attach-source)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:1144, attach-source)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:1189, notify)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:1236, summary)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+
+Unknown build identity (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:413, build-docker): __samebyte_digest_71ede60a2465264e_1__
+  build-docker.11: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+  multi-platform child manifest identity is not tracked
+  OCI digest output
+  build-docker step 11: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+  Conditions, strategy, or ignored failures prevent an unconditional proof.
+Unknown build identity (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:534, build-gate): __samebyte_digest_71ede60a2465264e_2__
+  build-gate.10: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+  multi-platform child manifest identity is not tracked
+  OCI digest output
+  build-gate step 10: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+  Conditions, strategy, or ignored failures prevent an unconditional proof.
+Unknown scan identity (docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml:729, image-vuln-scan): __samebyte_unknown__@__samebyte_unknown__
+  Unresolved GitHub expression
+  with.image = __samebyte_unknown__@__samebyte_unknown__
+  image-vuln-scan step 3: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439
+  Conditions, strategy, or ignored failures prevent an unconditional proof.
+No supported deployments found. Artifact lineage was not verified.

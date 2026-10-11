@@ -199,7 +199,15 @@ export function parseWorkflow(source: string, file: string): Workflow {
       throw new Error(
         `Invalid wait or cancel target in ${id}: expected a background step id`,
       );
-    jobs[id] = { ...value, steps, needs } as Job;
+    const node = doc.getIn(value.uses ? ['jobs', id, 'uses'] : ['jobs', id], true) as {
+      range?: number[];
+    };
+    jobs[id] = {
+      ...value,
+      steps,
+      needs,
+      line: lines.linePos(node?.range?.[0] ?? 0).line,
+    } as Job;
   }
   const visited = new Set<string>();
   const visiting = new Set<string>();

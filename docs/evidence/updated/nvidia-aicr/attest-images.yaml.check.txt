@@ -1,0 +1,13 @@
+Analysis coverage is incomplete. Unsupported boundaries may hide operations.
+COVERAGE unsupported-shell (docs/evidence/nvidia-aicr/upstream/.github/workflows/attest-images.yaml:58, validate-inputs)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE matrix-job (docs/evidence/nvidia-aicr/upstream/.github/workflows/attest-images.yaml:94, attest)
+  Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven.
+COVERAGE unsupported-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/attest-images.yaml:122, attest): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/attest-images.yaml:127, attest): ./.github/actions/load-versions
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+COVERAGE local-action-call (docs/evidence/nvidia-aicr/upstream/.github/workflows/attest-images.yaml:131, attest): ./.github/actions/attest-image-from-tag
+  Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.
+
+No supported deployments found. Artifact lineage was not verified.

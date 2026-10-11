@@ -116,17 +116,17 @@ function stripKubectlGlobalFlags(tokens: string[]): {
   }
   return { tokens: command, indexes, unknown: false };
 }
-export function shellConsumption(
-  tokens: string[],
-  env: Record<string, string> = {},
-): Consumption[] {
-  let originalIndexes = tokens.map((_, index) => index);
+export function nonMutatingDeployment(tokens: string[]): boolean {
   if (tokens[0] === 'kubectl') {
     const normalized = stripKubectlGlobalFlags(tokens);
-    if (normalized.unknown) return [{ kind: 'deploy' }];
+    if (normalized.unknown) return false;
     tokens = normalized.tokens;
-    originalIndexes = normalized.indexes;
   }
+  if (
+    !(tokens[0] === 'kubectl' && tokens[1] === 'set' && tokens[2] === 'image') &&
+    !(tokens[0] === 'helm' && ['upgrade', 'install'].includes(tokens[1]))
+  )
+    return false;
   const helmDryRun =
     tokens[0] === 'helm' &&
     tokens
@@ -148,7 +148,20 @@ export function shellConsumption(
   const kubectlLocal =
     tokens[0] === 'kubectl' &&
     tokens.some((token) => token === '--local' || token === '--local=true');
-  if (helmDryRun || kubectlDryRun || kubectlLocal) return [];
+  return helmDryRun || kubectlDryRun || kubectlLocal;
+}
+export function shellConsumption(
+  tokens: string[],
+  env: Record<string, string> = {},
+): Consumption[] {
+  if (nonMutatingDeployment(tokens)) return [];
+  let originalIndexes = tokens.map((_, index) => index);
+  if (tokens[0] === 'kubectl') {
+    const normalized = stripKubectlGlobalFlags(tokens);
+    if (normalized.unknown) return [{ kind: 'deploy' }];
+    tokens = normalized.tokens;
+    originalIndexes = normalized.indexes;
+  }
   if (tokens[0] === 'docker' && tokens[1] === 'run') {
     const image = runImage(tokens);
     return [

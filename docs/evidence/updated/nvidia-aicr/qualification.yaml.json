@@ -1,0 +1,185 @@
+{
+  "command": "node dist/cli.js docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml"
+    ],
+    "operations": [],
+    "artifacts": [],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": [],
+    "coverage": [
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 56,
+          "job": "test",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 63,
+          "job": "test",
+          "step": 1
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/load-versions"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 67,
+          "job": "test",
+          "step": 2
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/go-test"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 87,
+          "job": "lint",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 93,
+          "job": "lint",
+          "step": 1
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/load-versions"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 97,
+          "job": "lint",
+          "step": 2
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/go-lint"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 117,
+          "job": "cli-e2e",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 123,
+          "job": "cli-e2e",
+          "step": 1
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/load-versions"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 127,
+          "job": "cli-e2e",
+          "step": 2
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/cli-e2e"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 144,
+          "job": "e2e",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 150,
+          "job": "e2e",
+          "step": 1
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/load-versions"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 154,
+          "job": "e2e",
+          "step": 2
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/e2e"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 173,
+          "job": "security-scan",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/qualification.yaml",
+          "line": 179,
+          "job": "security-scan",
+          "step": 1
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/security-scan"
+      }
+    ]
+  }
+}

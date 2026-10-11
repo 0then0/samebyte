@@ -1,0 +1,88 @@
+Analysis coverage is incomplete. Unsupported boundaries may hide operations.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:26, release-please): step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:30, release-please): googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:49, build-and-push): step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:52, build-and-push): actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:55, build-and-push)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:85, build-and-push): docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:87, build-and-push): docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:89, build-and-push): docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:95, build-and-push): docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:100, build-and-push): docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:112, build-and-push)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:191, sign-and-attest): step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:195, sign-and-attest): sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:196, sign-and-attest)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:206, sign-and-attest)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:232, sign-and-attest): actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:258, sign-and-attest): github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+
+Unknown build identity (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:115, build-and-push): __samebyte_digest_e5adc323df254393_1__
+  build-and-push.10: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+  OCI digest output
+  build-and-push step 10: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+  Conditions, strategy, or ignored failures prevent an unconditional proof.
+Unknown build identity (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:137, build-and-push): __samebyte_digest_e5adc323df254393_2__
+  build-and-push.12: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+  OCI digest output
+  build-and-push step 12: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+  Conditions, strategy, or ignored failures prevent an unconditional proof.
+Unknown build identity (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:161, build-and-push): __samebyte_digest_e5adc323df254393_3__
+  build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+  multi-platform child manifest identity is not tracked
+  OCI digest output
+  build-and-push step 14: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+  Conditions, strategy, or ignored failures prevent an unconditional proof.
+Unknown attest identity (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:238, sign-and-attest): ghcr.io/__samebyte_unknown__@__samebyte_unknown__
+  Unresolved GitHub expression
+  with.subject-name = ghcr.io/__samebyte_unknown__
+  build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+  multi-platform child manifest identity is not tracked
+  OCI digest output
+  steps.build.outputs.digest
+  image_digest
+  needs.build-and-push.outputs.image_digest
+  with.subject-digest = __samebyte_unknown__
+  sign-and-attest step 6: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+  Conditions, strategy, or ignored failures prevent an unconditional proof.
+Unknown attest identity (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:243, sign-and-attest): docker.io/__samebyte_unknown__/salesagent@__samebyte_unknown__
+  Unresolved GitHub expression
+  with.subject-name = docker.io/__samebyte_unknown__/salesagent
+  build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+  multi-platform child manifest identity is not tracked
+  OCI digest output
+  steps.build.outputs.digest
+  image_digest
+  needs.build-and-push.outputs.image_digest
+  with.subject-digest = __samebyte_unknown__
+  sign-and-attest step 7: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32
+  Conditions, strategy, or ignored failures prevent an unconditional proof.
+Unknown scan identity (docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml:248, sign-and-attest): ghcr.io/__samebyte_unknown__@__samebyte_unknown__
+  Unresolved GitHub expression
+  build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f
+  multi-platform child manifest identity is not tracked
+  OCI digest output
+  steps.build.outputs.digest
+  image_digest
+  needs.build-and-push.outputs.image_digest
+  with.image-ref = ghcr.io/__samebyte_unknown__@__samebyte_unknown__
+  sign-and-attest step 8: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+  Conditions, strategy, or ignored failures prevent an unconditional proof.
+No supported deployments found. Artifact lineage was not verified.

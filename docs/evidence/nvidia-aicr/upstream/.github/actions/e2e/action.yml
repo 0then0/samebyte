@@ -1,0 +1,317 @@
+# Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: 'E2E Tests'
+description: 'Run end-to-end tests using Kind cluster with fake GPU environment'
+
+inputs:
+  go_version:
+    description: 'Go version to install (e.g., 1.25)'
+    required: true
+  dockerhub_mirror:
+    description: 'Docker Hub pull-through mirror URL (load-versions dockerhub_mirror output)'
+    required: true
+  upload_artifacts:
+    description: 'Whether to upload debug artifacts on failure (true/false)'
+    required: false
+    default: 'true'
+  artifact_retention_days:
+    description: 'Number of days to retain debug artifacts'
+    required: false
+    default: '7'
+  privileged_ci:
+    description: >-
+      Whether this run checked out trusted content. Forwarded to
+      install-e2e-tools, which gates its tool-binary cache save on it. The Go
+      cache below is restore-only and needs no gate. Restore is unconditional
+      either way. Like the gate it forwards to, this is defense in depth rather
+      than a boundary on the ok-to-test path (#2681, accepted).
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Go
+      uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5  # v6.2.0
+      with:
+        go-version: ${{ inputs.go_version }}
+        # Caching is done explicitly below, for the reasons in go-lint.
+        cache: false
+
+    - name: Resolve Go cache paths
+      id: gocache
+      shell: bash
+      run: |
+        set -euo pipefail
+        echo "modcache=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
+        echo "buildcache=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+
+    # Restore-only, for the reasons spelled out in go-lint: this job shares
+    # go-test's key, entries are immutable, and a save here could take that key
+    # with a GOCACHE that has none of the -race test objects go-test gates its
+    # own save on. The prefix fallback keeps this near-warm without writing.
+    #
+    # Restore-only applies to THIS cache, not to the job: install-e2e-tools
+    # below saves a tool-binary cache, which is why the action still takes a
+    # privileged_ci input to forward.
+    #
+    # E2E benefits less than lint does: `make test` banks -race objects, while
+    # this job's compiles (`ko build`, and the -trimpath/CGO_ENABLED=0 host
+    # builds) use different flags, so those ActionIDs miss. GOMODCACHE still
+    # lands in full, which is the part that dominates a cold run.
+    - name: Restore Go modules and build output
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6.1.0
+      with:
+        path: |
+          ${{ steps.gocache.outputs.modcache }}
+          ${{ steps.gocache.outputs.buildcache }}
+        key: go-${{ runner.os }}-${{ runner.arch }}-${{ inputs.go_version }}-${{ hashFiles('go.sum') }}
+        restore-keys: |
+          go-${{ runner.os }}-${{ runner.arch }}-${{ inputs.go_version }}-
+
+    - name: Prep runner for Kind
+      uses: ./.github/actions/prep-kind-runner
+
+    # Anonymous Docker Hub pulls are rate-limited per runner IP, a quota the
+    # shared runner pool exhausts (main red 2026-10-09 on aiperf-bench's
+    # python:3.13-slim FROM). BuildKit resolves docker.io FROM images through
+    # this mirror; plain `docker pull` still contacts Docker Hub, which is why
+    # cluster-create pulls its images from mirrors by name.
+    - name: Route Docker Hub pulls through the configured mirror
+      shell: bash
+      env:
+        DOCKERHUB_MIRROR: ${{ inputs.dockerhub_mirror }}
+      run: |
+        set -euo pipefail
+        # Composite actions do not enforce `required: true`.
+        [[ -n ${DOCKERHUB_MIRROR} ]] || { echo "::error::e2e action input dockerhub_mirror is empty"; exit 1; }
+        cfg=/etc/docker/daemon.json
+        current="$(sudo cat "${cfg}" 2>/dev/null || true)"
+        [[ -n ${current} ]] || current='{}'
+        jq --arg mirror "${DOCKERHUB_MIRROR}" '."registry-mirrors" = (((."registry-mirrors" // []) + [$mirror]) | unique)' <<<"${current}" | sudo tee "${cfg}.new" >/dev/null
+        sudo mv "${cfg}.new" "${cfg}"
+        sudo systemctl restart docker
+        docker info --format '{{json .RegistryConfig.Mirrors}}'
+
+    - name: Install E2E testing tools
+      uses: ./.github/actions/install-e2e-tools
+      with:
+        privileged_ci: ${{ inputs.privileged_ci }}
+
+    - name: Create Kind cluster and deploy aicrd
+      shell: bash
+      run: |
+        # If any `wait` below fails, `set -e` (GitHub's default shell flags)
+        # exits this script immediately - any background job not yet reached
+        # by its own `wait` would otherwise keep running. Most consequential
+        # for pid_cluster specifically: the job's always()-run Cleanup step
+        # (`make cluster-delete`) could then race a still-in-flight
+        # `make cluster-create`. Kill whatever is still alive on any exit.
+        cleanup_background_jobs() {
+          local rc=$?
+          for pid in "$pid_cluster" "$pid_dep" "$pid_perf" "$pid_conf" "$pid_cli" "$pid_aicr" "$pid_validators"; do
+            [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null && kill "$pid" 2>/dev/null
+          done
+          exit "$rc"
+        }
+        trap cleanup_background_jobs EXIT
+
+        # This step folds what used to be two separate steps (Create Kind
+        # cluster / Deploy aicrd) into one, so GitHub's per-step red-X no
+        # longer says at a glance which phase failed. Group markers fold the
+        # log into the same phases instead.
+        echo "::group::cluster-and-builds"
+        # cluster-create (~35s locally; Kind bring-up + registry) and the
+        # host compiles below touch none of each other's inputs/outputs, so
+        # launch everything in the background up front. Each later command
+        # waits only on the specific PID(s) its own inputs actually depend
+        # on: aicrd's ko build needs just the cluster/registry (not the
+        # validator/CLI binaries), so it must not be gated behind builds it
+        # doesn't read from - an earlier version of this step wait'ed on all
+        # four build PIDs before it, which measured ~19s slower in CI than
+        # the original sequential script for no reason: nothing here reads
+        # dist/validator/* or dist/e2e/aicr until the docker build step below.
+        pid_cluster=""; pid_dep=""; pid_perf=""; pid_conf=""; pid_cli=""; pid_aicr=""; pid_validators=""
+        make cluster-create > /tmp/cluster-create.log 2>&1 &
+        pid_cluster=$!
+
+        mkdir -p dist/validator dist/e2e
+        for phase in deployment performance conformance; do
+          mkdir -p "validators/${phase}/testdata"
+        done
+
+        # Compile validator binaries + the host aicr CLI on the runner (Go
+        # build cache hit) while the cluster comes up. This is also much
+        # faster than building inside Docker (no cache sharing there). Go's
+        # build cache is safe for concurrent use by simultaneous go
+        # commands, including ko's own internal compile of aicrd below.
+        CGO_ENABLED=0 go build -trimpath -o dist/validator/deployment ./validators/deployment &
+        pid_dep=$!
+        CGO_ENABLED=0 go build -trimpath -o dist/validator/performance ./validators/performance &
+        pid_perf=$!
+        CGO_ENABLED=0 go build -trimpath -o dist/validator/conformance ./validators/conformance &
+        pid_conf=$!
+        go build -o dist/e2e/aicr ./cmd/aicr &
+        pid_cli=$!
+
+        # aicrd only needs the cluster/registry - build and push it (replaces
+        # Tilt custom_build) as soon as that's ready, not gated behind the
+        # unrelated validator/CLI builds above.
+        #
+        # cluster-create's output was redirected to a file above so it
+        # wouldn't interleave with the concurrent builds; print it on
+        # failure too (not just success), since a failed `wait` here is the
+        # most common, most opaque failure on this step and would otherwise
+        # exit via the EXIT trap with zero diagnostic output.
+        wait $pid_cluster || { cat /tmp/cluster-create.log; exit 1; }
+        cat /tmp/cluster-create.log
+        echo "::endgroup::"
+
+        echo "::group::deploy-aicrd"
+        KO_DOCKER_REPO=localhost:5001/aicrd ko build --bare --tags=tilt ./cmd/aicrd
+
+        # Apply namespace first (must exist before deployment references it)
+        kubectl apply -f tilt/k8s/namespace.yaml
+        kubectl apply -f tilt/k8s/
+        echo "::endgroup::"
+
+        echo "::group::validator-images"
+        # The validator images COPY the binaries built above, so wait for
+        # those specifically (not pid_cli, which nothing here needs) before
+        # building them.
+        wait $pid_dep
+        wait $pid_perf
+        wait $pid_conf
+
+        # Build + push the remaining images. Validator binaries are already
+        # compiled above; this is just the COPY-only image build + push.
+        KO_DOCKER_REPO=localhost:5001/aicr ko build --bare --tags=local ./cmd/aicr &
+        pid_aicr=$!
+        (
+          for phase in deployment performance conformance; do
+            docker build -t "localhost:5001/aicr-validators/${phase}:latest" -f - . <<DOCKERFILE
+        FROM nvcr.io/nvidia/distroless/static:v4.1.3@sha256:e6eb65cecc405fabfdfd69f95d4e090baa696c97ab3759151f4160c97aa8ecb7
+        COPY dist/validator/${phase} /${phase}
+        COPY validators/${phase}/testdata /app/testdata
+        WORKDIR /app
+        USER nvs
+        ENTRYPOINT ["/${phase}"]
+        DOCKERFILE
+            docker push "localhost:5001/aicr-validators/${phase}:latest"
+          done
+          # aiperf-bench is an ancillary Python image (not a Go validator),
+          # required at runtime by the inference-perf check. Build from its
+          # own Dockerfile and push to the local registry so any future e2e
+          # test that exercises inference-perf can resolve the inner image.
+          # Explicit --platform avoids BuildKit pulling the wrong arch manifest
+          # (Go validator images are COPY-only so never invoke /bin/sh, but
+          # aiperf-bench has RUN steps that need a working shell).
+          docker build --platform linux/amd64 \
+            -t "localhost:5001/aicr-validators/aiperf-bench:latest" \
+            -f validators/performance/aiperf-bench.Dockerfile .
+          docker push "localhost:5001/aicr-validators/aiperf-bench:latest"
+        ) &
+        pid_validators=$!
+        # Separate waits, not `wait $pid_aicr $pid_validators`: bash returns
+        # only the LAST pid's exit status from a combined wait, so a failed
+        # pid_aicr would be silently masked whenever pid_validators succeeds.
+        wait $pid_aicr
+        wait $pid_validators
+        echo "::endgroup::"
+
+        echo "::group::rollout-and-verify"
+        # Wait for deployment rollout (may already be ready)
+        kubectl rollout status deployment/aicrd -n aicr --timeout=120s
+
+        # Verify images are available
+        curl -sf http://localhost:5001/v2/aicr/tags/list
+        curl -sf http://localhost:5001/v2/aicr-validators/deployment/tags/list
+        curl -sf http://localhost:5001/v2/aicr-validators/performance/tags/list
+        curl -sf http://localhost:5001/v2/aicr-validators/conformance/tags/list
+        curl -sf http://localhost:5001/v2/aicr-validators/aiperf-bench/tags/list
+        echo "::endgroup::"
+
+        # Not needed by anything above, but its output (dist/e2e/aicr) is
+        # used by a later step (AICR_BIN) - wait now so a build failure here
+        # fails this step instead of surfacing as a confusing missing-binary
+        # error two steps later, and so the step's own exit code reflects it.
+        wait $pid_cli
+
+    - name: Set up fake GPU environment
+      shell: bash
+      run: |
+        # Create gpu-operator namespace
+        kubectl create namespace gpu-operator --dry-run=client -o yaml | kubectl apply -f -
+
+        # Inject fake nvidia-smi into Kind worker nodes
+        for node in $(docker ps --filter "name=-worker" --format "{{.Names}}"); do
+          echo "Injecting fake nvidia-smi into $node"
+          docker cp tools/fake-nvidia-smi "${node}:/usr/local/bin/nvidia-smi"
+          docker exec "$node" chmod +x /usr/local/bin/nvidia-smi
+          # Verify it works
+          docker exec "$node" nvidia-smi --version
+        done
+
+    - name: Set up port forwarding
+      shell: bash
+      run: |
+        kubectl port-forward -n aicr svc/aicrd 8080:8080 &
+        sleep 5
+        curl -sf http://localhost:8080/health || exit 1
+
+    - name: Run E2E tests
+      id: e2e-tests
+      shell: bash
+      env:
+        AICR_BIN: ${{ github.workspace }}/dist/e2e/aicr
+        AICR_IMAGE: localhost:5001/aicr:local
+        AICR_VALIDATOR_IMAGE_REGISTRY: localhost:5001
+        FAKE_GPU_ENABLED: "true"
+      run: ./tests/e2e/run.sh
+
+    - name: Collect debug artifacts
+      if: failure()
+      shell: bash
+      run: |
+        mkdir -p /tmp/debug-artifacts
+        cp /tmp/cluster-create.log /tmp/debug-artifacts/cluster-create.log 2>/dev/null || true
+        kubectl get all --all-namespaces > /tmp/debug-artifacts/all-resources.txt || true
+        kubectl get events --all-namespaces --sort-by='.lastTimestamp' > /tmp/debug-artifacts/events.txt || true
+        kubectl logs -n aicr -l app.kubernetes.io/name=aicrd --tail=500 > /tmp/debug-artifacts/aicrd-logs.txt || true
+        docker images > /tmp/debug-artifacts/docker-images.txt || true
+
+    - name: Export Kind logs
+      if: failure()
+      shell: bash
+      run: |
+        mkdir -p /tmp/kind-logs
+        kind export logs /tmp/kind-logs --name aicr || true
+
+    - name: Upload debug artifacts
+      if: failure() && inputs.upload_artifacts == 'true'
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f  # v6.0.0
+      with:
+        name: e2e-debug-artifacts-${{ github.run_id }}
+        path: |
+          /tmp/debug-artifacts/
+          /tmp/kind-logs/
+        retention-days: ${{ inputs.artifact_retention_days }}
+
+    - name: Cleanup
+      if: always()
+      shell: bash
+      run: |
+        make cluster-delete || true
+        docker system prune -f || true

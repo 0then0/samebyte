@@ -1,0 +1,25 @@
+name: Build Entrypoint Caller Workflow
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["**"]
+    paths-ignore:
+      - README.md
+      - catalog-info.yaml
+      - renovate.json
+
+permissions: {}
+
+jobs:
+  attest-image-hp: #image
+    permissions:
+      id-token: write
+      attestations: write
+      packages: write # necessary if build-type is image
+      contents: write
+    uses: liatrio/demo-gh-autogov-workflows/.github/workflows/rw-hp-build-image.yaml@788074ccc85737ee9c0cd24e576c07c077bc7113 # v0.15.7
+    secrets: inherit
+    with:
+      subject-name: ghcr.io/${{ github.repository }}
+      cert-identity: https://github.com/liatrio/demo-gh-autogov-workflows/.github/workflows/rw-hp-attest-image.yaml@788074ccc85737ee9c0cd24e576c07c077bc7113 # v0.15.7

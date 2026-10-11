@@ -1,0 +1,603 @@
+{
+  "command": "node dist/cli.js docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml"
+    ],
+    "operations": [
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#build-and-push.10:0",
+        "kind": "build",
+        "identity": {
+          "reference": "__samebyte_digest_e5adc323df254393_1__",
+          "trace": [
+            "build-and-push.10: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "OCI digest output",
+            "build-and-push step 10: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+        "order": 0,
+        "guardedByJobCondition": true,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 115,
+          "job": "build-and-push",
+          "step": 9
+        },
+        "producedReference": "salesagent:release-gate-amd64"
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#build-and-push.11:1",
+        "kind": "scan",
+        "identity": {
+          "reference": "salesagent:release-gate-amd64",
+          "trace": [
+            "with.image-ref = salesagent:release-gate-amd64",
+            "build-and-push step 11: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+          ],
+          "concrete": false,
+          "kind": "mutable",
+          "repository": "salesagent"
+        },
+        "label": "aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25",
+        "order": 1,
+        "guardedByJobCondition": true,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 128,
+          "job": "build-and-push",
+          "step": 10
+        }
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#build-and-push.12:2",
+        "kind": "build",
+        "identity": {
+          "reference": "__samebyte_digest_e5adc323df254393_2__",
+          "trace": [
+            "build-and-push.12: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "OCI digest output",
+            "build-and-push step 12: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+        "order": 2,
+        "guardedByJobCondition": true,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 137,
+          "job": "build-and-push",
+          "step": 11
+        },
+        "producedReference": "salesagent:release-gate-arm64"
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#build-and-push.13:3",
+        "kind": "scan",
+        "identity": {
+          "reference": "salesagent:release-gate-arm64",
+          "trace": [
+            "with.image-ref = salesagent:release-gate-arm64",
+            "build-and-push step 13: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+          ],
+          "concrete": false,
+          "kind": "mutable",
+          "repository": "salesagent"
+        },
+        "label": "aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25",
+        "order": 3,
+        "guardedByJobCondition": true,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 150,
+          "job": "build-and-push",
+          "step": 12
+        }
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#build-and-push.build:4",
+        "kind": "build",
+        "identity": {
+          "reference": "__samebyte_digest_e5adc323df254393_3__",
+          "trace": [
+            "build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "build-and-push step 14: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+        "order": 4,
+        "guardedByJobCondition": true,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 161,
+          "job": "build-and-push",
+          "step": 13
+        }
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#sign-and-attest.6:5",
+        "kind": "attest",
+        "identity": {
+          "reference": "ghcr.io/__samebyte_unknown__@__samebyte_unknown__",
+          "trace": [
+            "Unresolved GitHub expression",
+            "with.subject-name = ghcr.io/__samebyte_unknown__",
+            "build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "steps.build.outputs.digest",
+            "steps.build.outputs.digest",
+            "image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "with.subject-digest = __samebyte_unknown__",
+            "sign-and-attest step 6: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32",
+        "order": 5,
+        "guardedByJobCondition": true,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 238,
+          "job": "sign-and-attest",
+          "step": 5
+        }
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#sign-and-attest.7:6",
+        "kind": "attest",
+        "identity": {
+          "reference": "docker.io/__samebyte_unknown__/salesagent@__samebyte_unknown__",
+          "trace": [
+            "Unresolved GitHub expression",
+            "with.subject-name = docker.io/__samebyte_unknown__/salesagent",
+            "build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "steps.build.outputs.digest",
+            "steps.build.outputs.digest",
+            "image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "with.subject-digest = __samebyte_unknown__",
+            "sign-and-attest step 7: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32",
+        "order": 6,
+        "guardedByJobCondition": true,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 243,
+          "job": "sign-and-attest",
+          "step": 6
+        }
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#sign-and-attest.8:7",
+        "kind": "scan",
+        "identity": {
+          "reference": "ghcr.io/__samebyte_unknown__@__samebyte_unknown__",
+          "trace": [
+            "Unresolved GitHub expression",
+            "build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "steps.build.outputs.digest",
+            "steps.build.outputs.digest",
+            "image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "with.image-ref = ghcr.io/__samebyte_unknown__@__samebyte_unknown__",
+            "sign-and-attest step 8: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25",
+        "order": 7,
+        "guardedByJobCondition": true,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 248,
+          "job": "sign-and-attest",
+          "step": 7
+        }
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#artifact-1",
+        "identity": {
+          "reference": "__samebyte_digest_e5adc323df254393_1__",
+          "trace": [
+            "build-and-push.10: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "OCI digest output",
+            "build-and-push step 10: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [
+          "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#build-and-push.10:0"
+        ],
+        "consumers": []
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#artifact-2",
+        "identity": {
+          "reference": "salesagent:release-gate-amd64",
+          "trace": [
+            "with.image-ref = salesagent:release-gate-amd64",
+            "build-and-push step 11: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+          ],
+          "concrete": false,
+          "kind": "mutable",
+          "repository": "salesagent"
+        },
+        "producers": [],
+        "consumers": [
+          "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#build-and-push.11:1"
+        ]
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#artifact-3",
+        "identity": {
+          "reference": "__samebyte_digest_e5adc323df254393_2__",
+          "trace": [
+            "build-and-push.12: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "OCI digest output",
+            "build-and-push step 12: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [
+          "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#build-and-push.12:2"
+        ],
+        "consumers": []
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#artifact-4",
+        "identity": {
+          "reference": "salesagent:release-gate-arm64",
+          "trace": [
+            "with.image-ref = salesagent:release-gate-arm64",
+            "build-and-push step 13: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+          ],
+          "concrete": false,
+          "kind": "mutable",
+          "repository": "salesagent"
+        },
+        "producers": [],
+        "consumers": [
+          "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#build-and-push.13:3"
+        ]
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#artifact-5",
+        "identity": {
+          "reference": "__samebyte_digest_e5adc323df254393_3__",
+          "trace": [
+            "build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "build-and-push step 14: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [
+          "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#build-and-push.build:4"
+        ],
+        "consumers": []
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#artifact-6",
+        "identity": {
+          "reference": "ghcr.io/__samebyte_unknown__@__samebyte_unknown__",
+          "trace": [
+            "Unresolved GitHub expression",
+            "with.subject-name = ghcr.io/__samebyte_unknown__",
+            "build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "steps.build.outputs.digest",
+            "steps.build.outputs.digest",
+            "image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "with.subject-digest = __samebyte_unknown__",
+            "sign-and-attest step 6: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [],
+        "consumers": [
+          "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#sign-and-attest.6:5"
+        ]
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#artifact-7",
+        "identity": {
+          "reference": "docker.io/__samebyte_unknown__/salesagent@__samebyte_unknown__",
+          "trace": [
+            "Unresolved GitHub expression",
+            "with.subject-name = docker.io/__samebyte_unknown__/salesagent",
+            "build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "steps.build.outputs.digest",
+            "steps.build.outputs.digest",
+            "image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "with.subject-digest = __samebyte_unknown__",
+            "sign-and-attest step 7: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [],
+        "consumers": [
+          "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#sign-and-attest.7:6"
+        ]
+      },
+      {
+        "id": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#artifact-8",
+        "identity": {
+          "reference": "ghcr.io/__samebyte_unknown__@__samebyte_unknown__",
+          "trace": [
+            "Unresolved GitHub expression",
+            "build-and-push.build: docker/build-push-action@bcafcacb16a39f128d818304e6c9c0c18556b85f",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "steps.build.outputs.digest",
+            "steps.build.outputs.digest",
+            "image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "needs.build-and-push.outputs.image_digest",
+            "with.image-ref = ghcr.io/__samebyte_unknown__@__samebyte_unknown__",
+            "sign-and-attest step 8: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [],
+        "consumers": [
+          "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml#sign-and-attest.8:7"
+        ]
+      }
+    ],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": [],
+    "coverage": [
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 26,
+          "job": "release-please",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 30,
+          "job": "release-please",
+          "step": 1
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "googleapis/release-please-action@5c625bfb5d1ff62eadeeb3772007f7f66fdcf071"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 49,
+          "job": "build-and-push",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 52,
+          "job": "build-and-push",
+          "step": 1
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 55,
+          "job": "build-and-push",
+          "step": 2
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 85,
+          "job": "build-and-push",
+          "step": 3
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 87,
+          "job": "build-and-push",
+          "step": 4
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 89,
+          "job": "build-and-push",
+          "step": 5
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 95,
+          "job": "build-and-push",
+          "step": 6
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 100,
+          "job": "build-and-push",
+          "step": 7
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 112,
+          "job": "build-and-push",
+          "step": 8
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 191,
+          "job": "sign-and-attest",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 195,
+          "job": "sign-and-attest",
+          "step": 1
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "sigstore/cosign-installer@cad07c2e89fa2edd6e2d7bab4c1aa38e53f76003"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 196,
+          "job": "sign-and-attest",
+          "step": 2
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 206,
+          "job": "sign-and-attest",
+          "step": 3
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 232,
+          "job": "sign-and-attest",
+          "step": 4
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/prebid-salesagent/upstream/.github/workflows/release-please.yml",
+          "line": 258,
+          "job": "sign-and-attest",
+          "step": 8
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f"
+      }
+    ]
+  }
+}

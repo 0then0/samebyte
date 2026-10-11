@@ -1,6 +1,11 @@
 import { createHash } from 'node:crypto';
 import { basename } from 'node:path';
-import { actionConsumption, shellBuild, shellConsumption } from './adapters.js';
+import {
+  actionConsumption,
+  nonMutatingDeployment,
+  shellBuild,
+  shellConsumption,
+} from './adapters.js';
 import {
   bind,
   environment,
@@ -12,6 +17,7 @@ import {
 } from './expressions.js';
 import type {
   Artifact,
+  CoverageNotice,
   Operation,
   OperationKind,
   Report,
@@ -80,6 +86,7 @@ export function analyzeWorkflow(
   config: Config = { annotations: [] },
 ): Report {
   const operations: Operation[] = [];
+  const coverage: CoverageNotice[] = [];
   const jobOutputs = new Map<string, Scope>();
   let digestSequence = 0;
   const namespace = createHash('sha256')
@@ -87,6 +94,24 @@ export function analyzeWorkflow(
     .digest('hex')
     .slice(0, 16);
   for (const [jobId, job] of Object.entries(workflow.jobs)) {
+    const jobLocation = { file: workflow.file, line: job.line, job: jobId };
+    if (job.uses)
+      coverage.push({
+        reason: 'reusable-workflow-call',
+        type: 'reusable-workflow',
+        location: jobLocation,
+        target: job.uses,
+        message:
+          'Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call.',
+      });
+    if (job.strategy !== undefined)
+      coverage.push({
+        reason: 'matrix-job',
+        type: 'matrix',
+        location: jobLocation,
+        message:
+          'Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven.',
+      });
     let scope: Scope = new Map();
     const backgroundOperations = new Map<string, Operation[]>();
     const pendingBackgroundOutputs = new Map<string, Map<string, Value>>();
@@ -260,7 +285,53 @@ export function analyzeWorkflow(
           a.job === jobId &&
           a.step === step.id,
       );
+      const notice = (
+        reason: CoverageNotice['reason'],
+        type: CoverageNotice['type'],
+        message: string,
+        target?: string,
+      ) => {
+        // One notice per reason per step, even for a multiline script.
+        if (
+          coverage.some(
+            (item) =>
+              item.reason === reason &&
+              item.location.job === jobId &&
+              item.location.step === index,
+          )
+        )
+          return;
+        coverage.push({
+          reason,
+          type,
+          location: { ...jobLocation, line: step.line, step: index },
+          message,
+          ...(target ? { target } : {}),
+        });
+      };
+      // An annotation describes the asserted operation, not everything the
+      // opaque action does. Retain its coverage boundary as well as its evidence.
+      if (step.uses?.startsWith('./'))
+        notice(
+          'local-action-call',
+          'action',
+          'Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.',
+          step.uses,
+        );
       if (annotations.length) {
+        if (step.run)
+          notice(
+            'unsupported-shell',
+            'shell',
+            'Shell interpretation is replaced by trusted annotations. Additional operations and value transfers are not analyzed.',
+          );
+        if (step.uses && !step.uses.startsWith('./'))
+          notice(
+            'unsupported-action-call',
+            'action',
+            'Action interpretation is replaced by trusted annotations. Its contents and additional behavior are not analyzed.',
+            step.uses,
+          );
         for (const a of annotations) {
           if (a.operation === 'build')
             produce(
@@ -299,7 +370,7 @@ export function analyzeWorkflow(
               resolveValue(raw, stepScope),
             ]),
           );
-          for (const consumer of actionConsumption(
+          const consumers = actionConsumption(
             step.uses,
             Object.fromEntries(
               Object.entries(inputs).map(([key, value]) => [key, value.text]),
@@ -309,7 +380,15 @@ export function analyzeWorkflow(
                 .filter(([key]) => key.startsWith('shell.'))
                 .map(([key, value]) => [key.slice(6), value.text]),
             ),
-          )) {
+          );
+          if (!consumers.length && !step.uses.startsWith('./'))
+            notice(
+              'unsupported-action-call',
+              'action',
+              'No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.',
+              step.uses,
+            );
+          for (const consumer of consumers) {
             const usedInputs = consumer.usedInputs ?? [];
             record(
               consumer.kind,
@@ -359,6 +438,13 @@ export function analyzeWorkflow(
         const unknownOutputWrite = lines.some(
           (line) => line.includes('GITHUB_OUTPUT') && !outputPattern.test(line),
         );
+        const shellNotice = () =>
+          notice(
+            'unsupported-shell',
+            'shell',
+            'Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.',
+          );
+        if (complex || unknownOutputWrite) shellNotice();
         for (const line of lines) {
           const output =
             /^echo\s+(["'])([A-Za-z_][\w-]*)=(.*?)\1\s*>>\s*["']?\$(?:GITHUB_OUTPUT|\{GITHUB_OUTPUT\})["']?$/.exec(
@@ -389,6 +475,7 @@ export function analyzeWorkflow(
           const resolved = shellValue(line, stepScope);
           const tokens = complex ? undefined : tokenize(resolved.text);
           if (!tokens) {
+            shellNotice();
             if (/\b(kubectl|helm)\b/.test(line))
               record(
                 'deploy',
@@ -415,14 +502,27 @@ export function analyzeWorkflow(
               undefined,
               build.tag ? { ...resolved, text: build.tag } : undefined,
             );
-          for (const consumer of shellConsumption(
+          const consumers = shellConsumption(
             tokens,
             Object.fromEntries(
               [...stepScope]
                 .filter(([key]) => key.startsWith('shell.'))
                 .map(([key, value]) => [key.slice(6), value.text]),
             ),
-          ))
+          );
+          if (
+            !build &&
+            !consumers.length &&
+            !nonMutatingDeployment(tokens) &&
+            tokens[0] !== 'echo'
+          )
+            notice(
+              'uninterpreted-command',
+              'shell',
+              'This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.',
+              tokens[0],
+            );
+          for (const consumer of consumers)
             record(
               consumer.kind,
               consumer.reference
@@ -538,6 +638,7 @@ export function analyzeWorkflow(
     artifacts,
     ...result,
     diagnostics,
+    coverage,
   };
 }
 export function mergeReports(reports: Report[]): Report {
@@ -549,5 +650,6 @@ export function mergeReports(reports: Report[]): Report {
     deployments: reports.flatMap((r) => r.deployments),
     findings: reports.flatMap((r) => r.findings),
     diagnostics: reports.flatMap((r) => r.diagnostics),
+    coverage: reports.flatMap((r) => r.coverage),
   };
 }

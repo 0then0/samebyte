@@ -1,0 +1,50 @@
+{
+  "repository": "NVIDIA/aicr",
+  "commit": "bd1414f070e9711e23db29f43ab66b9dfbd1bf19",
+  "files": [
+    {
+      "path": ".github/workflows/on-tag.yaml",
+      "url": "https://raw.githubusercontent.com/NVIDIA/aicr/bd1414f070e9711e23db29f43ab66b9dfbd1bf19/.github/workflows/on-tag.yaml",
+      "sha256": "b6642eb0bdb8ab48c36e4a8604937ef0f7155e496854f9a67c6c533fb1880357"
+    },
+    {
+      "path": ".github/workflows/qualification.yaml",
+      "url": "https://raw.githubusercontent.com/NVIDIA/aicr/bd1414f070e9711e23db29f43ab66b9dfbd1bf19/.github/workflows/qualification.yaml",
+      "sha256": "1e5087d860de160d7dea9322fb98ee72f2fbac4674abe8a9c731ee723dd2efc2"
+    },
+    {
+      "path": ".github/workflows/attest-images.yaml",
+      "url": "https://raw.githubusercontent.com/NVIDIA/aicr/bd1414f070e9711e23db29f43ab66b9dfbd1bf19/.github/workflows/attest-images.yaml",
+      "sha256": "a83a9d1dd726616e76311eb753e65f815d5de222ac5bab964a1bd379930f1583"
+    },
+    {
+      "path": ".github/actions/go-build-release/action.yml",
+      "url": "https://raw.githubusercontent.com/NVIDIA/aicr/bd1414f070e9711e23db29f43ab66b9dfbd1bf19/.github/actions/go-build-release/action.yml",
+      "sha256": "73da62b3a7610080c7cd57b3cc770878b136caeac20e940924536f93e8341a6e"
+    },
+    {
+      "path": ".github/actions/go-test/action.yml",
+      "url": "https://raw.githubusercontent.com/NVIDIA/aicr/bd1414f070e9711e23db29f43ab66b9dfbd1bf19/.github/actions/go-test/action.yml",
+      "sha256": "a484c5c73e722b6394918b6f27322ef51da044506ef76450eef3aaf66bca54f2"
+    },
+    {
+      "path": ".github/actions/e2e/action.yml",
+      "url": "https://raw.githubusercontent.com/NVIDIA/aicr/bd1414f070e9711e23db29f43ab66b9dfbd1bf19/.github/actions/e2e/action.yml",
+      "sha256": "54bd574a80ba70153175a8fcfa822dc7c6b0009da2d018d228cad812714abbe1"
+    },
+    {
+      "path": ".github/actions/attest-image-from-tag/action.yml",
+      "url": "https://raw.githubusercontent.com/NVIDIA/aicr/bd1414f070e9711e23db29f43ab66b9dfbd1bf19/.github/actions/attest-image-from-tag/action.yml",
+      "sha256": "ccb7c03a4a9e91aeaa587401f70d62a25d88487d4dd6fe791fb555df5ceee65d"
+    }
+  ],
+  "unavailable": [
+    {
+      "path": ".github/workflows/deploy.yaml",
+      "status": 404,
+      "reason": "Absent from the recursive Git tree; on-tag does not call it.",
+      "url": "https://raw.githubusercontent.com/NVIDIA/aicr/bd1414f070e9711e23db29f43ab66b9dfbd1bf19/.github/workflows/deploy.yaml",
+      "tree_url": "https://api.github.com/repos/NVIDIA/aicr/git/trees/bd1414f070e9711e23db29f43ab66b9dfbd1bf19?recursive=1"
+    }
+  ]
+}

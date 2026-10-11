@@ -1,0 +1,154 @@
+[
+  {
+    "repository": "liatrio/demo-autogov-hello-world-app",
+    "commit": "57bf1b1498271c6d97d4c68d7258b9e7a402f8d1",
+    "path": ".github/workflows/cw-build-image.yaml",
+    "exitCode": 0,
+    "operations": [],
+    "deployments": 0,
+    "findings": [],
+    "errors": 0,
+    "boundaries": 1
+  },
+  {
+    "repository": "music-assistant/server",
+    "commit": "a737359e2651fd02fbfc5b3862b8bfcd5bde3edb",
+    "path": ".github/workflows/release.yml",
+    "exitCode": 0,
+    "operations": [
+      {
+        "kind": "build",
+        "identity": "unknown",
+        "job": "exact_image",
+        "line": 914
+      }
+    ],
+    "deployments": 0,
+    "findings": [],
+    "errors": 0,
+    "boundaries": 76
+  },
+  {
+    "repository": "music-assistant/server",
+    "commit": "a737359e2651fd02fbfc5b3862b8bfcd5bde3edb",
+    "path": ".github/workflows/test.yml",
+    "exitCode": 0,
+    "operations": [],
+    "deployments": 0,
+    "findings": [],
+    "errors": 0,
+    "boundaries": 19
+  },
+  {
+    "repository": "NVIDIA/aicr",
+    "commit": "bd1414f070e9711e23db29f43ab66b9dfbd1bf19",
+    "path": ".github/workflows/on-tag.yaml",
+    "exitCode": 0,
+    "operations": [
+      {
+        "kind": "build",
+        "identity": "unknown",
+        "job": "build-docker",
+        "line": 413
+      },
+      {
+        "kind": "build",
+        "identity": "unknown",
+        "job": "build-gate",
+        "line": 534
+      },
+      {
+        "kind": "scan",
+        "identity": "unknown",
+        "job": "image-vuln-scan",
+        "line": 729
+      }
+    ],
+    "deployments": 0,
+    "findings": [],
+    "errors": 0,
+    "boundaries": 80
+  },
+  {
+    "repository": "NVIDIA/aicr",
+    "commit": "bd1414f070e9711e23db29f43ab66b9dfbd1bf19",
+    "path": ".github/workflows/qualification.yaml",
+    "exitCode": 0,
+    "operations": [],
+    "deployments": 0,
+    "findings": [],
+    "errors": 0,
+    "boundaries": 14
+  },
+  {
+    "repository": "NVIDIA/aicr",
+    "commit": "bd1414f070e9711e23db29f43ab66b9dfbd1bf19",
+    "path": ".github/workflows/attest-images.yaml",
+    "exitCode": 0,
+    "operations": [],
+    "deployments": 0,
+    "findings": [],
+    "errors": 0,
+    "boundaries": 5
+  },
+  {
+    "repository": "prebid/salesagent",
+    "commit": "08e3d8c16f627ce1299bdfb7d0a6bf3976e4448e",
+    "path": ".github/workflows/release-please.yml",
+    "exitCode": 0,
+    "operations": [
+      {
+        "kind": "build",
+        "identity": "unknown",
+        "job": "build-and-push",
+        "line": 115
+      },
+      {
+        "kind": "scan",
+        "identity": "mutable",
+        "job": "build-and-push",
+        "line": 128
+      },
+      {
+        "kind": "build",
+        "identity": "unknown",
+        "job": "build-and-push",
+        "line": 137
+      },
+      {
+        "kind": "scan",
+        "identity": "mutable",
+        "job": "build-and-push",
+        "line": 150
+      },
+      {
+        "kind": "build",
+        "identity": "unknown",
+        "job": "build-and-push",
+        "line": 161
+      },
+      {
+        "kind": "attest",
+        "identity": "unknown",
+        "job": "sign-and-attest",
+        "line": 238
+      },
+      {
+        "kind": "attest",
+        "identity": "unknown",
+        "job": "sign-and-attest",
+        "line": 243
+      },
+      {
+        "kind": "scan",
+        "identity": "unknown",
+        "job": "sign-and-attest",
+        "line": 248
+      }
+    ],
+    "deployments": 0,
+    "findings": [],
+    "errors": 0,
+    "boundaries": 17
+  }
+]

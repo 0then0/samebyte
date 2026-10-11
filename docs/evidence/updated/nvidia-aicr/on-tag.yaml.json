@@ -1,0 +1,1074 @@
+{
+  "command": "node dist/cli.js docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml"
+    ],
+    "operations": [
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#build-docker.11:0",
+        "kind": "build",
+        "identity": {
+          "reference": "__samebyte_digest_71ede60a2465264e_1__",
+          "trace": [
+            "build-docker.11: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "build-docker step 11: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+        "order": 0,
+        "guardedByJobCondition": false,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 413,
+          "job": "build-docker",
+          "step": 10
+        }
+      },
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#build-gate.10:1",
+        "kind": "build",
+        "identity": {
+          "reference": "__samebyte_digest_71ede60a2465264e_2__",
+          "trace": [
+            "build-gate.10: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "build-gate step 10: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+        "order": 1,
+        "guardedByJobCondition": false,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 534,
+          "job": "build-gate",
+          "step": 9
+        }
+      },
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#image-vuln-scan.scan:2",
+        "kind": "scan",
+        "identity": {
+          "reference": "__samebyte_unknown__@__samebyte_unknown__",
+          "trace": [
+            "Unresolved GitHub expression",
+            "Unresolved GitHub expression",
+            "with.image = __samebyte_unknown__@__samebyte_unknown__",
+            "image-vuln-scan step 3: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439",
+        "order": 2,
+        "guardedByJobCondition": false,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 729,
+          "job": "image-vuln-scan",
+          "step": 2
+        }
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#artifact-1",
+        "identity": {
+          "reference": "__samebyte_digest_71ede60a2465264e_1__",
+          "trace": [
+            "build-docker.11: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "build-docker step 11: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [
+          "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#build-docker.11:0"
+        ],
+        "consumers": []
+      },
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#artifact-2",
+        "identity": {
+          "reference": "__samebyte_digest_71ede60a2465264e_2__",
+          "trace": [
+            "build-gate.10: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "build-gate step 10: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [
+          "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#build-gate.10:1"
+        ],
+        "consumers": []
+      },
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#artifact-3",
+        "identity": {
+          "reference": "__samebyte_unknown__@__samebyte_unknown__",
+          "trace": [
+            "Unresolved GitHub expression",
+            "Unresolved GitHub expression",
+            "with.image = __samebyte_unknown__@__samebyte_unknown__",
+            "image-vuln-scan step 3: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [],
+        "consumers": [
+          "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#image-vuln-scan.scan:2"
+        ]
+      }
+    ],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": [],
+    "coverage": [
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 58,
+          "job": "detect",
+          "step": 0
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "reusable-workflow-call",
+        "type": "reusable-workflow",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 88,
+          "job": "tests"
+        },
+        "target": "./.github/workflows/qualification.yaml",
+        "message": "Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 113,
+          "job": "build-ko",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 119,
+          "job": "build-ko",
+          "step": 1
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 123,
+          "job": "build-ko",
+          "step": 2
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/load-versions"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 127,
+          "job": "build-ko",
+          "step": 3
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 154,
+          "job": "build-ko",
+          "step": 4
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/setup-dgxc-goproxy"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 164,
+          "job": "build-ko",
+          "step": 5
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 201,
+          "job": "build-ko",
+          "step": 6
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 208,
+          "job": "build-ko",
+          "step": 7
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 216,
+          "job": "build-ko",
+          "step": 8
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/generate-slsa-predicate"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 240,
+          "job": "build-ko",
+          "step": 9
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/setup-dgxc-goproxy"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 245,
+          "job": "build-ko",
+          "step": 10
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/go-build-release"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 254,
+          "job": "build-ko",
+          "step": 11
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/malware-scan"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 263,
+          "job": "build-ko",
+          "step": 12
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 278,
+          "job": "build-ko",
+          "step": 13
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 302,
+          "job": "build-ko",
+          "step": 14
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+      },
+      {
+        "reason": "uninterpreted-command",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 318,
+          "job": "build-ko",
+          "step": 15
+        },
+        "message": "This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.",
+        "target": "rm"
+      },
+      {
+        "reason": "matrix-job",
+        "type": "matrix",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 328,
+          "job": "build-docker"
+        },
+        "message": "Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 354,
+          "job": "build-docker",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 359,
+          "job": "build-docker",
+          "step": 1
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 363,
+          "job": "build-docker",
+          "step": 2
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 366,
+          "job": "build-docker",
+          "step": 3
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/ghcr-login"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 369,
+          "job": "build-docker",
+          "step": 4
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/load-versions"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 373,
+          "job": "build-docker",
+          "step": 5
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 382,
+          "job": "build-docker",
+          "step": 6
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/setup-dgxc-goproxy"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 388,
+          "job": "build-docker",
+          "step": 7
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "uninterpreted-command",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 400,
+          "job": "build-docker",
+          "step": 8
+        },
+        "message": "This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.",
+        "target": "./tools/build-validator-binaries"
+      },
+      {
+        "reason": "uninterpreted-command",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 408,
+          "job": "build-docker",
+          "step": 9
+        },
+        "message": "This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.",
+        "target": "rm"
+      },
+      {
+        "reason": "matrix-job",
+        "type": "matrix",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 443,
+          "job": "build-gate"
+        },
+        "message": "Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 465,
+          "job": "build-gate",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 470,
+          "job": "build-gate",
+          "step": 1
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 474,
+          "job": "build-gate",
+          "step": 2
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 477,
+          "job": "build-gate",
+          "step": 3
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/ghcr-login"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 483,
+          "job": "build-gate",
+          "step": 4
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/load-versions"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 487,
+          "job": "build-gate",
+          "step": 5
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 498,
+          "job": "build-gate",
+          "step": 6
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/setup-dgxc-goproxy"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 503,
+          "job": "build-gate",
+          "step": 7
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 522,
+          "job": "build-gate",
+          "step": 8
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "uninterpreted-command",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 555,
+          "job": "build-gate",
+          "step": 10
+        },
+        "message": "This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.",
+        "target": "rm"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 573,
+          "job": "docker-manifest",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 578,
+          "job": "docker-manifest",
+          "step": 1
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/ghcr-login"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 581,
+          "job": "docker-manifest",
+          "step": 2
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/setup-buildx-action@594f3bf4285d9ea8dc53c9a0c9c4092420091003"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 587,
+          "job": "docker-manifest",
+          "step": 3
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 602,
+          "job": "docker-manifest",
+          "step": 4
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 644,
+          "job": "resolve-candidates",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 649,
+          "job": "resolve-candidates",
+          "step": 1
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/load-versions"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 653,
+          "job": "resolve-candidates",
+          "step": 2
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/ghcr-login"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 656,
+          "job": "resolve-candidates",
+          "step": 3
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/setup-build-tools"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 662,
+          "job": "resolve-candidates",
+          "step": 4
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 675,
+          "job": "resolve-candidates",
+          "step": 5
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
+      },
+      {
+        "reason": "matrix-job",
+        "type": "matrix",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 688,
+          "job": "image-vuln-scan"
+        },
+        "message": "Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 721,
+          "job": "image-vuln-scan",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 726,
+          "job": "image-vuln-scan",
+          "step": 1
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/ghcr-login"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 750,
+          "job": "image-vuln-scan",
+          "step": 3
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 758,
+          "job": "image-vuln-scan",
+          "step": 4
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "reusable-workflow-call",
+        "type": "reusable-workflow",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 786,
+          "job": "attest"
+        },
+        "target": "./.github/workflows/attest-images.yaml",
+        "message": "Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 805,
+          "job": "release-check",
+          "step": 0
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 840,
+          "job": "promote-images",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 845,
+          "job": "promote-images",
+          "step": 1
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/load-versions"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 849,
+          "job": "promote-images",
+          "step": 2
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/ghcr-login"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 852,
+          "job": "promote-images",
+          "step": 3
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/setup-build-tools"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 858,
+          "job": "promote-images",
+          "step": 4
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 873,
+          "job": "promote-images",
+          "step": 5
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 895,
+          "job": "publish",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 900,
+          "job": "publish",
+          "step": 1
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 928,
+          "job": "publish-homebrew",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 933,
+          "job": "publish-homebrew",
+          "step": 1
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 942,
+          "job": "publish-homebrew",
+          "step": 2
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 955,
+          "job": "publish-homebrew",
+          "step": 3
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 1061,
+          "job": "attach-source",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 1066,
+          "job": "attach-source",
+          "step": 1
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/load-versions"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 1070,
+          "job": "attach-source",
+          "step": 2
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/ghcr-login"
+      },
+      {
+        "reason": "local-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 1073,
+          "job": "attach-source",
+          "step": 3
+        },
+        "message": "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+        "target": "./.github/actions/setup-build-tools"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 1080,
+          "job": "attach-source",
+          "step": 4
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 1085,
+          "job": "attach-source",
+          "step": 5
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 1131,
+          "job": "attach-source",
+          "step": 6
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 1144,
+          "job": "attach-source",
+          "step": 7
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 1189,
+          "job": "notify",
+          "step": 0
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 1236,
+          "job": "summary",
+          "step": 0
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      }
+    ]
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "repository": "music-assistant/server",
+  "commit": "a737359e2651fd02fbfc5b3862b8bfcd5bde3edb",
+  "files": [
+    {
+      "path": ".github/workflows/release.yml",
+      "url": "https://raw.githubusercontent.com/music-assistant/server/a737359e2651fd02fbfc5b3862b8bfcd5bde3edb/.github/workflows/release.yml",
+      "sha256": "556b17eb5ba28d5ed578cbaaff799c2b0f962d3c8e02f4dfbe1d4c4d891ef33c"
+    },
+    {
+      "path": ".github/workflows/test.yml",
+      "url": "https://raw.githubusercontent.com/music-assistant/server/a737359e2651fd02fbfc5b3862b8bfcd5bde3edb/.github/workflows/test.yml",
+      "sha256": "23dd959420cbe098b6fb7e4e6e1a0116c49b60f8e3bc04fc43ba40acf48bb54b"
+    }
+  ]
+}

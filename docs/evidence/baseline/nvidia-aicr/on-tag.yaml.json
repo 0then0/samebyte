@@ -1,0 +1,146 @@
+{
+  "command": "node dist/evidence-baseline.js docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml"
+    ],
+    "operations": [
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#build-docker.11:0",
+        "kind": "build",
+        "identity": {
+          "reference": "__samebyte_digest_71ede60a2465264e_1__",
+          "trace": [
+            "build-docker.11: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "build-docker step 11: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+        "order": 0,
+        "guardedByJobCondition": false,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 413,
+          "job": "build-docker",
+          "step": 10
+        }
+      },
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#build-gate.10:1",
+        "kind": "build",
+        "identity": {
+          "reference": "__samebyte_digest_71ede60a2465264e_2__",
+          "trace": [
+            "build-gate.10: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "build-gate step 10: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+        "order": 1,
+        "guardedByJobCondition": false,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 534,
+          "job": "build-gate",
+          "step": 9
+        }
+      },
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#image-vuln-scan.scan:2",
+        "kind": "scan",
+        "identity": {
+          "reference": "__samebyte_unknown__@__samebyte_unknown__",
+          "trace": [
+            "Unresolved GitHub expression",
+            "Unresolved GitHub expression",
+            "with.image = __samebyte_unknown__@__samebyte_unknown__",
+            "image-vuln-scan step 3: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439",
+        "order": 2,
+        "guardedByJobCondition": false,
+        "guarded": true,
+        "location": {
+          "file": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml",
+          "line": 729,
+          "job": "image-vuln-scan",
+          "step": 2
+        }
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#artifact-1",
+        "identity": {
+          "reference": "__samebyte_digest_71ede60a2465264e_1__",
+          "trace": [
+            "build-docker.11: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "build-docker step 11: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [
+          "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#build-docker.11:0"
+        ],
+        "consumers": []
+      },
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#artifact-2",
+        "identity": {
+          "reference": "__samebyte_digest_71ede60a2465264e_2__",
+          "trace": [
+            "build-gate.10: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "build-gate step 10: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [
+          "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#build-gate.10:1"
+        ],
+        "consumers": []
+      },
+      {
+        "id": "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#artifact-3",
+        "identity": {
+          "reference": "__samebyte_unknown__@__samebyte_unknown__",
+          "trace": [
+            "Unresolved GitHub expression",
+            "Unresolved GitHub expression",
+            "with.image = __samebyte_unknown__@__samebyte_unknown__",
+            "image-vuln-scan step 3: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [],
+        "consumers": [
+          "docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml#image-vuln-scan.scan:2"
+        ]
+      }
+    ],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": []
+  }
+}

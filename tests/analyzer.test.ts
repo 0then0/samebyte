@@ -24,7 +24,9 @@ test('build once through job outputs, env and GITHUB_OUTPUT is proven', async ()
   assert.equal(report.deployments[0].state, 'proven');
   assert.equal(report.artifacts.length, 1);
   assert.equal(report.artifacts[0].consumers.length, 4);
-  assert.match(textReport(report), /Artifact lineage verified/);
+  assert.match(textReport(report), /Detected deployment lineage is proven/);
+  assert.match(textReport(report), /Pipeline coverage is incomplete/);
+  assert.doesNotMatch(textReport(report), /Artifact lineage verified/);
 });
 test('source tests followed by production build emit SB001', async () => {
   assert.equal((await fixture('rebuild')).deployments[0].state, 'mismatch');
@@ -372,7 +374,11 @@ test('test after deploy cannot prove a check', () => {
     `docker run ${image(A)}`,
   );
   assert.equal(report.deployments[0].checks.test, 'unknown');
-  assert.doesNotMatch(textReport(report, true), /test identity unknown/);
+  assert.match(
+    report.deployments[0].checkReasons?.test?.reason ?? '',
+    /No preceding supported test/,
+  );
+  assert.match(textReport(report, true), /No preceding supported test/);
 });
 test('conditional, matrix and ignored failures do not prove tests', () => {
   for (const guard of [

@@ -41,10 +41,10 @@ Deployment: ghcr.io/acme/api@<symbolic build digest> [proven]
   test: proven
   scan: proven
   attest: proven
-Artifact lineage verified.
+Detected deployment lineage is proven. Pipeline coverage is incomplete.
 ```
 
-The output above abbreviates the symbolic digest. SameByte does not run a build or fetch its real digest. It proves that supported consumers reference the same output. Complete examples are in [tests/fixtures](tests/fixtures).
+The output above abbreviates the symbolic digest and omits the coverage notice for the opaque `actions/checkout` call. SameByte does not run a build or fetch its real digest. It proves that supported consumers reference the same output. Complete examples are in the repository’s [workflow fixtures](https://github.com/0then0/samebyte/tree/main/tests/fixtures).
 
 ## Install a release
 
@@ -82,7 +82,7 @@ samebyte . --config samebyte.config.json
 
 A repository path scans `.github/workflows/*.yml` and `*.yaml`. A directory path scans its immediate YAML files. Files are analyzed independently: identity is not joined across workflow runs.
 
-Text findings include source locations and evidence paths. `explain` also prints known reasons that an identity remains unknown, including untracked OCI platform selection. `graph` shows artifacts, producers, and consumers; `--format json` exposes the structured graph, operations, findings, diagnostics, and deployment checks. `--format sarif` emits SARIF 2.1.0 results with workflow line locations and evidence properties.
+Text and `explain` show deployments, unknown identity reasons (including untracked OCI platform selection), and unsupported coverage boundaries. `explain` also prints finding evidence paths. `graph` shows artifacts, producers, consumers, and a separate list of coverage boundaries. `--format json` exposes operations, findings, diagnostics, deployment checks, and the structured `coverage` array. `--format sarif` emits SARIF 2.1.0 findings with workflow locations and evidence; coverage boundaries are invocation notifications at `note` level, not violation results.
 
 Exit codes:
 
@@ -90,7 +90,26 @@ Exit codes:
 - `1`: at least one high-confidence finding, including a mutable deployment reference.
 - `2`: an input, configuration, YAML, dependency-graph, or analysis error. Errors take precedence over findings.
 
-`Artifact lineage verified` requires all detected deployments to have proven **test, scan, and attestation** identity, with no findings or errors. Missing operations remain `unknown`; their absence alone does not cause a violation.
+`Artifact lineage verified within the supported analysis scope` requires all detected deployments to have proven **test, scan, and attestation** identity, with no findings, errors, or recorded coverage boundaries. With boundaries present, proven deployments remain proven and the summary says `Detected deployment lineage is proven. Pipeline coverage is incomplete.` Missing checks remain `unknown`; their absence alone does not cause a violation. No supported deployments is reported explicitly and never counts as verified lineage. Exit code `0` describes analyzer completion, not a complete pipeline proof.
+
+## Analysis coverage
+
+Coverage notices describe a boundary where operations, values, or execution gates may remain outside the graph. They do not guess what an unknown action or script does, and they do not change exit codes. Findings, unknown detected identities, coverage notices, and analysis errors remain separate report data.
+
+Each JSON `coverage` entry includes a stable `reason`, a boundary `type`, a `location` (`file`, `line`, `job`, and optional zero-based `step`), a `message`, and a `target` when known. Job-level notices have no step index. Reasons are:
+
+- `reusable-workflow-call`: local or remote job-level `uses`; contents and outputs are not expanded.
+- `local-action-call`: local action contents, including composite actions, are not expanded.
+- `unsupported-action-call`: an action call has no interpreting OCI adapter, or annotations replace interpretation. This includes setup and checkout actions; no assumption about their internals is made.
+- `matrix-job`: job strategy is not expanded into instances; operations describe templates.
+- `unsupported-shell`: unsupported shell syntax, shell selection, output writes, or annotation-replaced shell interpretation may hide operations or lose values.
+- `uninterpreted-command`: a binary or script command is outside the supported interpreter. One notice per reason per step is retained, with the first uninterpreted command as the target.
+
+Notices describe structural boundaries, including calls that may be skipped. They are not counts of missing operations. An empty array is not a completeness claim: adapters interpret documented interfaces, arbitrary binaries are not executed, and platform manifests are not inspected. There is no coverage percentage. An unsupported `parallel` block is an **analysis error** with exit code `2`.
+
+Trusted annotations can assert an operation and its identity but do not establish that an action or script has no other behavior. Action calls and annotated `run` steps retain a coverage notice. Supported actions are analyzed through their adapters, not by inspecting implementation code.
+
+The [real-world workflow examples](https://github.com/0then0/samebyte/blob/main/docs/evidence/README.md) show how to interpret these reports in release pipelines. They include pinned upstream files, checksums, dependency maps, saved results, and commands for reproducing the analysis.
 
 ## Supported data flow
 
@@ -103,7 +122,7 @@ The analysis separates workflow parsing, symbolic values, operation adapters, an
 - Full 64-hex `sha256` digests provide immutable identity. Tags, including `${{ github.sha }}`, are mutable references. A source revision is not an OCI digest.
 - Job dependencies, step order, and completion order matter. A later test, a parallel sibling job, status checks that can bypass success, matrix jobs, and ignored failures do not establish unconditional verification. A plain `if: success()` condition preserves the success gate.
 - `background: true` steps only establish a check after `wait` or `wait-all`. Their outputs remain unknown until then. If waiting ignores failure with `continue-on-error`, the result stays unknown. A dependent job starts after background steps in its prerequisite job finish.
-- `parallel` syntax is accepted, but its nested operations are not analyzed yet. SameByte reports an analysis diagnostic and exits with code `2` instead of claiming lineage is verified.
+- `parallel` syntax is parsed, but its nested operations are unsupported. SameByte reports an analysis diagnostic and exits with code `2` instead of claiming lineage is verified.
 - A multi-platform build and `docker run --platform ...` do not prove a specific runtime manifest. SameByte keeps these identities unknown because the selected OCI child manifest can depend on the target platform.
 - A concrete digest used by `docker run` without a recognized single-platform producer also remains unknown for testing. It may identify an OCI index, and a test runner can select a different child manifest from the production platform. Identity mismatches between distinct concrete digests are still reported.
 
@@ -159,10 +178,10 @@ This is a lineage example, not a complete registry/cluster setup. Configure the 
 ## Producers and consumers
 
 - **Build:** `docker/build-push-action` (v6 and v7), `docker build`, `docker buildx build`. Shell builds record a producer and supported `-t`/`--tag` reference, but do not invent an externally accessible digest output.
-- **Test:** foreground `docker run` with common flags. This means that the image is exercised; SameByte does not assess its test command or coverage. `npm test`, `pnpm test`, and `yarn test` are source tests, not OCI tests. `docker compose run` is recognized with unknown identity because Compose file interpretation is outside this MVP.
+- **Test:** foreground `docker run` with common flags. This means that the image is exercised; SameByte does not assess its test command or coverage. `npm test`, `pnpm test`, and `yarn test` are source tests, not OCI tests. `docker compose run` is recognized with unknown identity because Compose file interpretation is outside the supported scope.
 - **Scan:** `aquasecurity/trivy-action` (`image-ref`), `docker/scout-action` (`image` with `command: cves`, `quickview`, or `compare`), `anchore/scan-action` (`image`); simple `trivy image`, `grype`, and `docker scout cves`/`quickview` commands. Trivy's `input` archive option takes precedence over the image reference and therefore remains unknown. Scout commands such as `environment` and `attestation-add` are not treated as scans.
 - **Attestation:** `actions/attest` and `actions/attest-build-provenance` (`subject-name`, `subject-digest`), plus `gh attestation verify oci://...`. This tracks the subject identity; it does not validate signatures or policy itself.
-- **Deploy:** simple `kubectl set image` container assignments and `helm upgrade`/`helm install`. Helm chart values alone do not prove what a chart renders, so Helm deployments have unknown identity unless an explicit annotation describes the image. Custom deployment actions require annotations.
+- **Deploy:** simple `kubectl set image` container assignments and `helm upgrade`/`helm install`. Helm chart values alone do not prove what a chart renders, so Helm deployments have unknown identity unless an explicit annotation describes the image. Recognized kubectl dry-run and local modes, and Helm dry-run modes, do not create deployments or coverage notices. `kubectl --dry-run=none` and `--local=false` still describe real deployments. Custom deployment actions require annotations.
 
 Adapters recognize the action repository independently of the pinned ref. This assumes that the referenced action implements its documented interface; SameByte does not audit the action's code. Unsupported flags and inputs may reduce coverage to unknown.
 
@@ -199,11 +218,13 @@ For a custom step, explicitly declare its behavior in a JSON file:
 
 `workflow` matches the filename, `job` matches its job ID, and `step` matches an explicit step `id`. Operations are `build`, `test`, `scan`, `attest`, or `deploy`. A build annotation may specify `output` (default `digest`) to declare an OCI digest step output, and `image` to record its reference. Consumer annotations require `image`.
 
-Annotations replace automatic interpretation of that step. They are trusted user assertions, appear in evidence, and are not independently verified. Use distinct workflow filenames when applying one config across several files.
+Save the configuration as `samebyte.config.json` and pass it with `samebyte . --config samebyte.config.json`.
+
+Annotations replace automatic interpretation of that step. They are trusted user assertions, appear in evidence, and are not independently verified. A coverage notice remains because additional behavior inside the action or shell step is not analyzed. Use distinct workflow filenames when applying one config across several files.
 
 ## GitHub Action
 
-The repository includes a composite [action.yml](action.yml). Use a release tag to select a version:
+The repository includes a composite [GitHub Action](https://github.com/0then0/samebyte/blob/main/action.yml). Use a release tag to select a version:
 
 ```yaml
 - uses: actions/checkout@v7

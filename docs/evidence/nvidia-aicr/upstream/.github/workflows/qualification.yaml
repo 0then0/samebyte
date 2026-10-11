@@ -1,0 +1,183 @@
+# Copyright (c) 2026, NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Qualification
+
+on:
+  workflow_call:
+    inputs:
+      coverage_report:
+        description: 'Whether to generate coverage report'
+        type: boolean
+        required: false
+        default: false
+      privileged_ci:
+        description: 'Whether jobs that require elevated permissions should run'
+        type: boolean
+        required: false
+        default: true
+      ref:
+        description: 'Git ref to checkout (defaults to triggering ref)'
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    # 15 minutes was sized for a warm Go module cache: the same job finished in
+    # 9m59s on the v0.21.0 tag with a cache hit, and was killed at the wall on
+    # v0.21.1 with a miss, after 13.6 minutes of `go: downloading` stalls. The
+    # prefix fallback added in go-test makes a total miss far less likely, but a
+    # budget that only holds when the cache hits is the wrong shape for the one
+    # place a failure is most expensive -- a release run (#2663).
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+    steps:
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ inputs.ref || '' }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Load versions
+        id: versions
+        uses: ./.github/actions/load-versions
+
+      - name: Run Go Tests
+        uses: ./.github/actions/go-test
+        with:
+          go_version: ${{ steps.versions.outputs.go }}
+          coverage_report: ${{ inputs.coverage_report }}
+          coverage_threshold: ${{ steps.versions.outputs.coverage_threshold }}
+          setup_envtest_version: ${{ steps.versions.outputs.setup_envtest }}
+          setup_envtest_sha256: ${{ steps.versions.outputs.setup_envtest_sha256_linux_amd64 }}
+          helm_version: ${{ steps.versions.outputs.helm }}
+          apidiff_version: ${{ steps.versions.outputs.apidiff }}
+          oasdiff_version: ${{ steps.versions.outputs.oasdiff }}
+          oasdiff_sha256: ${{ steps.versions.outputs.oasdiff_sha256_linux_amd64 }}
+          privileged_ci: ${{ inputs.privileged_ci }}
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ inputs.ref || '' }}
+          persist-credentials: false
+
+      - name: Load versions
+        id: versions
+        uses: ./.github/actions/load-versions
+
+      - name: Run Linters
+        uses: ./.github/actions/go-lint
+        with:
+          go_version: ${{ steps.versions.outputs.go }}
+          golangci_lint_version: ${{ steps.versions.outputs.golangci_lint }}
+          addlicense_version: ${{ steps.versions.outputs.addlicense }}
+          addlicense_sha256: ${{ steps.versions.outputs.addlicense_sha256_linux_amd64 }}
+          lint_timeout: ${{ steps.versions.outputs.lint_timeout }}
+          privileged_ci: ${{ inputs.privileged_ci }}
+
+  cli-e2e:
+    name: CLI E2E
+    if: inputs.privileged_ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ inputs.ref || '' }}
+          persist-credentials: false
+
+      - name: Load versions
+        id: versions
+        uses: ./.github/actions/load-versions
+
+      - name: Run CLI E2E Tests
+        uses: ./.github/actions/cli-e2e
+        with:
+          go_version: ${{ steps.versions.outputs.go }}
+          goreleaser_version: ${{ steps.versions.outputs.goreleaser }}
+          chainsaw_version: ${{ steps.versions.outputs.chainsaw }}
+          chainsaw_sha256: ${{ steps.versions.outputs.chainsaw_sha256_linux_amd64 }}
+          helmfile_version: ${{ steps.versions.outputs.helmfile }}
+          helmfile_sha256: ${{ steps.versions.outputs.helmfile_sha256_linux_amd64 }}
+          cosign_version: ${{ steps.versions.outputs.cosign }}
+
+  e2e:
+    name: E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ inputs.ref || '' }}
+          persist-credentials: false
+
+      - name: Load versions
+        id: versions
+        uses: ./.github/actions/load-versions
+
+      - name: Run E2E Tests
+        uses: ./.github/actions/e2e
+        with:
+          go_version: ${{ steps.versions.outputs.go }}
+          dockerhub_mirror: ${{ steps.versions.outputs.dockerhub_mirror }}
+          privileged_ci: ${{ inputs.privileged_ci }}
+
+  security-scan:
+    name: Security Scan
+    # Intentional: unprivileged fork runs skip this job entirely so fork-derived
+    # SARIF is never uploaded under the base repository's identity.
+    if: inputs.privileged_ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ inputs.ref || '' }}
+          persist-credentials: false
+
+      - name: Security Scan
+        uses: ./.github/actions/security-scan
+        with:
+          severity-cutoff: 'medium'
+          category: 'anchore-fs'
