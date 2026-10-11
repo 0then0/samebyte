@@ -23,7 +23,7 @@ test('graph, explain, help and version are runnable', () => {
   assert.match(cli('graph', 'tests/fixtures/correct.yml').stdout, /artifact-1/);
   assert.match(cli('explain', 'tests/fixtures/correct.yml').stdout, /proven/);
   assert.match(cli('--help').stdout, /Usage:/);
-  assert.equal(cli('--version').stdout.trim(), '0.1.0');
+  assert.equal(cli('--version').stdout.trim(), '0.1.1');
 });
 test('skipped deployments exit successfully and are absent from JSON and graph', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'samebyte-test-'));

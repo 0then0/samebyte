@@ -51,17 +51,17 @@ The output above abbreviates the symbolic digest and omits the coverage notice f
 SameByte requires Node.js 22 or later. Each stable `vX.Y.Z` tag creates a GitHub Release with a versioned npm package tarball and SHA-256 checksums. The package tarball installs through npm without a registry account:
 
 ```bash
-npm install --global https://github.com/0then0/samebyte/releases/download/v0.1.0/samebyte-0.1.0.tgz
+npm install --global https://github.com/0then0/samebyte/releases/download/v0.1.1/samebyte-0.1.1.tgz
 samebyte .
 ```
 
-Replace `0.1.0` in both places with the release version you want. To verify a downloaded asset before installing it:
+Replace `0.1.1` in both places with the release version you want. To verify a downloaded asset before installing it:
 
 ```bash
-curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.0/samebyte-0.1.0.tgz
-curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.0/SHA256SUMS
+curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.1/samebyte-0.1.1.tgz
+curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.1/SHA256SUMS
 sha256sum --check SHA256SUMS
-npm install --global ./samebyte-0.1.0.tgz
+npm install --global ./samebyte-0.1.1.tgz
 ```
 
 On macOS, use `shasum -a 256 --check SHA256SUMS` instead of `sha256sum --check`.
@@ -228,13 +228,13 @@ The repository includes a composite [GitHub Action](https://github.com/0then0/sa
 
 ```yaml
 - uses: actions/checkout@v7
-- uses: 0then0/samebyte@v0.1.0
+- uses: 0then0/samebyte@v0.1.1
   with:
     path: .github/workflows
     format: text
 ```
 
-For stronger supply-chain protection, replace `v0.1.0` with the full reviewed commit SHA shown on that release.
+For stronger supply-chain protection, replace `v0.1.1` with the full reviewed commit SHA shown on that release.
 
 The action uses Node 22 and builds the CLI from its npm lockfile, including development dependencies needed by esbuild even when the calling workflow sets `NODE_ENV=production`. It accepts optional `config` and preserves the CLI exit status. SARIF output is printed to stdout; uploading it to GitHub Code Scanning is a separate workflow step.
 

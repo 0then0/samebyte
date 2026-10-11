@@ -1,6 +1,6 @@
 {
   "name": "samebyte",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Test the same bytes you deploy. Static OCI artifact lineage analysis for GitHub Actions.",
   "scripts": {
     "build": "esbuild src/cli.ts --bundle --external:yaml --platform=node --format=esm --target=node22 --outfile=dist/cli.js",

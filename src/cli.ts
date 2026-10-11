@@ -38,7 +38,7 @@ async function main(): Promise<number> {
     return 0;
   }
   if (values.version) {
-    console.log('0.1.0');
+    console.log('0.1.1');
     return 0;
   }
   const command = ['check', 'explain', 'graph'].includes(positionals[0])
