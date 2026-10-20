@@ -251,6 +251,17 @@ git push origin main --follow-tags
 
 ## Development
 
+### Dependency updates
+
+[Dependabot](.github/dependabot.yml) checks npm dependencies and GitHub Actions
+on the first day of each month. New versions must be at least seven days old.
+Minor and patch updates are grouped per ecosystem; major updates use separate
+PRs. At most one version-update PR per ecosystem can be open at a time.
+Dependabot security updates, when enabled in the repository settings, are not
+delayed by this schedule or cooldown. Updates require review and passing CI.
+
+### Local checks
+
 ```bash
 npm ci --ignore-scripts
 npm run typecheck
