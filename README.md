@@ -242,12 +242,12 @@ The action uses Node 22 and builds the CLI from its npm lockfile, including deve
 
 Push a stable SemVer tag matching `package.json` to run the release workflow. It reruns typecheck, lint, and tests, creates the npm package tarball, writes a SHA-256 checksum file, and publishes both as assets on a GitHub Release with generated release notes.
 
-```bash
-npm version patch
-git push origin main --follow-tags
-```
-
-`npm version` updates `package.json` and `package-lock.json`, creates the matching `vX.Y.Z` tag, and commits the version change. Review that commit and tag before pushing. The release workflow rejects tags that do not match the package version. Release assets can be installed directly with npm as shown above.
+The package metadata, CLI version, version test, installation examples, and
+changelog must be updated together before creating the tag. Follow the
+[maintainer release instructions](https://github.com/0then0/samebyte/blob/main/CONTRIBUTING.md#releases)
+for the verification, commit, and tag commands. The workflow rejects mismatched
+tag, package, or CLI versions. Release assets install directly with npm as shown
+above.
 
 ## Development
 
@@ -286,6 +286,14 @@ Source layout:
 - `src/output.ts` and `src/cli.ts`: text, JSON, SARIF, graph, and process exit codes.
 
 SameByte checks lineage and identity only. It does not replace SLSA, in-toto, or Sigstore; scan vulnerabilities; sign artifacts; assess Dockerfiles or test quality; run CI; or guarantee supply-chain security. Reusable workflows, arbitrary binaries, non-GitHub CI, and generic build-system analysis are outside this version.
+
+## Community and support
+
+- [Contributing](https://github.com/0then0/samebyte/blob/main/CONTRIBUTING.md): local setup, tests, pull requests, and release preparation.
+- [Issue forms](https://github.com/0then0/samebyte/issues/new/choose): bug reports and feature requests with reproducible examples.
+- [Code of conduct](https://github.com/0then0/samebyte/blob/main/CODE_OF_CONDUCT.md): participation expectations and reporting concerns.
+- [Security policy](https://github.com/0then0/samebyte/security/policy): supported versions, trust model, and private vulnerability reporting.
+- [Changelog](https://github.com/0then0/samebyte/blob/main/CHANGELOG.md): released changes and unreleased work.
 
 ## License
 

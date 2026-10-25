@@ -1,0 +1,22 @@
+name: Feature request
+description: Propose a supported workflow pattern or another project improvement.
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Explain what you cannot establish or accomplish with the current behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the expected result and relevant analysis boundaries.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example and alternatives
+      description: Add a sanitized workflow or a public commit-pinned example, and any alternatives you considered. Do not include credentials or private infrastructure details.

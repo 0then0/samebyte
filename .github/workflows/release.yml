@@ -6,13 +6,22 @@ on:
       - 'v*.*.*'
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@v7
         with:
@@ -37,6 +46,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test
+
+      - name: Validate CLI version
+        run: test "$(node dist/cli.js --version)" = "$(node -p "require('./package.json').version")"
 
       - name: Package installable CLI
         run: |
