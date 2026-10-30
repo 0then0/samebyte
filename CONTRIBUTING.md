@@ -75,6 +75,24 @@ For analyzer changes, preserve these invariants:
 - Exit codes remain `0` for no high-confidence findings, `1` for such findings,
   and `2` for analysis errors.
 
+## Source layout
+
+- `src/parser.ts`: discovery, YAML locations, structural checks, dependency ordering.
+- `src/expressions.ts`: GitHub expression AST, symbolic values, env propagation, OCI identities.
+- `src/adapters.ts` and `src/shell.ts`: action interfaces, a restricted shell tokenizer, and shell resolution.
+- `src/analyzer.ts` and `src/model.ts`: transfer of values and artifact/operation graph.
+- `src/rules.ts`: identity relationships, check ordering, and findings.
+- `src/output.ts`, `src/run.ts` and `src/cli.ts`: text, JSON, SARIF, graph, report files, and process exit codes.
+- `src/action.ts` and `action/index.mjs`: the GitHub Action entrypoint and its committed bundle.
+
+## Dependency updates
+
+[Dependabot](.github/dependabot.yml) checks npm dependencies and GitHub Actions on
+the first day of each month. New versions must be at least seven days old. Minor
+and patch updates are grouped per ecosystem; major updates use separate PRs, and at
+most one version-update PR per ecosystem is open at a time. Security updates are
+not delayed by this schedule. Updates require review and passing CI.
+
 ## Submit a pull request
 
 Create a branch in your fork and open a pull request against `main`. Explain the
@@ -97,7 +115,7 @@ CI has read-only access.
 1. Update `package.json` and `package-lock.json`, for example with
    `npm version patch --no-git-tag-version --ignore-scripts`.
 2. Set the matching version in `src/cli.ts` and the version assertion in
-   `tests/cli.test.ts`, then run `npm run build:action`. Update the README installation examples and
+   `tests/cli.test.ts`, then run `npm run build:action`. Update the README and `docs/github-action.md` version examples and
    [changelog](CHANGELOG.md); retain historical versions in the evidence reports.
 3. Run the verification commands above. Check `node dist/cli.js --version` and
    ensure the package contains only the intended files.
