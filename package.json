@@ -22,7 +22,11 @@
     "docker",
     "artifact",
     "lineage",
-    "static-analysis"
+    "static-analysis",
+    "sarif",
+    "supply-chain",
+    "supply-chain-security",
+    "provenance"
   ],
   "author": "0then0",
   "license": "Apache-2.0",
