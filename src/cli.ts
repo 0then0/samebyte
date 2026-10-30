@@ -1,16 +1,7 @@
 #!/usr/bin/env node
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
 import { parseArgs } from 'node:util';
-import {
-  analyzeWorkflow,
-  type Config,
-  mergeReports,
-  validateConfig,
-} from './analyzer.js';
-import type { Report } from './model.js';
-import { graphReport, sarifReport, textReport } from './output.js';
-import { discover, readWorkflow } from './parser.js';
+import { textReport } from './output.js';
+import { execute, type Format, formats } from './run.js';
 
 const help = `SameByte — Test the same bytes you deploy.
 
@@ -18,17 +9,20 @@ Usage: samebyte [check|explain|graph] [path] [options]
 
   --format text|json|sarif  Output format (default: text)
   --config <file>          Explicit artifact annotations (JSON)
+  --output <file>          Write the report to a file instead of stdout
   --help                  Show usage
   --version               Show version
 
 Exit codes: 0 no high-confidence violations; 1 violations; 2 analysis error.
-Unknown lineage is not a verified pipeline. All analysis is local and static.`;
+Unknown lineage is not a verified pipeline. All analysis is local and static.
+With --output the file is written only when analysis completed (exit 0 or 1).`;
 async function main(): Promise<number> {
   const { values, positionals } = parseArgs({
     allowPositionals: true,
     options: {
       format: { type: 'string', default: 'text' },
       config: { type: 'string' },
+      output: { type: 'string' },
       help: { type: 'boolean' },
       version: { type: 'boolean' },
     },
@@ -38,59 +32,30 @@ async function main(): Promise<number> {
     return 0;
   }
   if (values.version) {
-    console.log('0.1.1');
+    console.log('0.1.2');
     return 0;
   }
   const command = ['check', 'explain', 'graph'].includes(positionals[0])
-    ? positionals.shift()
+    ? (positionals.shift() as 'check' | 'explain' | 'graph')
     : 'check';
   if (positionals.length > 1)
     throw new Error('Expected a single path. Use --help for usage.');
-  if (!['text', 'json', 'sarif'].includes(values.format ?? ''))
+  if (!formats.includes(values.format as Format))
     throw new Error('Unsupported format. Expected text, json or sarif.');
-  const input = positionals[0] ?? '.';
-  let config: Config = { annotations: [] };
-  if (values.config)
-    config = validateConfig(JSON.parse(await readFile(values.config, 'utf8')));
-  const reports: Report[] = [];
-  const diagnostics: Report['diagnostics'] = [];
-  const files = await discover(input);
-  if (!files.length)
-    diagnostics.push({
-      file: resolve(input),
-      message: 'No YAML workflows found.',
-    });
-  for (const file of files) {
-    try {
-      reports.push(analyzeWorkflow(await readWorkflow(file), config));
-    } catch (error) {
-      diagnostics.push({
-        file,
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
+  if (values.output === '') throw new Error('--output requires a file path.');
+  const outcome = await execute({
+    input: positionals[0] ?? '.',
+    format: values.format as Format,
+    command,
+    config: values.config,
+    output: values.output,
+  });
+  if (!values.output) console.log(outcome.rendered);
+  else if (outcome.writeError) {
+    if (outcome.report.diagnostics.length) console.error(textReport(outcome.report));
+    console.error(`SameByte: ${outcome.writeError}`);
   }
-  const report = mergeReports(reports);
-  report.diagnostics.push(...diagnostics);
-  console.log(
-    values.format === 'json'
-      ? JSON.stringify(report, null, 2)
-      : values.format === 'sarif'
-        ? JSON.stringify(sarifReport(report), null, 2)
-        : command === 'graph'
-          ? [
-              graphReport(report),
-              ...report.diagnostics.map((d) => `ERROR ${d.file}: ${d.message}`),
-            ]
-              .filter(Boolean)
-              .join('\n')
-          : textReport(report, true),
-  );
-  return report.diagnostics.length
-    ? 2
-    : report.findings.some((f) => f.confidence === 'high')
-      ? 1
-      : 0;
+  return outcome.code;
 }
 main()
   .then((code) => {

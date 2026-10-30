@@ -1,3 +1,5 @@
+import type { Job, Step, Workflow } from './model.js';
+
 // Deliberately a tokenizer for straight-line commands, never a shell evaluator.
 export function tokenize(command: string): string[] | undefined {
   if (/[`]|\$\(|[|;&<>]/.test(command)) return undefined;
@@ -91,4 +93,69 @@ export function balancedQuotes(command: string): boolean {
     } else if (char === "'" || char === '"') quote = char;
   }
   return quote === '';
+}
+
+export type ShellResolution =
+  | { supported: true; shell: 'bash' | 'sh'; source: string }
+  | { supported: false; reason: string };
+
+// Exact GitHub-hosted labels only. A label is never searched for OS substrings:
+// self-hosted runners and larger runners carry arbitrary user-chosen labels.
+const hostedPosix =
+  /^(?:ubuntu-(?:latest|slim|\d{2}\.\d{2}(?:-arm)?)|macos-(?:latest|\d+)(?:-(?:intel|large|xlarge))?)$/;
+const hostedWindows = /^windows-(?:latest|\d{4}|11-arm)$/;
+const expression = (value: unknown) =>
+  typeof value === 'string' && value.includes('${{');
+
+function singleRunnerLabel(runsOn: unknown): string | undefined {
+  if (typeof runsOn === 'string') return runsOn;
+  if (Array.isArray(runsOn) && runsOn.length === 1) return singleRunnerLabel(runsOn[0]);
+  if (runsOn && typeof runsOn === 'object' && !Array.isArray(runsOn)) {
+    const { group, labels } = runsOn as { group?: unknown; labels?: unknown };
+    return group === undefined ? singleRunnerLabel(labels) : undefined;
+  }
+  return undefined;
+}
+
+// Resolves which interpreter GitHub runs for a `run` step, following the documented
+// precedence: step shell, job defaults, workflow defaults, then the runner default.
+// Only bash and sh (both `-e`, so a failing command stops the step) are supported.
+export function resolveShell(
+  workflow: Workflow,
+  job: Job,
+  step: Step,
+): ShellResolution {
+  const explicit =
+    step.shell ?? job.defaults?.run?.shell ?? workflow.defaults?.run?.shell;
+  if (explicit !== undefined) {
+    const source =
+      step.shell !== undefined
+        ? 'step shell'
+        : job.defaults?.run?.shell !== undefined
+          ? 'job defaults.run.shell'
+          : 'workflow defaults.run.shell';
+    return explicit === 'bash' || explicit === 'sh'
+      ? { supported: true, shell: explicit, source }
+      : {
+          supported: false,
+          reason: `${source} ${JSON.stringify(explicit)} is not bash or sh`,
+        };
+  }
+  // Documented: run steps in a job container default to sh, on a Linux host.
+  const container = job.container;
+  if (container !== undefined && container !== null && !expression(container))
+    return { supported: true, shell: 'sh', source: 'container job default' };
+  const label = singleRunnerLabel(job['runs-on']);
+  if (label !== undefined && hostedPosix.test(label))
+    return { supported: true, shell: 'bash', source: `GitHub-hosted runner ${label}` };
+  if (label !== undefined && hostedWindows.test(label))
+    return {
+      supported: false,
+      reason: `GitHub-hosted runner ${label} defaults to pwsh`,
+    };
+  return {
+    supported: false,
+    reason:
+      'the runner operating system and default shell cannot be determined statically; set shell: bash or shell: sh',
+  };
 }

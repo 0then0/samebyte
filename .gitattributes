@@ -4,3 +4,6 @@
 docs/evidence/*/upstream/** -text linguist-vendored=true
 docs/evidence/baseline/** linguist-generated=true
 docs/evidence/updated/** linguist-generated=true
+
+# Generated action bundle; regenerate with npm run build:action.
+action/index.mjs linguist-generated=true

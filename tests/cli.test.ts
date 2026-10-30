@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -23,7 +23,7 @@ test('graph, explain, help and version are runnable', () => {
   assert.match(cli('graph', 'tests/fixtures/correct.yml').stdout, /artifact-1/);
   assert.match(cli('explain', 'tests/fixtures/correct.yml').stdout, /proven/);
   assert.match(cli('--help').stdout, /Usage:/);
-  assert.equal(cli('--version').stdout.trim(), '0.1.1');
+  assert.equal(cli('--version').stdout.trim(), '0.1.2');
 });
 test('skipped deployments exit successfully and are absent from JSON and graph', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'samebyte-test-'));
@@ -200,6 +200,60 @@ test('annotated scripts retain coverage in every CLI format and preserve exit co
       if (args.includes('sarif'))
         assert.deepEqual(JSON.parse(result.stdout).runs[0].results, []);
     }
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+test('--output writes the selected format to a file and keeps stdout free of the report', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'samebyte-output-'));
+  try {
+    const file = join(dir, 'nested dir', 'report $(x).sarif');
+    const stdout = cli('tests/fixtures/rebuild.yml', '--format', 'sarif');
+    const written = cli(
+      'tests/fixtures/rebuild.yml',
+      '--format',
+      'sarif',
+      '--output',
+      file,
+    );
+    assert.equal(written.status, 1, written.stderr);
+    assert.equal(written.stdout, '');
+    assert.equal(
+      JSON.parse(await readFile(file, 'utf8')).runs[0].results[0].ruleId,
+      'SB001',
+    );
+    assert.deepEqual(
+      JSON.parse(await readFile(file, 'utf8')),
+      JSON.parse(stdout.stdout),
+    );
+    const text = join(dir, 'report.txt');
+    assert.equal(cli('tests/fixtures/correct.yml', '--output', text).status, 0);
+    assert.match(await readFile(text, 'utf8'), /Deployment:/);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+});
+test('--output is not written after an analysis error or a failed write', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'samebyte-output-'));
+  try {
+    const file = join(dir, 'report.json');
+    await writeFile(join(dir, 'invalid.yml'), 'jobs: []');
+    const failed = cli(join(dir, 'invalid.yml'), '--format', 'json', '--output', file);
+    assert.equal(failed.status, 2);
+    assert.equal(failed.stdout, '');
+    assert.match(failed.stderr, /Workflow must contain/);
+    assert.deepEqual(await readdir(dir), ['invalid.yml']);
+    const blocked = cli(
+      'tests/fixtures/rebuild.yml',
+      '--format',
+      'json',
+      '--output',
+      join(dir, 'invalid.yml', 'report.json'),
+    );
+    assert.equal(blocked.status, 2);
+    assert.match(blocked.stderr, /cannot write report/);
+    assert.equal(cli('tests/fixtures/correct.yml', '--output', '').status, 2);
+    assert.deepEqual(await readdir(dir), ['invalid.yml']);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

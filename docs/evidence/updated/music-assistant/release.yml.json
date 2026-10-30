@@ -296,7 +296,7 @@
           "job": "build_artifacts",
           "step": 8
         },
-        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+        "message": "Shell is not supported or cannot be established: step shell \"python\" is not bash or sh. Operations and value transfers in this script are not interpreted."
       },
       {
         "reason": "uninterpreted-command",
@@ -897,7 +897,7 @@
           "job": "update_remote_app",
           "step": 2
         },
-        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+        "message": "Shell is not supported or cannot be established: step shell \"python\" is not bash or sh. Operations and value transfers in this script are not interpreted."
       },
       {
         "reason": "unsupported-action-call",

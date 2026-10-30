@@ -1,0 +1,107 @@
+name: Action acceptance
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: action-acceptance-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Node 22 differs from the node24 action runtime, so any toolchain change
+      # made by the action is observable.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Record the caller toolchain
+        run: |
+          {
+            echo "EXPECTED_NODE_VERSION=$(node --version)"
+            echo "EXPECTED_NODE_PATH=$(command -v node)"
+          } >> "$GITHUB_ENV"
+          case "$(node --version)" in v22.*) ;; *) echo "expected Node 22" >&2; exit 1 ;; esac
+
+      - name: Clean workflow writes a valid SARIF file
+        id: clean
+        uses: ./
+        with:
+          path: tests/fixtures/correct.yml
+          format: sarif
+          output: ${{ runner.temp }}/samebyte reports/clean.sarif
+      - name: Verify the clean report and the caller toolchain
+        env:
+          REPORT_FILE: ${{ steps.clean.outputs.report-file }}
+          EXPECTED_REPORT: ${{ runner.temp }}/samebyte reports/clean.sarif
+        run: |
+          test "$(node --version)" = "$EXPECTED_NODE_VERSION"
+          test "$(command -v node)" = "$EXPECTED_NODE_PATH"
+          test "$REPORT_FILE" = "$EXPECTED_REPORT"
+          test -s "$REPORT_FILE"
+          node scripts/validate-sarif.mjs "$REPORT_FILE"
+
+      - name: Expected finding keeps the report and fails the step
+        id: finding
+        uses: ./
+        continue-on-error: true
+        with:
+          path: tests/fixtures/rebuild.yml
+          format: sarif
+          output: ${{ runner.temp }}/samebyte reports/finding.sarif
+      - name: Verify the finding report and the caller toolchain
+        env:
+          OUTCOME: ${{ steps.finding.outcome }}
+          REPORT_FILE: ${{ steps.finding.outputs.report-file }}
+        run: |
+          test "$OUTCOME" = failure
+          test "$(node --version)" = "$EXPECTED_NODE_VERSION"
+          test -s "$REPORT_FILE"
+          node scripts/validate-sarif.mjs "$REPORT_FILE" SB001
+
+      # `uses` cannot expose the exit status, so the entrypoint is also run directly
+      # to pin the exact codes: 1 for a finding, 2 for an analysis error.
+      - name: Exact exit codes of the entrypoint
+        env:
+          INPUT_FORMAT: sarif
+        run: |
+          set +e
+          INPUT_PATH=tests/fixtures/rebuild.yml \
+            INPUT_OUTPUT="$RUNNER_TEMP/direct finding.sarif" \
+            node action/index.mjs > /dev/null
+          finding=$?
+          INPUT_PATH=tests/fixtures/does-not-exist.yml \
+            INPUT_OUTPUT="$RUNNER_TEMP/direct error.sarif" \
+            node action/index.mjs > /dev/null
+          error=$?
+          set -e
+          test "$finding" -eq 1
+          test "$error" -eq 2
+          test -s "$RUNNER_TEMP/direct finding.sarif"
+          test ! -e "$RUNNER_TEMP/direct error.sarif"
+          node scripts/validate-sarif.mjs "$RUNNER_TEMP/direct finding.sarif" SB001
+
+      - name: Analysis error sets no report output
+        id: error
+        uses: ./
+        continue-on-error: true
+        with:
+          path: tests/fixtures/does-not-exist.yml
+          format: sarif
+          output: ${{ runner.temp }}/samebyte reports/error.sarif
+      - name: Verify the analysis error
+        env:
+          OUTCOME: ${{ steps.error.outcome }}
+          REPORT_FILE: ${{ steps.error.outputs.report-file }}
+        run: |
+          test "$OUTCOME" = failure
+          test -z "$REPORT_FILE"
+          test ! -e "$RUNNER_TEMP/samebyte reports/error.sarif"
+          test "$(node --version)" = "$EXPECTED_NODE_VERSION"

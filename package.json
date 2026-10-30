@@ -1,9 +1,11 @@
 {
   "name": "samebyte",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Test the same bytes you deploy. Static OCI artifact lineage analysis for GitHub Actions.",
   "scripts": {
     "build": "esbuild src/cli.ts --bundle --external:yaml --platform=node --format=esm --target=node22 --outfile=dist/cli.js",
+    "build:action": "node scripts/build-action.mjs",
+    "check:action": "node scripts/build-action.mjs --check",
     "typecheck": "tsc --noEmit",
     "lint": "biome check .",
     "format": "biome check --write .",
@@ -22,7 +24,7 @@
     "lineage",
     "static-analysis"
   ],
-  "author": "",
+  "author": "0then0",
   "license": "Apache-2.0",
   "type": "module",
   "bugs": {

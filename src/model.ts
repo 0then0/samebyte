@@ -114,6 +114,7 @@ export interface Job {
   uses?: string;
   defaults?: { run?: { shell?: string } };
   'runs-on'?: unknown;
+  container?: unknown;
 }
 export interface Workflow {
   file: string;

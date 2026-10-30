@@ -50,7 +50,11 @@ npm test
 npm pack --dry-run
 ```
 
-`npm test` builds the CLI and test bundles before running tests. `npm pack
+`npm test` builds the CLI and test bundles before running tests and fails when the
+committed action bundle `action/index.mjs` is stale. After changing anything under
+`src/`, or updating `yaml`, `@actions/expressions` or `esbuild`, run
+`npm run build:action` and commit the regenerated bundle; Dependabot cannot do
+this, so dependency pull requests need that extra commit. `npm pack
 --dry-run` checks the installable package and also builds the CLI. To format
 changes, run `npm run format`, then inspect the diff for unrelated edits.
 
@@ -80,7 +84,9 @@ when one exists. Include documentation updates for changed public behavior.
 Use English Conventional Commit messages with `feat`, `fix`, `refactor`, `chore`,
 `docs`, or `test`, for example `fix: retain coverage for annotated shell steps`.
 CI must pass on both supported Node.js versions before merge. Do not commit
-build output, local credentials, or release archives.
+build output, local credentials, or release archives. The one exception is
+`action/index.mjs`: GitHub runs the action from the tagged commit, so its bundle
+is committed and verified against the sources.
 
 ## Releases
 
@@ -91,7 +97,7 @@ CI has read-only access.
 1. Update `package.json` and `package-lock.json`, for example with
    `npm version patch --no-git-tag-version --ignore-scripts`.
 2. Set the matching version in `src/cli.ts` and the version assertion in
-   `tests/cli.test.ts`. Update the README installation examples and
+   `tests/cli.test.ts`, then run `npm run build:action`. Update the README installation examples and
    [changelog](CHANGELOG.md); retain historical versions in the evidence reports.
 3. Run the verification commands above. Check `node dist/cli.js --version` and
    ensure the package contains only the intended files.

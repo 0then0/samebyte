@@ -25,7 +25,7 @@ import type {
   Workflow,
 } from './model.js';
 import { analyzeRules, operationIsUnreachable } from './rules.js';
-import { balancedQuotes, tokenize } from './shell.js';
+import { balancedQuotes, resolveShell, tokenize } from './shell.js';
 export interface Annotation {
   workflow: string;
   job: string;
@@ -417,12 +417,8 @@ export function analyzeWorkflow(
           .filter((line) => line && !line.startsWith('#'));
         // Control flow changes the meaning of later lines. Invalidate the whole
         // script before interpreting any individual command.
-        const shell =
-          step.shell ?? job.defaults?.run?.shell ?? workflow.defaults?.run?.shell;
-        const unsupportedShell =
-          shell !== undefined
-            ? !['bash', 'sh'].includes(shell)
-            : JSON.stringify(job['runs-on'] ?? '').includes('windows');
+        const shell = resolveShell(workflow, job, step);
+        const unsupportedShell = !shell.supported;
         const complex =
           unsupportedShell ||
           lines.some((line) => !balancedQuotes(line)) ||
@@ -442,7 +438,9 @@ export function analyzeWorkflow(
           notice(
             'unsupported-shell',
             'shell',
-            'Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.',
+            shell.supported
+              ? 'Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.'
+              : `Shell is not supported or cannot be established: ${shell.reason}. Operations and value transfers in this script are not interpreted.`,
           );
         if (complex || unknownOutputWrite) shellNotice();
         for (const line of lines) {

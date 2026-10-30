@@ -51,17 +51,17 @@ The output above abbreviates the symbolic digest and omits the coverage notice f
 SameByte requires Node.js 22 or later. Each stable `vX.Y.Z` tag creates a GitHub Release with a versioned npm package tarball and SHA-256 checksums. The package tarball installs through npm without a registry account:
 
 ```bash
-npm install --global https://github.com/0then0/samebyte/releases/download/v0.1.1/samebyte-0.1.1.tgz
+npm install --global https://github.com/0then0/samebyte/releases/download/v0.1.2/samebyte-0.1.2.tgz
 samebyte .
 ```
 
-Replace `0.1.1` in both places with the release version you want. To verify a downloaded asset before installing it:
+Replace `0.1.2` in both places with the release version you want. To verify a downloaded asset before installing it:
 
 ```bash
-curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.1/samebyte-0.1.1.tgz
-curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.1/SHA256SUMS
+curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.2/samebyte-0.1.2.tgz
+curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.2/SHA256SUMS
 sha256sum --check SHA256SUMS
-npm install --global ./samebyte-0.1.1.tgz
+npm install --global ./samebyte-0.1.2.tgz
 ```
 
 On macOS, use `shasum -a 256 --check SHA256SUMS` instead of `sha256sum --check`.
@@ -77,6 +77,7 @@ samebyte explain .
 samebyte graph .
 samebyte . --format json
 samebyte . --format sarif > samebyte.sarif
+samebyte . --format sarif --output reports/samebyte.sarif
 samebyte . --config samebyte.config.json
 ```
 
@@ -90,6 +91,8 @@ Exit codes:
 - `1`: at least one high-confidence finding, including a mutable deployment reference.
 - `2`: an input, configuration, YAML, dependency-graph, or analysis error. Errors take precedence over findings.
 
+`--output <file>` writes the report in the selected format to a file instead of stdout; stdout stays empty and errors go to stderr. A relative path resolves against the working directory and missing parent directories are created. The file appears atomically and only when analysis completed (exit `0` or `1`). After an analysis error (`2`) or a failed write no report file is created, because a partial report would look like a complete one to consumers such as Code Scanning. A write failure exits `2` even when there are also findings. A file that already exists at that path is left untouched when no new report is written, so write each run's report to a fresh location, such as `${{ runner.temp }}` in the Action.
+
 `Artifact lineage verified within the supported analysis scope` requires all detected deployments to have proven **test, scan, and attestation** identity, with no findings, errors, or recorded coverage boundaries. With boundaries present, proven deployments remain proven and the summary says `Detected deployment lineage is proven. Pipeline coverage is incomplete.` Missing checks remain `unknown`; their absence alone does not cause a violation. No supported deployments is reported explicitly and never counts as verified lineage. Exit code `0` describes analyzer completion, not a complete pipeline proof.
 
 ## Analysis coverage
@@ -102,7 +105,7 @@ Each JSON `coverage` entry includes a stable `reason`, a boundary `type`, a `loc
 - `local-action-call`: local action contents, including composite actions, are not expanded.
 - `unsupported-action-call`: an action call has no interpreting OCI adapter, or annotations replace interpretation. This includes setup and checkout actions; no assumption about their internals is made.
 - `matrix-job`: job strategy is not expanded into instances; operations describe templates.
-- `unsupported-shell`: unsupported shell syntax, shell selection, output writes, or annotation-replaced shell interpretation may hide operations or lose values.
+- `unsupported-shell`: unsupported shell syntax, an unsupported or undeterminable shell, output writes, or annotation-replaced shell interpretation may hide operations or lose values. The message states the cause.
 - `uninterpreted-command`: a binary or script command is outside the supported interpreter. One notice per reason per step is retained, with the first uninterpreted command as the target.
 
 Notices describe structural boundaries, including calls that may be skipped. They are not counts of missing operations. An empty array is not a completeness claim: adapters interpret documented interfaces, arbitrary binaries are not executed, and platform manifests are not inspected. There is no coverage percentage. An unsupported `parallel` block is an **analysis error** with exit code `2`.
@@ -196,6 +199,19 @@ Adapters recognize the action repository independently of the pinned ref. This a
 
 Two independent build outputs may contain the same bytes. SameByte reports that relationship as `unknown`, not as a proven mismatch. It also avoids comparing unrelated image repositories as mismatches.
 
+## Shell analysis boundaries
+
+A `run` step is interpreted only when SameByte can establish that it runs under `bash` or `sh`. The shell is resolved with GitHub's [documented precedence](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax): step `shell`, then `jobs.<id>.defaults.run.shell`, then `defaults.run.shell`, then the runner default.
+
+- `shell: bash` or `shell: sh`, set at any of these levels, is supported on any runner, including self-hosted and expression-selected runners. Both stop the step at the first failing command (`-e`), which is what makes the supported straight-line syntax meaningful. Any other value (`pwsh`, `powershell`, `cmd`, `python`, a custom template such as `bash {0}`, a different case, or an expression) is unsupported.
+- Without an explicit shell, a job with `container` defaults to `sh`.
+- Otherwise the default is known only for a single GitHub-hosted label matching exactly: `ubuntu-latest`, `ubuntu-<YY>.<MM>` (optionally `-arm`), `ubuntu-slim`, and `macos-latest`, `macos-<N>` (optionally `-intel`, `-large` or `-xlarge`) run `bash`. `windows-latest`, `windows-<YYYY>` and `windows-11-arm` default to `pwsh` and are unsupported.
+- Everything else leaves the shell unknown: `self-hosted` and any custom or larger-runner labels, label arrays, `group:` runner groups, and `runs-on` expressions. Labels are never searched for an operating system name, and a label that looks like a hosted image does not make a self-hosted runner hosted. Add `shell: bash` or `shell: sh` when the step is written for it.
+
+For an unsupported or unknown shell the step keeps an `unsupported-shell` coverage notice with the cause. Its commands are not interpreted: deployments and consumers found there stay `unknown` and step outputs written there are unknown. Other steps, jobs and actions in the same workflow keep their own evidence, and the missing interpretation never creates a finding by itself.
+
+Fail-fast is part of the proof: a recognized test before a deployment in the same script only gates it because `-e` stops the script. SameByte does not model options changed by `set`, `trap`, `BASH_ENV` or startup files; scripts using `set` or control flow are already rejected, but environment-injected shell options are outside the analysis. PowerShell and `cmd` are not analyzed: PowerShell does not stop at a failing native command in the middle of a script, and the step result follows the last command.
+
 ## Unknown boundaries and annotations
 
 SameByte does not execute or read arbitrary scripts. `./deploy.sh` by itself is not enough to infer deployment. Complex shell control flow, substitutions, sourced files, heredocs, custom shells, and dynamic transforms cannot prove identity. Shell environment mutation invalidates the affected analysis context; `$GITHUB_ENV` is not interpreted as a supported value transfer.
@@ -224,19 +240,64 @@ Annotations replace automatic interpretation of that step. They are trusted user
 
 ## GitHub Action
 
-The repository includes a composite [GitHub Action](https://github.com/0then0/samebyte/blob/main/action.yml). Use a release tag to select a version:
+The repository includes a [JavaScript action](https://github.com/0then0/samebyte/blob/main/action.yml) that runs on the runner's own Node.js 24 runtime (`runs.using: node24`). It does not install or select Node.js, run `npm`, or change `PATH`, so later steps keep the toolchain the workflow chose. A prebuilt, dependency-free bundle (`action/index.mjs`) is committed to each release tag and checked against the sources in CI, so `uses: 0then0/samebyte@<ref>` works from the ref you pin. The runner must support `node24`: GitHub Actions runner 2.327.1 or later (current GitHub-hosted runners qualify; update older self-hosted runners). The CLI itself still requires only Node.js 22.
+
+Inputs:
+
+- `path` (default `.`): repository, workflow directory or YAML file. Relative paths resolve against `GITHUB_WORKSPACE`.
+- `format` (default `text`): `text`, `json` or `sarif`.
+- `config` (default empty): optional annotations file, relative to the workspace.
+- `output` (default empty): report file in the selected format, relative to the workspace; parent directories are created. Without it the report is printed to the step log.
+
+Output:
+
+- `report-file`: absolute path of the written report. Set only when `output` was given and analysis completed (exit `0` or `1`); empty after an analysis error or a write failure.
+
+With `output`, the step log shows the text summary and the file holds the selected format, so diagnostics are never mixed into JSON or SARIF. The step exit status is the CLI contract: `0`, `1` for findings, `2` for an analysis or write error. Inputs are passed as data, never through a shell.
+
+Upload to Code Scanning stays a separate step in your workflow, with its own permissions. SameByte does not upload anything:
 
 ```yaml
-- uses: actions/checkout@v7
-- uses: 0then0/samebyte@v0.1.1
-  with:
-    path: .github/workflows
-    format: text
+name: SameByte
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  lineage:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write # required by upload-sarif
+      actions: read # required by upload-sarif in private repositories
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - id: samebyte
+        uses: 0then0/samebyte@v0.1.2
+        with:
+          path: .github/workflows
+          format: sarif
+          output: ${{ runner.temp }}/samebyte.sarif
+      - name: Upload SARIF
+        if: ${{ !cancelled() && steps.samebyte.outputs.report-file != '' }}
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: ${{ steps.samebyte.outputs.report-file }}
+          category: samebyte
 ```
 
-For stronger supply-chain protection, replace `v0.1.1` with the full reviewed commit SHA shown on that release.
+Do not add `continue-on-error` or `|| true`. The job keeps SameByte's status, and the upload step decides by whether a report exists:
 
-The action uses Node 22 and builds the CLI from its npm lockfile, including development dependencies needed by esbuild even when the calling workflow sets `NODE_ENV=production`. It accepts optional `config` and preserves the CLI exit status. SARIF output is printed to stdout; uploading it to GitHub Code Scanning is a separate workflow step.
+- Findings (exit `1`): the SameByte step fails, the report file exists and `report-file` is set. `!cancelled()` lets the upload run after that failure, and the job still ends as failed.
+- Analysis error (exit `2`) or write failure: no file and an empty `report-file`, so the upload is skipped. The job fails and the error stays distinct from a finding; nothing partial reaches Code Scanning.
+- Success (exit `0`): the upload runs and the job passes.
+- Cancellation: `!cancelled()` skips the upload, and the job is cancelled.
+
+SARIF locations are relative to the workspace, so run `actions/checkout` for the analyzed repository first. For stronger supply-chain protection, replace `v0.1.2` with the full reviewed commit SHA shown on that release. A static `proven` result describes the workflow graph; it is not proof of what ran or a cryptographic verification of an artifact.
 
 ## Releases
 
@@ -280,10 +341,11 @@ Source layout:
 
 - `src/parser.ts`: discovery, YAML locations, structural checks, dependency ordering.
 - `src/expressions.ts`: GitHub expression AST, symbolic values, env propagation, OCI identities.
-- `src/adapters.ts` and `src/shell.ts`: action interfaces and a restricted shell tokenizer.
+- `src/adapters.ts` and `src/shell.ts`: action interfaces, a restricted shell tokenizer, and shell resolution.
 - `src/analyzer.ts` and `src/model.ts`: transfer of values and artifact/operation graph.
 - `src/rules.ts`: identity relationships, check ordering, and findings.
-- `src/output.ts` and `src/cli.ts`: text, JSON, SARIF, graph, and process exit codes.
+- `src/output.ts`, `src/run.ts` and `src/cli.ts`: text, JSON, SARIF, graph, report files, and process exit codes.
+- `src/action.ts` and `action/index.mjs`: the GitHub Action entrypoint and its committed bundle. Regenerate with `npm run build:action`; `npm test` fails when the bundle is stale.
 
 SameByte checks lineage and identity only. It does not replace SLSA, in-toto, or Sigstore; scan vulnerabilities; sign artifacts; assess Dockerfiles or test quality; run CI; or guarantee supply-chain security. Reusable workflows, arbitrary binaries, non-GitHub CI, and generic build-system analysis are outside this version.
 
