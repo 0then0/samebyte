@@ -55,17 +55,17 @@ Both examples show only the relevant lines of the report, and the second shorten
 SameByte requires Node.js 22 or later. It is distributed as an npm package attached to each [GitHub Release](https://github.com/0then0/samebyte/releases); it is not published to the npm registry.
 
 ```bash
-npm install --global https://github.com/0then0/samebyte/releases/download/v0.1.2/samebyte-0.1.2.tgz
+npm install --global https://github.com/0then0/samebyte/releases/download/v0.2.0/samebyte-0.2.0.tgz
 samebyte --version
 ```
 
-Replace `0.1.2` in both places with the release you want. To verify the download before installing it:
+Replace `0.2.0` in both places with the release you want. To verify the download before installing it:
 
 ```bash
-curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.2/samebyte-0.1.2.tgz
-curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.2/SHA256SUMS
+curl -fLO https://github.com/0then0/samebyte/releases/download/v0.2.0/samebyte-0.2.0.tgz
+curl -fLO https://github.com/0then0/samebyte/releases/download/v0.2.0/SHA256SUMS
 sha256sum --check SHA256SUMS
-npm install --global ./samebyte-0.1.2.tgz
+npm install --global ./samebyte-0.2.0.tgz
 ```
 
 On macOS, use `shasum -a 256 --check SHA256SUMS` instead of `sha256sum --check`.
@@ -156,7 +156,7 @@ Each call is analyzed separately, so two calls of the same workflow with differe
 
 ```yaml
 - uses: actions/checkout@v7
-- uses: 0then0/samebyte@v0.1.2
+- uses: 0then0/samebyte@v0.2.0
   with:
     path: .github/workflows
     format: sarif

@@ -37,7 +37,7 @@ jobs:
         with:
           persist-credentials: false
       - id: samebyte
-        uses: 0then0/samebyte@v0.1.2
+        uses: 0then0/samebyte@v0.2.0
         with:
           path: .github/workflows
           format: sarif
@@ -57,4 +57,4 @@ Do not add `continue-on-error` or `|| true`. The job keeps SameByte's status, an
 - Success (exit `0`): the upload runs and the job passes.
 - Cancellation: `!cancelled()` skips the upload, and the job is cancelled.
 
-SARIF locations are relative to the workspace, so run `actions/checkout` for the analyzed repository first. For stronger supply-chain protection, replace `v0.1.2` with the full reviewed commit SHA shown on that release. A static `proven` result describes the workflow graph; it is not proof of what ran or a cryptographic verification of an artifact.
+SARIF locations are relative to the workspace, so run `actions/checkout` for the analyzed repository first. For stronger supply-chain protection, replace `v0.2.0` with the full reviewed commit SHA shown on that release. A static `proven` result describes the workflow graph; it is not proof of what ran or a cryptographic verification of an artifact.

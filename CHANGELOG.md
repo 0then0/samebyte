@@ -5,6 +5,8 @@ available from [GitHub Releases](https://github.com/0then0/samebyte/releases).
 
 ## Unreleased
 
+## [0.2.0] - 2026-11-13
+
 ### Added
 
 - Artifact identity is traced through one level of local reusable workflows
@@ -118,6 +120,7 @@ available from [GitHub Releases](https://github.com/0then0/samebyte/releases).
 - SB001–SB006 findings and text, JSON, SARIF, graph, and explain output.
 - A composite GitHub Action and installable release packages with SHA-256 checksums.
 
+[0.2.0]: https://github.com/0then0/samebyte/compare/v0.1.2...v0.2.0
 [0.1.2]: https://github.com/0then0/samebyte/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/0then0/samebyte/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/0then0/samebyte/releases/tag/v0.1.0
