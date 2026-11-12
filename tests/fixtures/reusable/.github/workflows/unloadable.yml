@@ -18,7 +18,14 @@ jobs:
     with:
       image: ghcr.io/acme/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   deploy:
-    needs: [missing, escape, elsewhere, with-ref, invalid-yaml, not-callable, broken-contract]
+    needs:
+      - missing
+      - escape
+      - elsewhere
+      - with-ref
+      - invalid-yaml
+      - not-callable
+      - broken-contract
     runs-on: ubuntu-latest
     steps:
       - run: kubectl set image deployment/api api=ghcr.io/acme/api@${{ needs.missing.outputs.digest }}

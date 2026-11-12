@@ -1,7 +1,14 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
   "files": {
-    "includes": ["src/**", "tests/**", "scripts/**", "*.json", "!package-lock.json"]
+    "includes": [
+      "src/**",
+      "tests/**",
+      "scripts/**",
+      "*.json",
+      "!package-lock.json",
+      "!tests/fixtures/reusable/.github/workflows/not-a-workflow.yml"
+    ]
   },
   "formatter": {
     "enabled": true,
