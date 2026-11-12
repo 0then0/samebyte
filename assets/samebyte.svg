@@ -9,19 +9,20 @@
   <title id="title">SameByte</title>
   <desc
     id="description"
-  >A single OCI artifact branches to verification and deployment, preserving the same identity.</desc>
-  <rect x="4" y="4" width="184" height="184" rx="36" fill="#f1f5f9" />
-  <g fill="none" stroke="#334155" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
-    <path d="m96 28 30 17v34L96 96 66 79V45Z" />
-    <path d="m66 45 30 17 30-17M96 62v34" />
-    <path d="M96 96v16H54v16m42-16h42v16" />
+  >One OCI artifact feeds both verification and deployment, so the checked bytes are the deployed bytes.</desc>
+  <rect x="4" y="4" width="184" height="184" rx="40" fill="#f1f5f9" />
+  <path d="M96 24 127 42 96 60 65 42Z" fill="#0f766e" />
+  <g fill="none" stroke="#1e293b" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M96 24 127 42v36L96 96 65 78V42Z" />
+    <path d="m65 42 31 18 31-18M96 60v36" />
+    <path d="M96 96v14M56 124v-6a8 8 0 0 1 8-8h64a8 8 0 0 1 8 8v6" />
   </g>
-  <g fill="#f1f5f9" stroke="#0f766e" stroke-width="4">
-    <rect x="34" y="128" width="40" height="40" rx="12" />
-    <rect x="118" y="128" width="40" height="40" rx="12" />
+  <g fill="#0f766e">
+    <circle cx="56" cy="146" r="24" />
+    <circle cx="136" cy="146" r="24" />
   </g>
-  <g fill="none" stroke="#0f766e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-    <path d="m44 148 7 7 13-14" />
-    <path d="M138 155v-16m-7 7 7-7 7 7" />
+  <g fill="none" stroke="#f1f5f9" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m45 147 8 8 15-17" />
+    <path d="M136 158v-23m-10 10 10-10 10 10" />
   </g>
 </svg>
