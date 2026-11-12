@@ -1,0 +1,28 @@
+name: Checks that do not gate the call
+on:
+  workflow_call:
+    inputs:
+      image:
+        type: string
+        required: true
+      run-tests:
+        type: boolean
+        default: true
+jobs:
+  test:
+    if: inputs.run-tests
+    runs-on: ubuntu-latest
+    steps:
+      - run: docker run --rm ${{ inputs.image }} npm test
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aquasecurity/trivy-action@0.33.1
+        continue-on-error: true
+        with:
+          image-ref: ${{ inputs.image }}
+  attest:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh attestation verify oci://${{ inputs.image }} --owner acme

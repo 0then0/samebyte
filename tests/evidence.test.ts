@@ -40,7 +40,7 @@ test('replay records and safely quotes the selected CLI bundle', async () => {
   }
 });
 
-test('saved updated reports match a fresh replay', async () => {
+test('saved reports match a fresh replay', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'samebyte-replay-'));
   try {
     const replay = spawnSync(process.execPath, ['docs/evidence/replay.mjs', dir], {
@@ -54,12 +54,12 @@ test('saved updated reports match a fresh replay', async () => {
       (await files(root))
         .filter((e) => e.isFile())
         .map((e) => join(e.parentPath, e.name).slice(root.length));
-    const saved = await names('docs/evidence/updated');
+    const saved = await names('docs/evidence/reports');
     assert.deepEqual((await names(dir)).sort(), saved.sort());
     for (const name of saved)
       assert.equal(
         await readFile(join(dir, name), 'utf8'),
-        await readFile(join('docs/evidence/updated', name), 'utf8'),
+        await readFile(join('docs/evidence/reports', name), 'utf8'),
         name,
       );
   } finally {

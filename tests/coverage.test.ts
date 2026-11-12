@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import test from 'node:test';
@@ -315,49 +314,4 @@ test('SARIF separates coverage notes from findings and successful execution', ()
       .startLine,
     3,
   );
-});
-
-test('unchanged external inputs preserve baseline operations, findings and errors', async () => {
-  const cases = ['nvidia-aicr', 'prebid-salesagent', 'liatrio-demo', 'music-assistant'];
-  for (const name of cases) {
-    const base = `docs/evidence/${name}`;
-    const provenance = JSON.parse(await readFile(`${base}/provenance.json`, 'utf8'));
-    for (const file of provenance.files) {
-      const path = `${base}/upstream/${file.path}`;
-      const source = await readFile(path);
-      assert.equal(
-        createHash('sha256').update(source).digest('hex'),
-        file.sha256,
-        path,
-      );
-      if (!file.path.startsWith('.github/workflows/')) continue;
-      const report = analyzeWorkflow(parseWorkflow(source.toString(), resolve(path)));
-      const baseline = JSON.parse(
-        await readFile(
-          `docs/evidence/baseline/${name}/${file.path.split('/').at(-1)}.json`,
-          'utf8',
-        ),
-      ).report;
-      assert.deepEqual(
-        report.operations.map((op) => [
-          op.kind,
-          op.identity.kind,
-          op.location.job,
-          op.location.line,
-        ]),
-        baseline.operations.map(
-          (op: {
-            kind: string;
-            identity: { kind: string };
-            location: { job: string; line: number };
-          }) => [op.kind, op.identity.kind, op.location.job, op.location.line],
-        ),
-        path,
-      );
-      assert.deepEqual(report.findings, baseline.findings, path);
-      assert.deepEqual(report.deployments, baseline.deployments, path);
-      assert.deepEqual(report.diagnostics, baseline.diagnostics, path);
-      assert.ok(report.coverage.length > 0, path);
-    }
-  }
 });

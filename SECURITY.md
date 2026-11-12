@@ -31,14 +31,17 @@ an agreed disclosure date.
 
 ## Scope and trust model
 
-SameByte performs local static analysis. It does not execute workflow commands,
-fetch reusable workflow implementations, inspect registries, or validate artifact
-signatures. Exit code `0` means no high-confidence violations were reported; it
+SameByte performs local static analysis. It reads the workflow files you point
+it at and, for local reusable workflow calls, YAML files directly in
+`.github/workflows` of the same repository checkout. It does not make network
+requests, fetch remote reusable workflows or actions, execute workflow commands,
+inspect registries, or validate artifact signatures. Exit code `0` means no high-confidence violations were reported; it
 is not a guarantee that a pipeline or supply chain is secure.
 
 Unsupported boundaries and unresolved identities are documented limitations.
 Incorrectly proving a supported artifact chain, executing untrusted workflow
-content, or disclosing sensitive input may be security-relevant defects. Report
+content, reading files outside the analyzed repository through a reusable
+workflow path, or disclosing sensitive input may be security-relevant defects. Report
 ordinary false positives and feature requests through the public issue forms
 with sanitized examples.
 

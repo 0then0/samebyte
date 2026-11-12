@@ -1,0 +1,16 @@
+{
+  "repository": "falcosecurity/falcoctl",
+  "commit": "eb5bf8b132ef047e7f3e830866a16dfb759470aa",
+  "files": [
+    {
+      "path": ".github/workflows/release.yaml",
+      "url": "https://raw.githubusercontent.com/falcosecurity/falcoctl/eb5bf8b132ef047e7f3e830866a16dfb759470aa/.github/workflows/release.yaml",
+      "sha256": "2eb7d5d5665f851e1ade0e20af2986e47b08839e11acdbeaf90864d66cd9e447"
+    },
+    {
+      "path": ".github/workflows/docker-image.yaml",
+      "url": "https://raw.githubusercontent.com/falcosecurity/falcoctl/eb5bf8b132ef047e7f3e830866a16dfb759470aa/.github/workflows/docker-image.yaml",
+      "sha256": "8db76d5db1089f55323077556e33a0f644976fa423a80c596d878cc89c52df56"
+    }
+  ]
+}

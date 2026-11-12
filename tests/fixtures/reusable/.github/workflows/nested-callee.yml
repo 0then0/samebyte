@@ -1,0 +1,25 @@
+name: Calls another reusable workflow
+on:
+  workflow_call:
+    inputs:
+      image:
+        type: string
+        required: true
+      digest:
+        type: string
+        required: true
+    outputs:
+      digest:
+        value: ${{ jobs.inner.outputs.digest }}
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ inputs.image }}@${{ inputs.digest }}
+  inner:
+    uses: ./.github/workflows/verify-image.yml
+    with:
+      image: ${{ inputs.image }}
+      digest: ${{ inputs.digest }}

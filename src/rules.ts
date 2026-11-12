@@ -30,13 +30,27 @@ function jobIsSkippedByNeeds(
     memo.set(jobId, true);
     return true;
   }
+  // A job of a called workflow cannot run when the call itself does not.
+  if (
+    job.callEntry &&
+    !visiting.has(job.callEntry) &&
+    jobIsSkippedByNeeds(job.callEntry, workflow, memo, visiting)
+  ) {
+    memo.set(jobId, true);
+    return true;
+  }
   if (bypassesSuccess(job.if) || visiting.has(jobId)) {
     if (!visiting.has(jobId)) memo.set(jobId, false);
     return false;
   }
   visiting.add(jobId);
-  const skipped = job.needs.some((need) =>
-    jobIsSkippedByNeeds(need, workflow, memo, visiting),
+  // A skipped job inside a called workflow is not assumed to skip the calling
+  // job, so only the start of the call propagates a skip out of it.
+  const skipped = job.needs.some(
+    (need) =>
+      (!workflow.jobs[need].callEntry ||
+        workflow.jobs[need].callEntry === job.callEntry) &&
+      jobIsSkippedByNeeds(need, workflow, memo, visiting),
   );
   visiting.delete(jobId);
   memo.set(jobId, skipped);
@@ -82,6 +96,7 @@ export function analyzeRules(
       operation: op.id,
       reference: op.identity.reference,
       path: op.identity.trace,
+      ...(op.call ? { location: op.location, call: op.call } : {}),
     }));
   for (const deploy of operations.filter(
     (op) => op.kind === 'deploy' && !operationIsUnreachable(op, workflow, reachability),
@@ -107,6 +122,7 @@ export function analyzeRules(
         confidence: high ? 'high' : 'medium',
         location: deploy.location,
         evidence: evidence([...ops, deploy]),
+        ...(deploy.call ? { call: deploy.call } : {}),
       } as Finding);
     if (deploy.identity.kind === 'mutable')
       add(
@@ -127,7 +143,41 @@ export function analyzeRules(
       const candidates = operations.filter(
         (op) => op.kind === kind && precedes(op, deploy, workflow),
       );
+      // Why an operation inside a reusable workflow call does not gate a
+      // deployment outside that call, when the call itself is the reason.
+      const callGate = (op: Operation): string | undefined => {
+        const entry = workflow.jobs[op.location.job].callEntry;
+        if (!entry || workflow.jobs[deploy.location.job].callEntry === entry)
+          return undefined;
+        const operationJob = workflow.jobs[op.location.job];
+        if (
+          operationJob['continue-on-error'] ||
+          operationJob.steps[op.location.step]?.['continue-on-error']
+        )
+          return `continue-on-error inside the reusable workflow lets the call succeed when this ${kind} fails.`;
+        if (workflow.jobs[entry].strategy !== undefined)
+          return `The reusable workflow is called with a strategy; this ${kind} is a template, not proof for each instance.`;
+        // Whether a skipped callee job fails the calling job is not documented,
+        // so a conditional job is not treated as a gate for the caller.
+        const seen = new Set<string>();
+        const conditional = (id: string): string | undefined => {
+          const job = workflow.jobs[id];
+          if (job.callEntry !== entry || seen.has(id)) return undefined;
+          seen.add(id);
+          if (!explicitSuccess(job.if)) return id;
+          for (const need of job.needs) {
+            const found = conditional(need);
+            if (found) return found;
+          }
+        };
+        const skipped = conditional(op.location.job);
+        if (skipped)
+          return `Callee job ${skipped} is conditional; when it is skipped the reusable workflow call can still succeed, so this ${kind} is not a proven gate.`;
+        if (operationJob.strategy !== undefined)
+          return `The callee job has a strategy; this ${kind} is a template, not proof for each instance.`;
+      };
       const guaranteed = (op: Operation): boolean => {
+        if (callGate(op)) return false;
         const safeCondition = (condition: unknown) =>
           condition === undefined ||
           explicitSuccess(condition) ||
@@ -140,21 +190,23 @@ export function analyzeRules(
         const deploymentStep = deploymentJob.steps[deploy.location.step];
         if (!safeCondition(deploymentJob.if) || !safeCondition(deploymentStep?.if))
           return false;
+        // The result for a job is the same on every path that reaches it.
+        const visited = new Map<string, boolean>();
         const visit = (id: string): boolean => {
+          const known = visited.get(id);
+          if (known !== undefined) return known;
           const job = workflow.jobs[id];
-          if (id === op.location.job)
-            return (
-              safeCondition(job.if) &&
-              operationStepConditionIsSafe(operationStep?.if) &&
-              (!op.guarded || op.guardedByJobCondition === true)
-            );
-          if (
-            job.strategy !== undefined ||
-            job['continue-on-error'] ||
-            !safeCondition(job.if)
-          )
-            return false;
-          return job.needs.some(visit);
+          const result =
+            id === op.location.job
+              ? safeCondition(job.if) &&
+                operationStepConditionIsSafe(operationStep?.if) &&
+                (!op.guarded || op.guardedByJobCondition === true)
+              : job.strategy === undefined &&
+                !job['continue-on-error'] &&
+                safeCondition(job.if) &&
+                job.needs.some(visit);
+          visited.set(id, result);
+          return result;
         };
         return visit(deploy.location.job);
       };
@@ -173,6 +225,7 @@ export function analyzeRules(
             file: same.location.file,
             line: same.location.line,
             reason: same.runtimeIdentityUnknown,
+            ...(same.call ? { call: same.call } : {}),
           };
         continue;
       }
@@ -184,7 +237,10 @@ export function analyzeRules(
         checkReasons[kind] = {
           file: possibleSame.location.file,
           line: possibleSame.location.line,
-          reason: `A preceding ${kind} consumer references the deployed artifact, but its condition is not proven to run.`,
+          reason:
+            callGate(possibleSame) ??
+            `A preceding ${kind} consumer references the deployed artifact, but its condition is not proven to run.`,
+          ...(possibleSame.call ? { call: possibleSame.call } : {}),
         };
         continue;
       }
@@ -199,6 +255,7 @@ export function analyzeRules(
           file: unresolved.location.file,
           line: unresolved.location.line,
           reason: `A preceding ${kind} consumer has unresolved artifact identity.`,
+          ...(unresolved.call ? { call: unresolved.call } : {}),
         };
         continue;
       }
@@ -229,16 +286,34 @@ export function analyzeRules(
             op.identity.key !== deploy.identity.key &&
             (!op.identity.concrete || !deploy.identity.concrete),
         );
-        checkReasons[kind] = {
-          file: deploy.location.file,
-          line: deploy.location.line,
-          reason:
-            deploy.identity.kind !== 'immutable'
-              ? 'Deployment identity is unresolved or mutable; equality cannot be proven.'
-              : symbolic
-                ? 'Independent symbolic digests have no proven equality or inequality.'
-                : `No preceding supported ${kind} consumer proves identity and successful execution for this deployment.`,
-        };
+        // A consumer of the deployed artifact behind a call boundary that the
+        // deployment does not wait for qualifies nothing.
+        const unordered = operations.find(
+          (op) =>
+            op.kind === kind &&
+            sameIdentity(op) &&
+            op.call?.id !== deploy.call?.id &&
+            !precedes(op, deploy, workflow),
+        );
+        const callSite = unordered?.call ?? deploy.call;
+        checkReasons[kind] = unordered
+          ? {
+              file: unordered.location.file,
+              line: unordered.location.line,
+              reason: `The deployed artifact has a ${kind} consumer across reusable workflow call ${callSite?.job}, but the deployment does not depend on its completion.`,
+              ...(unordered.call ? { call: unordered.call } : {}),
+            }
+          : {
+              file: deploy.location.file,
+              line: deploy.location.line,
+              reason:
+                deploy.identity.kind !== 'immutable'
+                  ? 'Deployment identity is unresolved or mutable; equality cannot be proven.'
+                  : symbolic
+                    ? 'Independent symbolic digests have no proven equality or inequality.'
+                    : `No preceding supported ${kind} consumer proves identity and successful execution for this deployment.`,
+              ...(deploy.call ? { call: deploy.call } : {}),
+            };
       }
     }
     const sourceTests = operations.filter(

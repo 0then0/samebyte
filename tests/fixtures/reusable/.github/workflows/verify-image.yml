@@ -1,0 +1,31 @@
+name: Verify image
+on:
+  workflow_call:
+    inputs:
+      image:
+        type: string
+        required: true
+      digest:
+        type: string
+        required: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ${{ inputs.image }}@${{ inputs.digest }}
+    steps:
+      - run: docker run --rm "$IMAGE" npm test
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ inputs.image }}@${{ inputs.digest }}
+  attest:
+    needs: [test, scan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ inputs.image }}
+          subject-digest: ${{ inputs.digest }}

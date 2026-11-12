@@ -5,6 +5,43 @@ available from [GitHub Releases](https://github.com/0then0/samebyte/releases).
 
 ## Unreleased
 
+### Added
+
+- Artifact identity is traced through one level of local reusable workflows
+  (`uses: ./.github/workflows/<file>`). Caller values reach the callee through
+  typed `workflow_call` inputs with `required` and `default`, and callee digests
+  return through `on.workflow_call.outputs` to the caller's `needs`. Callee
+  tests, scans, attestations, builds, and deployments join the caller's graph.
+- Each call is analyzed in its own context: two calls of one callee, or equal
+  job and step ids in different files, never share identity. Caller workflow
+  `env` is not carried into the callee.
+- Execution gates cross the call. A callee check qualifies a caller deployment
+  only when the deployment depends on the call and the check cannot be skipped
+  or ignored; otherwise the check stays `unknown` with the specific reason.
+- Coverage reasons `reusable-workflow-not-found`, `reusable-workflow-path`,
+  `reusable-workflow-invalid`, `reusable-workflow-contract`,
+  `reusable-workflow-secrets`, and `nested-reusable-workflow-call`.
+- JSON `calls` array and `call` context on operations, coverage notices,
+  evidence, and deployment check reasons; text, `explain`, and `graph` list
+  expanded calls; SARIF results carry `relatedLocations` for the other file.
+- A falcosecurity/falcoctl caller/callee pair in the real-world examples.
+
+### Changed
+
+- An expanded local call no longer has a `reusable-workflow-call` notice;
+  unsupported constructs inside the callee are reported individually. Remote
+  calls, nested calls, matrix calls, and workflows outside `.github/workflows`
+  keep their boundaries.
+- In a directory run, a workflow triggered only by `workflow_call` is reported
+  through its callers instead of as a separate entry point when a caller
+  expands it.
+- The README and analysis reference are reorganized for first-time readers, and
+  the project icon is redrawn for small sizes.
+- The real-world examples keep one set of saved reports in
+  `docs/evidence/reports/`; the `0.1.0` comparison reports are removed.
+- The JSON report keeps `version: 1`; `calls` is always present and is empty for
+  workflows without reusable calls.
+
 ## [0.1.2] - 2026-10-30
 
 ### Fixed

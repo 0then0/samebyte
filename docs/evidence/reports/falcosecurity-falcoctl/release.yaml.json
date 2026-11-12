@@ -1,0 +1,549 @@
+{
+  "command": "node dist/cli.js docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml"
+    ],
+    "operations": [
+      {
+        "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image > docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml#docker-image.build-and-push:0",
+        "kind": "build",
+        "identity": {
+          "reference": "__samebyte_digest_0c068a2e8aee5458_1__",
+          "trace": [
+            "docker-image / docker-image.build-and-push: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "docker-image / docker-image step 8: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+        "order": 0,
+        "guardedByJobCondition": false,
+        "guarded": false,
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 79,
+          "job": "docker-image / docker-image",
+          "step": 7
+        },
+        "call": {
+          "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image",
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image",
+          "workflow": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "calleeJob": "docker-image"
+        }
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#artifact-1",
+        "identity": {
+          "reference": "__samebyte_digest_0c068a2e8aee5458_1__",
+          "trace": [
+            "docker-image / docker-image.build-and-push: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "docker-image / docker-image step 8: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [
+          "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image > docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml#docker-image.build-and-push:0"
+        ],
+        "consumers": []
+      }
+    ],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": [],
+    "coverage": [
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 16,
+          "job": "goreleaser",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "uninterpreted-command",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 21,
+          "job": "goreleaser",
+          "step": 1
+        },
+        "message": "This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.",
+        "target": "git"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 24,
+          "job": "goreleaser",
+          "step": 2
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 30,
+          "job": "goreleaser",
+          "step": 3
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 40,
+          "job": "goreleaser",
+          "step": 4
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "reusable-workflow-call",
+        "type": "reusable-workflow",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 56,
+          "job": "provenance-for-binaries"
+        },
+        "target": "slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0",
+        "message": "Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 66,
+          "job": "verification",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "slsa-framework/slsa-verifier/actions/installer@v2.7.1"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 69,
+          "job": "verification",
+          "step": 1
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 79,
+          "job": "verification",
+          "step": 2
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 102,
+          "job": "docker-configure",
+          "step": 0
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      },
+      {
+        "reason": "reusable-workflow-secrets",
+        "type": "reusable-workflow",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image"
+        },
+        "target": "./.github/workflows/docker-image.yaml",
+        "message": "Secrets passed to the reusable workflow are not resolved. Values derived from secrets inside the callee stay unknown."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 35,
+          "job": "docker-image / docker-image",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+        "call": {
+          "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image",
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image",
+          "workflow": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "calleeJob": "docker-image"
+        }
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 40,
+          "job": "docker-image / docker-image",
+          "step": 1
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1",
+        "call": {
+          "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image",
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image",
+          "workflow": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "calleeJob": "docker-image"
+        }
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 43,
+          "job": "docker-image / docker-image",
+          "step": 2
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069",
+        "call": {
+          "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image",
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image",
+          "workflow": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "calleeJob": "docker-image"
+        }
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 47,
+          "job": "docker-image / docker-image",
+          "step": 3
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6",
+        "call": {
+          "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image",
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image",
+          "workflow": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "calleeJob": "docker-image"
+        }
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 53,
+          "job": "docker-image / docker-image",
+          "step": 4
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd",
+        "call": {
+          "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image",
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image",
+          "workflow": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "calleeJob": "docker-image"
+        }
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 59,
+          "job": "docker-image / docker-image",
+          "step": 5
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd",
+        "call": {
+          "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image",
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image",
+          "workflow": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "calleeJob": "docker-image"
+        }
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 65,
+          "job": "docker-image / docker-image",
+          "step": 6
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302",
+        "call": {
+          "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image",
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image",
+          "workflow": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "calleeJob": "docker-image"
+        }
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 94,
+          "job": "docker-image / docker-image",
+          "step": 8
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6",
+        "call": {
+          "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image",
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image",
+          "workflow": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "calleeJob": "docker-image"
+        }
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 98,
+          "job": "docker-image / docker-image",
+          "step": 9
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.",
+        "call": {
+          "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image",
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image",
+          "workflow": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "calleeJob": "docker-image"
+        }
+      },
+      {
+        "reason": "reusable-workflow-call",
+        "type": "reusable-workflow",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 129,
+          "job": "provenance-for-images-docker"
+        },
+        "target": "slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0",
+        "message": "Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call."
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 146,
+          "job": "login-to-amazon-ecr",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 152,
+          "job": "login-to-amazon-ecr",
+          "step": 1
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd"
+      },
+      {
+        "reason": "reusable-workflow-call",
+        "type": "reusable-workflow",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 169,
+          "job": "provenance-for-images-aws-ecr"
+        },
+        "target": "slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0",
+        "message": "Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call."
+      }
+    ],
+    "calls": [
+      {
+        "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#provenance-for-binaries",
+        "caller": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 56,
+          "job": "provenance-for-binaries"
+        },
+        "target": "slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0",
+        "status": "boundary",
+        "reason": "reusable-workflow-call"
+      },
+      {
+        "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#docker-image",
+        "caller": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 111,
+          "job": "docker-image"
+        },
+        "target": "./.github/workflows/docker-image.yaml",
+        "workflow": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+        "status": "expanded",
+        "inputs": {
+          "release": {
+            "state": "unknown",
+            "value": "__samebyte_unknown__",
+            "source": "with",
+            "line": 7,
+            "path": [
+              "Complex shell output",
+              "steps.vars.outputs.release",
+              "steps.vars.outputs.release",
+              "release",
+              "needs.docker-configure.outputs.release",
+              "needs.docker-configure.outputs.release",
+              ".github/workflows/release.yaml:118 job docker-image: with.release",
+              "call docker-image -> .github/workflows/docker-image.yaml:7 workflow_call input release"
+            ]
+          },
+          "commit": {
+            "state": "unknown",
+            "value": "__samebyte_unknown__",
+            "source": "with",
+            "line": 10,
+            "path": [
+              "Complex shell output",
+              "steps.vars.outputs.commit",
+              "steps.vars.outputs.commit",
+              "commit",
+              "needs.docker-configure.outputs.commit",
+              "needs.docker-configure.outputs.commit",
+              ".github/workflows/release.yaml:119 job docker-image: with.commit",
+              "call docker-image -> .github/workflows/docker-image.yaml:10 workflow_call input commit"
+            ]
+          },
+          "build_date": {
+            "state": "unknown",
+            "value": "__samebyte_unknown__",
+            "source": "with",
+            "line": 13,
+            "path": [
+              "Complex shell output",
+              "steps.vars.outputs.build_date",
+              "steps.vars.outputs.build_date",
+              "build_date",
+              "needs.docker-configure.outputs.build_date",
+              "needs.docker-configure.outputs.build_date",
+              ".github/workflows/release.yaml:120 job docker-image: with.build_date",
+              "call docker-image -> .github/workflows/docker-image.yaml:13 workflow_call input build_date"
+            ]
+          },
+          "sign": {
+            "state": "resolved",
+            "value": "true",
+            "source": "with",
+            "line": 16,
+            "path": [
+              ".github/workflows/release.yaml:121 job docker-image: with.sign",
+              "call docker-image -> .github/workflows/docker-image.yaml:16 workflow_call input sign"
+            ]
+          }
+        },
+        "outputs": {
+          "digest": {
+            "state": "unknown",
+            "value": "__samebyte_unknown__",
+            "line": 21,
+            "path": [
+              "docker-image / docker-image.build-and-push: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+              "multi-platform child manifest identity is not tracked",
+              "OCI digest output",
+              "steps.build-and-push.outputs.digest",
+              "steps.build-and-push.outputs.digest",
+              "digest",
+              "jobs.docker-image.outputs.digest",
+              "jobs.docker-image.outputs.digest",
+              ".github/workflows/docker-image.yaml:21 workflow_call output digest",
+              "call docker-image (.github/workflows/release.yaml:111) output digest"
+            ]
+          }
+        },
+        "jobs": [
+          "docker-image / docker-image"
+        ]
+      },
+      {
+        "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#provenance-for-images-docker",
+        "caller": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 129,
+          "job": "provenance-for-images-docker"
+        },
+        "target": "slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0",
+        "status": "boundary",
+        "reason": "reusable-workflow-call"
+      },
+      {
+        "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml#provenance-for-images-aws-ecr",
+        "caller": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml",
+          "line": 169,
+          "job": "provenance-for-images-aws-ecr"
+        },
+        "target": "slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0",
+        "status": "boundary",
+        "reason": "reusable-workflow-call"
+      }
+    ]
+  }
+}

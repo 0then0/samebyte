@@ -33,6 +33,15 @@ function access(expr: Expr): string | undefined {
     return parent ? `${parent}.${expr.index.literal.coerceString()}` : undefined;
   }
 }
+// A `prefix.*` entry explains why nothing below that prefix is known, for example
+// the outputs of a call that was not expanded. It never supplies a value.
+function wildcard(scope: Scope, path: string): Value | undefined {
+  const parts = path.split('.');
+  for (let length = parts.length - 1; length > 0; length--) {
+    const value = scope.get(`${parts.slice(0, length).join('.')}.*`);
+    if (value) return { ...value, unknown: true };
+  }
+}
 export function resolveValue(raw: unknown, scope: Scope): Value {
   const text = String(raw ?? '');
   let unknown = false;
@@ -44,6 +53,7 @@ export function resolveValue(raw: unknown, scope: Scope): Value {
         [
           'steps',
           'needs',
+          'jobs',
           'env',
           'github',
           'inputs',
@@ -61,7 +71,7 @@ export function resolveValue(raw: unknown, scope: Scope): Value {
         trace.push('github.sha (source revision, not an image digest)');
         return '__samebyte_github_sha__';
       }
-      const value = path && scope.get(path);
+      const value = path && (scope.get(path) ?? wildcard(scope, path));
       if (value) {
         trace.push(...value.trace, body.trim());
         unknown ||= value.unknown;

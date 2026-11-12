@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { LineCounter, parseDocument } from 'yaml';
-import type { Job, Step, Workflow } from './model.js';
+import type { Job, Step, Workflow, WorkflowCallContract } from './model.js';
 
 const mapping = (value: unknown): value is Record<string, unknown> =>
   !!value && typeof value === 'object' && !Array.isArray(value);
@@ -21,11 +21,75 @@ export async function discover(input: string): Promise<string[]> {
     .map((entry) => join(directory, entry.name))
     .sort();
 }
+// Reads on.workflow_call without rejecting the workflow: a malformed contract only
+// matters when another workflow calls this one, and is reported at that call.
+function workflowCall(
+  on: unknown,
+  lineOf: (path: string[]) => number,
+): { call?: WorkflowCallContract; callOnly: boolean } {
+  const triggers =
+    typeof on === 'string'
+      ? [on]
+      : Array.isArray(on)
+        ? on.map(String)
+        : mapping(on)
+          ? Object.keys(on)
+          : [];
+  if (!triggers.includes('workflow_call')) return { callOnly: false };
+  const callOnly = triggers.length === 1;
+  const contract: WorkflowCallContract = { inputs: {}, outputs: {} };
+  const fail = (error: string) => ({ call: { ...contract, error }, callOnly });
+  const body = mapping(on) ? on.workflow_call : undefined;
+  if (body === undefined || body === null) return { call: contract, callOnly };
+  if (!mapping(body)) return fail('on.workflow_call must be a mapping');
+  for (const key of ['inputs', 'outputs'] as const)
+    if (body[key] !== undefined && body[key] !== null && !mapping(body[key]))
+      return fail(`on.workflow_call.${key} must be a mapping`);
+  const seen = new Set<string>();
+  for (const [name, input] of Object.entries(body.inputs ?? {})) {
+    // Context property names are case-insensitive, so ids must stay distinct.
+    if (seen.has(name.toLowerCase()))
+      return fail(`workflow_call input ${name} is declared more than once`);
+    seen.add(name.toLowerCase());
+    if (!mapping(input)) return fail(`workflow_call input ${name} must be a mapping`);
+    if (!['string', 'number', 'boolean'].includes(input.type as string))
+      return fail(`workflow_call input ${name} needs type string, number or boolean`);
+    if (input.required !== undefined && typeof input.required !== 'boolean')
+      return fail(`workflow_call input ${name}: required must be a boolean`);
+    if (
+      input.default !== undefined &&
+      (input.default === null || typeof input.default === 'object')
+    )
+      return fail(`workflow_call input ${name}: default must be a scalar`);
+    contract.inputs[name] = {
+      type: input.type as 'string' | 'number' | 'boolean',
+      required: input.required === true,
+      ...(input.default !== undefined ? { default: input.default } : {}),
+      line: lineOf(['on', 'workflow_call', 'inputs', name]),
+    };
+  }
+  seen.clear();
+  for (const [name, output] of Object.entries(body.outputs ?? {})) {
+    if (seen.has(name.toLowerCase()))
+      return fail(`workflow_call output ${name} is declared more than once`);
+    seen.add(name.toLowerCase());
+    if (!mapping(output) || typeof output.value !== 'string')
+      return fail(`workflow_call output ${name} needs a string value`);
+    contract.outputs[name] = {
+      value: output.value,
+      line: lineOf(['on', 'workflow_call', 'outputs', name]),
+    };
+  }
+  return { call: contract, callOnly };
+}
 export function parseWorkflow(source: string, file: string): Workflow {
   const lines = new LineCounter();
   const doc = parseDocument(source, { lineCounter: lines, uniqueKeys: true });
   if (doc.errors.length) throw new Error(doc.errors.map((e) => e.message).join('\n'));
   const raw = doc.toJS({ maxAliasCount: 100 });
+  const lineOf = (path: string[]) =>
+    lines.linePos((doc.getIn(path, true) as { range?: number[] })?.range?.[0] ?? 0)
+      .line;
   if (!mapping(raw) || !mapping(raw.jobs) || !Object.keys(raw.jobs).length)
     throw new Error('Workflow must contain a non-empty jobs mapping.');
   const validateMap = (value: unknown, label: string) => {
@@ -207,6 +271,16 @@ export function parseWorkflow(source: string, file: string): Workflow {
       steps,
       needs,
       line: lines.linePos(node?.range?.[0] ?? 0).line,
+      ...(value.uses && mapping(value.with)
+        ? {
+            withLines: Object.fromEntries(
+              Object.keys(value.with).map((key) => [
+                key,
+                lineOf(['jobs', id, 'with', key]),
+              ]),
+            ),
+          }
+        : {}),
     } as Job;
   }
   const visited = new Set<string>();
@@ -228,6 +302,7 @@ export function parseWorkflow(source: string, file: string): Workflow {
     jobs: ordered,
     defaults: raw.defaults as Workflow['defaults'],
     env: mapping(raw.env) ? raw.env : undefined,
+    ...workflowCall(raw.on, lineOf),
   };
 }
 export async function readWorkflow(file: string): Promise<Workflow> {

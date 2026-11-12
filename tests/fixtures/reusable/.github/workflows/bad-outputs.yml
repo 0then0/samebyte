@@ -1,0 +1,15 @@
+name: Deployments that read outputs the callee does not provide
+on: push
+jobs:
+  build:
+    uses: ./.github/workflows/bad-outputs-callee.yml
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/a api=ghcr.io/acme/api@${{ needs.build.outputs.digest }}
+      - run: kubectl set image deployment/b api=ghcr.io/acme/api@${{ needs.build.outputs.missing-job-digest }}
+      - run: kubectl set image deployment/c api=ghcr.io/acme/api@${{ needs.build.outputs.missing-output-digest }}
+      - run: kubectl set image deployment/d api=ghcr.io/acme/api@${{ needs.build.outputs.computed-digest }}
+      - run: kubectl set image deployment/e api=ghcr.io/acme/api@${{ needs.build.outputs.skipped-digest }}
+      - run: kubectl set image deployment/f api=ghcr.io/acme/api@${{ needs.build.outputs.image-digest }}

@@ -1,0 +1,24 @@
+name: Build, verify in a reusable workflow, deploy
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ghcr.io/acme/api:release
+  verify:
+    needs: build
+    uses: ./.github/workflows/verify-image.yml
+    with:
+      image: ghcr.io/acme/api
+      digest: ${{ needs.build.outputs.digest }}
+  deploy:
+    needs: [build, verify]
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/api api=ghcr.io/acme/api@${{ needs.build.outputs.digest }}

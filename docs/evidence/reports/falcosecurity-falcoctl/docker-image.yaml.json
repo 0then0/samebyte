@@ -1,0 +1,170 @@
+{
+  "command": "node dist/cli.js docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml --format json",
+  "exitCode": 0,
+  "report": {
+    "version": 1,
+    "workflows": [
+      "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml"
+    ],
+    "operations": [
+      {
+        "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml#docker-image.build-and-push:0",
+        "kind": "build",
+        "identity": {
+          "reference": "__samebyte_digest_e9a69756e032b52c_1__",
+          "trace": [
+            "docker-image.build-and-push: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "docker-image step 8: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "label": "docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+        "order": 0,
+        "guardedByJobCondition": false,
+        "guarded": false,
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 79,
+          "job": "docker-image",
+          "step": 7
+        }
+      }
+    ],
+    "artifacts": [
+      {
+        "id": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml#artifact-1",
+        "identity": {
+          "reference": "__samebyte_digest_e9a69756e032b52c_1__",
+          "trace": [
+            "docker-image.build-and-push: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc",
+            "multi-platform child manifest identity is not tracked",
+            "OCI digest output",
+            "docker-image step 8: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc"
+          ],
+          "concrete": false,
+          "kind": "unknown"
+        },
+        "producers": [
+          "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml#docker-image.build-and-push:0"
+        ],
+        "consumers": []
+      }
+    ],
+    "deployments": [],
+    "findings": [],
+    "diagnostics": [],
+    "coverage": [
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 35,
+          "job": "docker-image",
+          "step": 0
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 40,
+          "job": "docker-image",
+          "step": 1
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 43,
+          "job": "docker-image",
+          "step": 2
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 47,
+          "job": "docker-image",
+          "step": 3
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 53,
+          "job": "docker-image",
+          "step": 4
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 59,
+          "job": "docker-image",
+          "step": 5
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 65,
+          "job": "docker-image",
+          "step": 6
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302"
+      },
+      {
+        "reason": "unsupported-action-call",
+        "type": "action",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 94,
+          "job": "docker-image",
+          "step": 8
+        },
+        "message": "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+        "target": "sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6"
+      },
+      {
+        "reason": "unsupported-shell",
+        "type": "shell",
+        "location": {
+          "file": "docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml",
+          "line": 98,
+          "job": "docker-image",
+          "step": 9
+        },
+        "message": "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved."
+      }
+    ],
+    "calls": []
+  }
+}

@@ -40,7 +40,10 @@ explanation of why the existing tools are insufficient.
 
 Keep changes focused. Add a regression test for a meaningful behavior change;
 documentation-only changes do not require artificial tests. Tests use
-`node:test`, assertions, and CLI subprocesses. Avoid registry access, container
+`node:test`, assertions, and CLI subprocesses. Single-file workflow fixtures live
+in `tests/fixtures`; caller and callee fixtures for reusable workflows live in
+`tests/fixtures/reusable/.github/workflows`, because callees are located from a
+repository root. Avoid registry access, container
 execution, or running upstream workflow scripts in tests.
 
 ```bash
@@ -61,7 +64,8 @@ changes, run `npm run format`, then inspect the diff for unrelated edits.
 `.editorconfig` uses UTF-8, LF, and two-space indentation. Biome defines the
 TypeScript and JSON formatting rules. Git preserves the original bytes of
 checksum-pinned files under `docs/evidence/*/upstream/`; do not reformat them.
-Saved reports are generated with `docs/evidence/replay.mjs`. See the
+Saved reports in `docs/evidence/reports/` are generated with
+`docs/evidence/replay.mjs`; regenerate them after a change that alters report output. See the
 [workflow examples](docs/evidence/README.md) for reproduction commands. Never
 execute those upstream actions or scripts as part of regeneration.
 
@@ -71,6 +75,8 @@ For analyzer changes, preserve these invariants:
 - Source tests do not prove that an OCI artifact was tested.
 - Conditions, execution order, ignored failures, and platform selection matter.
 - An unsupported action or script is a coverage boundary, not a guessed operation.
+- Each reusable workflow call has its own scope; a callee check gates a caller
+  deployment only when it cannot be skipped or ignored.
 - Trusted annotations do not establish that a step has no additional behavior.
 - Exit codes remain `0` for no high-confidence findings, `1` for such findings,
   and `2` for analysis errors.
@@ -79,6 +85,7 @@ For analyzer changes, preserve these invariants:
 
 - `src/parser.ts`: discovery, YAML locations, structural checks, dependency ordering.
 - `src/expressions.ts`: GitHub expression AST, symbolic values, env propagation, OCI identities.
+- `src/reusable.ts`: repository root, local reusable workflow path checks and bounded loading.
 - `src/adapters.ts` and `src/shell.ts`: action interfaces, a restricted shell tokenizer, and shell resolution.
 - `src/analyzer.ts` and `src/model.ts`: transfer of values and artifact/operation graph.
 - `src/rules.ts`: identity relationships, check ordering, and findings.

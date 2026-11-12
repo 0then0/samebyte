@@ -1,8 +1,34 @@
 import { relative } from 'node:path';
-import type { CoverageNotice, Report } from './model.js';
+import type { Call, CallSite, CoverageNotice, Report } from './model.js';
 
+// Locations inside a called workflow also name the call site in the caller.
+const calledFrom = (call?: CallSite): string =>
+  call ? `, called from ${call.file}:${call.line} (${call.job})` : '';
 const coverageText = (notice: CoverageNotice): string =>
-  `COVERAGE ${notice.reason} (${notice.location.file}:${notice.location.line}, ${notice.location.job})${notice.target ? `: ${notice.target}` : ''}\n  ${notice.message}`;
+  `COVERAGE ${notice.reason} (${notice.location.file}:${notice.location.line}, ${notice.location.job}${calledFrom(notice.call)})${notice.target ? `: ${notice.target}` : ''}\n  ${notice.message}`;
+const callText = (call: Call, explain: boolean): string[] => {
+  const values = (label: string, entries: Call['inputs']) =>
+    Object.entries(entries ?? {}).flatMap(([name, entry]) => [
+      `  ${label} ${name} = ${entry.value}${entry.state === 'unknown' ? ' [unknown]' : ''}${entry.source && entry.source !== 'with' ? ` (${entry.source})` : ''}`,
+      ...(explain ? entry.path.map((part) => `    -> ${part}`) : []),
+    ]);
+  return [
+    `CALL ${call.caller.job} (${call.caller.file}:${call.caller.line}${calledFrom(call.call)}) -> ${call.workflow ?? call.target} [expanded]`,
+    ...values('input', call.inputs),
+    ...values('output', call.outputs),
+  ];
+};
+// Calls that were not expanded are already listed as coverage boundaries.
+const callsText = (report: Report, explain: boolean): string[] => {
+  const expanded = report.calls.filter((call) => call.status === 'expanded');
+  return expanded.length
+    ? [
+        'Reusable workflow calls:',
+        ...expanded.flatMap((call) => callText(call, explain)),
+        '',
+      ]
+    : [];
+};
 export function textReport(report: Report, explain = false): string {
   const lines: string[] = [];
   for (const diagnostic of report.diagnostics)
@@ -13,14 +39,19 @@ export function textReport(report: Report, explain = false): string {
       ...report.coverage.map(coverageText),
       '',
     );
+  lines.push(...callsText(report, explain));
   for (const finding of report.findings) {
     lines.push(
       `${finding.ruleId} ${finding.severity.toUpperCase()} [${finding.state}]`,
       finding.message,
-      `  ${finding.location.file}:${finding.location.line} (${finding.location.job})`,
+      `  ${finding.location.file}:${finding.location.line} (${finding.location.job})${calledFrom(finding.call)}`,
     );
     for (const evidence of finding.evidence) {
       lines.push(`  ${evidence.reference}`);
+      if (evidence.location)
+        lines.push(
+          `    in ${evidence.location.file}:${evidence.location.line} (${evidence.location.job})${calledFrom(evidence.call)}`,
+        );
       if (explain) lines.push(...evidence.path.map((part) => `    -> ${part}`));
     }
     lines.push('');
@@ -32,7 +63,7 @@ export function textReport(report: Report, explain = false): string {
     )
       continue;
     lines.push(
-      `Unknown ${operation.kind} identity (${operation.location.file}:${operation.location.line}, ${operation.location.job}): ${operation.identity.reference}`,
+      `Unknown ${operation.kind} identity (${operation.location.file}:${operation.location.line}, ${operation.location.job}${calledFrom(operation.call)}): ${operation.identity.reference}`,
       ...[
         ...new Set([
           ...operation.identity.trace,
@@ -59,7 +90,7 @@ export function textReport(report: Report, explain = false): string {
         const reason = deployment.checkReasons?.[kind];
         if (reason)
           lines.push(
-            `  ${kind} identity unknown (${reason.file}:${reason.line}): ${reason.reason}`,
+            `  ${kind} identity unknown (${reason.file}:${reason.line}${calledFrom(reason.call)}): ${reason.reason}`,
           );
       }
     }
@@ -97,7 +128,48 @@ export function graphReport(report: Report): string {
       ].join('\n'),
     )
     .join('\n\n');
-  return [artifacts, ...report.coverage.map(coverageText)].filter(Boolean).join('\n\n');
+  return [
+    artifacts,
+    callsText(report, false).slice(0, -1).join('\n'),
+    ...report.coverage.map(coverageText),
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+const sarifLocation = (file: string, line: number) => ({
+  physicalLocation: {
+    artifactLocation: {
+      uri: relative(process.cwd(), file).split('/').map(encodeURIComponent).join('/'),
+      uriBaseId: '%SRCROOT%',
+    },
+    region: { startLine: line },
+  },
+});
+// Evidence in a called workflow and the call site that reached it. The primary
+// location stays the place of the problem itself.
+function relatedLocations(finding: Report['findings'][number]) {
+  const related: { file: string; line: number; text: string }[] = [];
+  const add = (file: string, line: number, text: string) => {
+    if (!related.some((item) => item.file === file && item.line === line))
+      related.push({ file, line, text });
+  };
+  const site = (call: CallSite) =>
+    add(call.file, call.line, `Reusable workflow call ${call.job}`);
+  if (finding.call) site(finding.call);
+  for (const evidence of finding.evidence) {
+    if (!evidence.location) continue;
+    add(
+      evidence.location.file,
+      evidence.location.line,
+      `Evidence in called workflow (${evidence.location.job}): ${evidence.reference}`,
+    );
+    if (evidence.call) site(evidence.call);
+  }
+  return related.map((item, id) => ({
+    id,
+    ...sarifLocation(item.file, item.line),
+    message: { text: item.text },
+  }));
 }
 export function sarifReport(report: Report): unknown {
   return {
@@ -127,20 +199,16 @@ export function sarifReport(report: Report): unknown {
                 descriptor: { id: notice.reason },
                 message: { text: coverageText(notice) },
                 locations: [
-                  {
-                    physicalLocation: {
-                      artifactLocation: {
-                        uri: relative(process.cwd(), notice.location.file)
-                          .split('/')
-                          .map(encodeURIComponent)
-                          .join('/'),
-                        uriBaseId: '%SRCROOT%',
-                      },
-                      region: { startLine: notice.location.line },
-                    },
-                  },
+                  sarifLocation(notice.location.file, notice.location.line),
+                  ...(notice.call
+                    ? [sarifLocation(notice.call.file, notice.call.line)]
+                    : []),
                 ],
-                properties: { type: notice.type, target: notice.target },
+                properties: {
+                  type: notice.type,
+                  target: notice.target,
+                  ...(notice.call ? { call: notice.call } : {}),
+                },
               })),
             ],
           },
@@ -149,24 +217,15 @@ export function sarifReport(report: Report): unknown {
           ruleId: finding.ruleId,
           level: finding.severity === 'high' ? 'error' : 'warning',
           message: { text: finding.message },
-          locations: [
-            {
-              physicalLocation: {
-                artifactLocation: {
-                  uri: relative(process.cwd(), finding.location.file)
-                    .split('/')
-                    .map(encodeURIComponent)
-                    .join('/'),
-                  uriBaseId: '%SRCROOT%',
-                },
-                region: { startLine: finding.location.line },
-              },
-            },
-          ],
+          locations: [sarifLocation(finding.location.file, finding.location.line)],
+          ...(relatedLocations(finding).length
+            ? { relatedLocations: relatedLocations(finding) }
+            : {}),
           properties: {
             confidence: finding.confidence,
             state: finding.state,
             evidence: finding.evidence,
+            ...(finding.call ? { call: finding.call } : {}),
           },
         })),
       },

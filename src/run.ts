@@ -6,9 +6,10 @@ import {
   mergeReports,
   validateConfig,
 } from './analyzer.js';
-import type { Report } from './model.js';
+import type { Report, Workflow } from './model.js';
 import { graphReport, sarifReport, textReport } from './output.js';
 import { discover, readWorkflow } from './parser.js';
+import { type Callee, resolveCalls } from './reusable.js';
 
 export const formats = ['text', 'json', 'sarif'] as const;
 export type Format = (typeof formats)[number];
@@ -40,15 +41,48 @@ export async function analyze(input: string, configFile?: string): Promise<Repor
   const files = await discover(input);
   if (!files.length)
     diagnostics.push({ file: resolve(input), message: 'No YAML workflows found.' });
+  const failed = (file: string, error: unknown) =>
+    diagnostics.push({
+      file,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  const workflows: Workflow[] = [];
   for (const file of files) {
     try {
-      reports.push(analyzeWorkflow(await readWorkflow(file), config));
+      workflows.push(await readWorkflow(file));
     } catch (error) {
-      diagnostics.push({
-        file,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      failed(file, error);
     }
+  }
+  const callees = new Map<string, Promise<Callee>>();
+  const analyzed = new Map<Workflow, Report>();
+  const run = async (workflow: Workflow) => {
+    try {
+      analyzed.set(
+        workflow,
+        analyzeWorkflow(workflow, config, await resolveCalls(workflow, callees)),
+      );
+    } catch (error) {
+      failed(workflow.file, error);
+    }
+  };
+  // Entry points first. A workflow whose only trigger is workflow_call has no
+  // inputs of its own: once a caller in this run expanded it, its operations are
+  // reported per invocation and a second, input-less copy would only add noise.
+  // It is still analyzed alone when nothing expanded it or when it is the only input.
+  const reusableOnly = (workflow: Workflow) => files.length > 1 && !!workflow.callOnly;
+  for (const workflow of workflows) if (!reusableOnly(workflow)) await run(workflow);
+  const expanded = new Set(
+    [...analyzed.values()].flatMap((report) =>
+      report.calls.map((call) => call.workflow),
+    ),
+  );
+  for (const workflow of workflows)
+    if (reusableOnly(workflow) && !expanded.has(workflow.file)) await run(workflow);
+  // Reports keep the order of the discovered files.
+  for (const workflow of workflows) {
+    const result = analyzed.get(workflow);
+    if (result) reports.push(result);
   }
   const report = mergeReports(reports);
   report.diagnostics.push(...diagnostics);

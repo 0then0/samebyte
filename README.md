@@ -11,7 +11,11 @@
 
 **Test the same bytes you deploy.**
 
-SameByte is a local, open-source CLI that traces OCI artifact identity through GitHub Actions workflows. A green workflow does not necessarily test the image it deploys:
+SameByte is a command-line tool and GitHub Action that reads your GitHub Actions workflows and checks whether the container image you deploy is the same image you tested, scanned, and attested. It works on the workflow files alone: nothing is built, pulled, or executed.
+
+## The problem
+
+A green pipeline does not necessarily test the image it ships. A common shape is to test the source code and then build a separate image for production:
 
 ```text
 npm build → npm test
@@ -25,7 +29,7 @@ SB001 HIGH [mismatch]
 Production artifact was never tested. Source tests ran, but no recognized OCI test consumes the deployed digest.
 ```
 
-Build the image once, publish its digest, and pass that digest to every consumer:
+The fix is to build the image once and pass its digest to every later step:
 
 ```text
 build → OCI digest
@@ -44,18 +48,18 @@ Deployment: ghcr.io/acme/api@<symbolic build digest> [proven]
 Detected deployment lineage is proven. Pipeline coverage is incomplete.
 ```
 
-The output above abbreviates the symbolic digest and omits the coverage notice for the opaque `actions/checkout` call. SameByte does not run a build or fetch its real digest. It proves that supported consumers reference the same output. Complete examples are in the repository’s [workflow fixtures](https://github.com/0then0/samebyte/tree/main/tests/fixtures).
+Both examples show only the relevant lines of the report, and the second shortens the digest. SameByte does not know the real digest. It gives the output of each build step a symbolic identity and proves that the later steps reference that same output. Both workflows are in [`tests/fixtures`](https://github.com/0then0/samebyte/tree/main/tests/fixtures).
 
-## Install a release
+## Install
 
-SameByte requires Node.js 22 or later. Each stable `vX.Y.Z` tag creates a GitHub Release with a versioned npm package tarball and SHA-256 checksums. The package tarball installs through npm without a registry account:
+SameByte requires Node.js 22 or later. It is distributed as an npm package attached to each [GitHub Release](https://github.com/0then0/samebyte/releases); it is not published to the npm registry.
 
 ```bash
 npm install --global https://github.com/0then0/samebyte/releases/download/v0.1.2/samebyte-0.1.2.tgz
-samebyte .
+samebyte --version
 ```
 
-Replace `0.1.2` in both places with the release version you want. To verify a downloaded asset before installing it:
+Replace `0.1.2` in both places with the release you want. To verify the download before installing it:
 
 ```bash
 curl -fLO https://github.com/0then0/samebyte/releases/download/v0.1.2/samebyte-0.1.2.tgz
@@ -66,34 +70,87 @@ npm install --global ./samebyte-0.1.2.tgz
 
 On macOS, use `shasum -a 256 --check SHA256SUMS` instead of `sha256sum --check`.
 
-## Usage
+## Run it
+
+From the root of a repository:
 
 ```bash
 samebyte .
-samebyte .github/workflows
-samebyte .github/workflows/release.yml
-samebyte check . --format text
-samebyte explain .
-samebyte graph .
-samebyte . --format json
-samebyte . --format sarif > samebyte.sarif
-samebyte . --format sarif --output reports/samebyte.sarif
-samebyte . --config samebyte.config.json
 ```
 
-A repository path scans `.github/workflows/*.yml` and `*.yaml`. A directory path scans its immediate YAML files. Files are analyzed independently: identity is not joined across workflow runs.
+This analyzes every `*.yml` and `*.yaml` file in `.github/workflows`. You can also pass a workflow directory or a single file:
 
-Text and `explain` show deployments, unknown identity reasons (including untracked OCI platform selection), and unsupported coverage boundaries. `explain` also prints finding evidence paths. `graph` shows artifacts, producers, consumers, and a separate list of coverage boundaries. `--format json` exposes operations, findings, diagnostics, deployment checks, and the structured `coverage` array. `--format sarif` emits SARIF 2.1.0 findings with workflow locations and evidence; coverage boundaries are invocation notifications at `note` level, not violation results.
+```bash
+samebyte .github/workflows
+samebyte .github/workflows/release.yml
+```
+
+Other commands and options:
+
+```bash
+samebyte explain .                                # same report as the default check command
+samebyte graph .                                  # artifacts with their producers and consumers
+samebyte . --format json                          # machine-readable report
+samebyte . --format sarif --output samebyte.sarif # SARIF 2.1.0 file for Code Scanning
+samebyte . --config samebyte.config.json          # annotations for custom steps
+```
+
+## Read the result
+
+Each detected deployment gets a state and three checks: `test`, `scan`, and `attest`.
+
+- `proven`: a recognized step used the deployed digest and must succeed before the deployment runs.
+- `mismatch`: the evidence shows a different artifact. This produces a finding.
+- `unknown`: SameByte could not establish the relationship. The report says where the identity was lost or why a check does not gate the deployment. A missing check is `unknown`, not a violation.
+
+The report also contains:
+
+- **Findings** `SB001`–`SB006`, such as an untested production image or a mutable deployment tag. Each has a workflow location and the evidence path. See the [findings reference](https://github.com/0then0/samebyte/blob/main/docs/analysis.md#findings).
+- **Coverage notices** for steps SameByte does not interpret, such as an unsupported action, a complex shell script, or a matrix job. Operations may be hidden behind them. They never change the exit code.
+- **Reusable workflow calls** that were followed into a local callee, with the resolved inputs and outputs.
+
+`Artifact lineage verified within the supported analysis scope` appears only when every detected deployment has proven test, scan, and attestation identity and there are no findings, errors, or coverage notices. With coverage notices the summary is `Detected deployment lineage is proven. Pipeline coverage is incomplete.` A run with no recognized deployment says so and never counts as verified.
 
 Exit codes:
 
-- `0`: analysis completed without high-confidence findings. This can include unknown lineage or no supported deployments.
+- `0`: analysis completed without high-confidence findings. This can include unknown lineage or no recognized deployments, so it is not proof of a complete pipeline.
 - `1`: at least one high-confidence finding, including a mutable deployment reference.
 - `2`: an input, configuration, YAML, dependency-graph, or analysis error. Errors take precedence over findings.
 
-`--output <file>` writes the report in the selected format to a file instead of stdout; stdout stays empty and errors go to stderr. A relative path resolves against the working directory and missing parent directories are created. The file appears atomically and only when analysis completed (exit `0` or `1`). After an analysis error (`2`) or a failed write no report file is created, because a partial report would look like a complete one to consumers such as Code Scanning. A write failure exits `2` even when there are also findings. A file that already exists at that path is left untouched when no new report is written, so write each run's report to a fresh location, such as `${{ runner.temp }}` in the Action.
+## What it recognizes
 
-`Artifact lineage verified within the supported analysis scope` requires all detected deployments to have proven **test, scan, and attestation** identity, with no findings, errors, or recorded coverage boundaries. With boundaries present, proven deployments remain proven and the summary says `Detected deployment lineage is proven. Pipeline coverage is incomplete.` Missing checks remain `unknown`; their absence alone does not cause a violation. No supported deployments is reported explicitly and never counts as verified lineage. Exit code `0` describes analyzer completion, not a complete pipeline proof.
+- **Build:** `docker/build-push-action`, `docker build`, `docker buildx build`.
+- **Test:** `docker run`. `npm test`, `pnpm test`, and `yarn test` count as source tests, not image tests.
+- **Scan:** Trivy, Docker Scout, and Anchore actions; `trivy image`, `grype`, and `docker scout` commands.
+- **Attestation:** `actions/attest`, `actions/attest-build-provenance`, `gh attestation verify`.
+- **Deployment:** `kubectl set image`, `helm upgrade`, and `helm install`.
+
+Digests are followed through step outputs, job outputs, `needs`, `env`, and simple `echo "name=value" >> "$GITHUB_OUTPUT"` lines. A step SameByte does not recognize can be described with an [annotation](https://github.com/0then0/samebyte/blob/main/docs/analysis.md#unknown-boundaries-and-annotations). The exact inputs, flags, and conditions are listed in the [analysis reference](https://github.com/0then0/samebyte/blob/main/docs/analysis.md).
+
+### Reusable workflows
+
+A job that calls a local reusable workflow (`uses: ./.github/workflows/<file>`) is followed one level into that file. A digest passed through `with` keeps its identity inside the callee, and a digest built by the callee returns through its workflow outputs:
+
+```yaml
+jobs:
+  verify:
+    needs: build
+    uses: ./.github/workflows/verify-image.yml
+    with:
+      image: ghcr.io/acme/api
+      digest: ${{ needs.build.outputs.digest }}
+```
+
+Each call is analyzed separately, so two calls of the same workflow with different digests are never mixed up. A check inside the callee counts for a deployment in the caller only when that check cannot be skipped or ignored. Remote reusable workflows, nested calls, and matrix calls are reported as coverage notices. Details are in [local reusable workflows](https://github.com/0then0/samebyte/blob/main/docs/analysis.md#local-reusable-workflows).
+
+## Output formats
+
+- **Text** (default) and `explain` print findings with their evidence paths, unknown identities with reasons, deployments, and coverage notices.
+- **`graph`** lists each artifact with the steps that produce and consume it.
+- **`--format json`** contains operations, artifacts, deployments, findings, diagnostics, `coverage`, and `calls`. The [report format](https://github.com/0then0/samebyte/blob/main/docs/analysis.md#report-format) section describes the fields.
+- **`--format sarif`** emits SARIF 2.1.0. Findings are results with workflow locations; coverage notices are `note`-level notifications, not results.
+
+`--output <file>` writes the report to a file instead of stdout and creates missing parent directories. The file is written atomically and only when analysis completed (exit `0` or `1`). After an analysis error or a failed write no file is created, because a partial report would look complete to a consumer such as Code Scanning. A write failure exits `2`. An existing file at that path is left untouched when no new report is written, so give each run a fresh location.
 
 ## GitHub Action
 
@@ -106,18 +163,24 @@ Exit codes:
     output: ${{ runner.temp }}/samebyte.sarif
 ```
 
-A prebuilt `node24` action that does not install or change Node.js. With `output` it writes a report file that you can pass to `github/codeql-action/upload-sarif`. Inputs, outputs, the full upload workflow and failure behavior are in [docs/github-action.md](https://github.com/0then0/samebyte/blob/main/docs/github-action.md).
+The action is prebuilt and runs on the runner's own Node.js 24; it does not install or change Node.js for later steps. Inputs, outputs, a complete Code Scanning upload workflow, and failure behavior are described in the [GitHub Action guide](https://github.com/0then0/samebyte/blob/main/docs/github-action.md).
+
+## Limitations
+
+SameByte checks artifact identity and execution order in workflow files. It is deliberately conservative: when it cannot prove something, the result is `unknown`.
+
+- It does not run workflows, pull images, inspect registries, or verify signatures. A `proven` result describes the workflow graph, not what happened in a particular run.
+- It does not judge the quality of tests, scan policies, or Dockerfiles, and it does not replace SLSA, in-toto, or Sigstore.
+- Composite actions, remote and nested reusable workflows, matrix expansion, complex shell scripts, and arbitrary binaries are not interpreted. They appear as coverage notices.
+- Multi-platform builds are not resolved to a platform manifest, so their identity stays `unknown`.
+- Identity is not joined across separate workflow runs, and only GitHub Actions is supported.
 
 ## Documentation
 
-- [Analysis reference](https://github.com/0then0/samebyte/blob/main/docs/analysis.md): coverage boundaries, supported data flow, producers and consumers, findings (SB001–SB006), shell analysis and annotations.
-- [GitHub Action](https://github.com/0then0/samebyte/blob/main/docs/github-action.md): inputs, outputs and Code Scanning upload.
-- [Real-world workflow examples](https://github.com/0then0/samebyte/blob/main/docs/evidence/README.md): pinned upstream pipelines with saved reports and replay commands.
+- [Analysis reference](https://github.com/0then0/samebyte/blob/main/docs/analysis.md): recognized steps, data flow, reusable workflows, findings, shell rules, annotations, coverage notices, and the report format.
+- [GitHub Action](https://github.com/0then0/samebyte/blob/main/docs/github-action.md): inputs, outputs, and Code Scanning upload.
+- [Real-world workflow examples](https://github.com/0then0/samebyte/blob/main/docs/evidence/README.md): pinned public pipelines with saved reports and replay commands.
 - [Changelog](https://github.com/0then0/samebyte/blob/main/CHANGELOG.md): released changes.
-
-## Scope
-
-SameByte checks lineage and identity only. It does not replace SLSA, in-toto, or Sigstore; scan vulnerabilities; sign artifacts; assess Dockerfiles or test quality; run CI; or guarantee supply-chain security. Reusable workflows, arbitrary binaries, non-GitHub CI, and generic build-system analysis are outside this version.
 
 ## Community and support
 

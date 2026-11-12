@@ -1,0 +1,11 @@
+name: Reads env that only the caller defines
+on:
+  workflow_call:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: docker run --rm "$IMAGE" npm test
+      - uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ env.IMAGE }}

@@ -4037,10 +4037,10 @@ var require_resolve_block_map = __commonJS({
       let offset = bm.offset;
       let commentEnd = null;
       for (const collItem of bm.items) {
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep3, value } = collItem;
         const keyProps = resolveProps.resolveProps(start, {
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep3?.[0],
           offset,
           onError,
           parentIndent: bm.indent,
@@ -4054,7 +4054,7 @@ var require_resolve_block_map = __commonJS({
             else if ("indent" in key && key.indent !== bm.indent)
               onError(offset, "BAD_INDENT", startColMsg);
           }
-          if (!keyProps.anchor && !keyProps.tag && !sep) {
+          if (!keyProps.anchor && !keyProps.tag && !sep3) {
             commentEnd = keyProps.end;
             if (keyProps.comment) {
               if (map.comment)
@@ -4078,7 +4078,7 @@ var require_resolve_block_map = __commonJS({
         ctx.atKey = false;
         if (utilMapIncludes.mapIncludes(ctx, map.items, keyNode))
           onError(keyStart, "DUPLICATE_KEY", "Map keys must be unique");
-        const valueProps = resolveProps.resolveProps(sep ?? [], {
+        const valueProps = resolveProps.resolveProps(sep3 ?? [], {
           indicator: "map-value-ind",
           next: value,
           offset: keyNode.range[2],
@@ -4094,7 +4094,7 @@ var require_resolve_block_map = __commonJS({
             if (ctx.options.strict && keyProps.start < valueProps.found.offset - 1024)
               onError(keyNode.range, "KEY_OVER_1024_CHARS", "The : indicator must be at most 1024 chars after the start of an implicit block mapping key");
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep, null, valueProps, onError);
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : composeEmptyNode(ctx, offset, sep3, null, valueProps, onError);
           if (ctx.schema.compat)
             utilFlowIndentCheck.flowIndentCheck(bm.indent, value, onError);
           offset = valueNode.range[2];
@@ -4185,7 +4185,7 @@ var require_resolve_end = __commonJS({
       let comment = "";
       if (end) {
         let hasSpace = false;
-        let sep = "";
+        let sep3 = "";
         for (const token of end) {
           const { source, type } = token;
           switch (type) {
@@ -4199,13 +4199,13 @@ var require_resolve_end = __commonJS({
               if (!comment)
                 comment = cb;
               else
-                comment += sep + cb;
-              sep = "";
+                comment += sep3 + cb;
+              sep3 = "";
               break;
             }
             case "newline":
               if (comment)
-                sep += source;
+                sep3 += source;
               hasSpace = true;
               break;
             default:
@@ -4248,18 +4248,18 @@ var require_resolve_flow_collection = __commonJS({
       let offset = fc.offset + fc.start.source.length;
       for (let i = 0; i < fc.items.length; ++i) {
         const collItem = fc.items[i];
-        const { start, key, sep, value } = collItem;
+        const { start, key, sep: sep3, value } = collItem;
         const props = resolveProps.resolveProps(start, {
           flow: fcName,
           indicator: "explicit-key-ind",
-          next: key ?? sep?.[0],
+          next: key ?? sep3?.[0],
           offset,
           onError,
           parentIndent: fc.indent,
           startOnNewline: false
         });
         if (!props.found) {
-          if (!props.anchor && !props.tag && !sep && !value) {
+          if (!props.anchor && !props.tag && !sep3 && !value) {
             if (i === 0 && props.comma)
               onError(props.comma, "UNEXPECTED_TOKEN", `Unexpected , in ${fcName}`);
             else if (i < fc.items.length - 1)
@@ -4313,8 +4313,8 @@ var require_resolve_flow_collection = __commonJS({
             }
           }
         }
-        if (!isMap && !sep && !props.found) {
-          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep, null, props, onError);
+        if (!isMap && !sep3 && !props.found) {
+          const valueNode = value ? composeNode(ctx, value, props, onError) : composeEmptyNode(ctx, props.end, sep3, null, props, onError);
           coll.items.push(valueNode);
           offset = valueNode.range[2];
           if (isBlock(value))
@@ -4326,7 +4326,7 @@ var require_resolve_flow_collection = __commonJS({
           if (isBlock(key))
             onError(keyNode.range, "BLOCK_IN_FLOW", blockMsg);
           ctx.atKey = false;
-          const valueProps = resolveProps.resolveProps(sep ?? [], {
+          const valueProps = resolveProps.resolveProps(sep3 ?? [], {
             flow: fcName,
             indicator: "map-value-ind",
             next: value,
@@ -4337,8 +4337,8 @@ var require_resolve_flow_collection = __commonJS({
           });
           if (valueProps.found) {
             if (!isMap && !props.found && ctx.options.strict) {
-              if (sep)
-                for (const st of sep) {
+              if (sep3)
+                for (const st of sep3) {
                   if (st === valueProps.found)
                     break;
                   if (st.type === "newline") {
@@ -4355,7 +4355,7 @@ var require_resolve_flow_collection = __commonJS({
             else
               onError(valueProps.start, "MISSING_CHAR", `Missing , or : between ${fcName} items`);
           }
-          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep, null, valueProps, onError) : null;
+          const valueNode = value ? composeNode(ctx, value, valueProps, onError) : valueProps.found ? composeEmptyNode(ctx, valueProps.end, sep3, null, valueProps, onError) : null;
           if (valueNode) {
             if (isBlock(value))
               onError(valueNode.range, "BLOCK_IN_FLOW", blockMsg);
@@ -4535,7 +4535,7 @@ var require_resolve_block_scalar = __commonJS({
           chompStart = i + 1;
       }
       let value = "";
-      let sep = "";
+      let sep3 = "";
       let prevMoreIndented = false;
       for (let i = 0; i < contentStart; ++i)
         value += lines[i][0].slice(trimIndent) + "\n";
@@ -4552,24 +4552,24 @@ var require_resolve_block_scalar = __commonJS({
           indent = "";
         }
         if (type === Scalar.Scalar.BLOCK_LITERAL) {
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          value += sep3 + indent.slice(trimIndent) + content;
+          sep3 = "\n";
         } else if (indent.length > trimIndent || content[0] === "	") {
-          if (sep === " ")
-            sep = "\n";
-          else if (!prevMoreIndented && sep === "\n")
-            sep = "\n\n";
-          value += sep + indent.slice(trimIndent) + content;
-          sep = "\n";
+          if (sep3 === " ")
+            sep3 = "\n";
+          else if (!prevMoreIndented && sep3 === "\n")
+            sep3 = "\n\n";
+          value += sep3 + indent.slice(trimIndent) + content;
+          sep3 = "\n";
           prevMoreIndented = true;
         } else if (content === "") {
-          if (sep === "\n")
+          if (sep3 === "\n")
             value += "\n";
           else
-            sep = "\n";
+            sep3 = "\n";
         } else {
-          value += sep + content;
-          sep = " ";
+          value += sep3 + content;
+          sep3 = " ";
           prevMoreIndented = false;
         }
       }
@@ -4752,25 +4752,25 @@ var require_resolve_flow_scalar = __commonJS({
         trimBoth = /^[ \t]+|[ \t]+$/g;
       }
       let res = match[1].replace(trimEnd, "");
-      let sep = " ";
+      let sep3 = " ";
       let pos = line.lastIndex;
       while (match = line.exec(source)) {
         const lm = match[1].replace(trimBoth, "");
         if (lm === "") {
-          if (sep === "\n")
-            res += sep;
+          if (sep3 === "\n")
+            res += sep3;
           else
-            sep = "\n";
+            sep3 = "\n";
         } else {
-          res += sep + lm;
-          sep = " ";
+          res += sep3 + lm;
+          sep3 = " ";
         }
         pos = line.lastIndex;
       }
       const last = /[ \t]*(.*)/sy;
       last.lastIndex = pos;
       match = last.exec(source);
-      return res + sep + (match?.[1] ?? "");
+      return res + sep3 + (match?.[1] ?? "");
     }
     function doubleQuotedValue(source, onError) {
       let res = "";
@@ -5580,14 +5580,14 @@ var require_cst_stringify = __commonJS({
         }
       }
     }
-    function stringifyItem({ start, key, sep, value }) {
+    function stringifyItem({ start, key, sep: sep3, value }) {
       let res = "";
       for (const st of start)
         res += st.source;
       if (key)
         res += stringifyToken(key);
-      if (sep)
-        for (const st of sep)
+      if (sep3)
+        for (const st of sep3)
           res += st.source;
       if (value)
         res += stringifyToken(value);
@@ -6754,18 +6754,18 @@ var require_parser = __commonJS({
         if (this.type === "map-value-ind") {
           const prev = getPrevProps(this.peek(2));
           const start = getFirstKeyStartProps(prev);
-          let sep;
+          let sep3;
           if (scalar.end) {
-            sep = scalar.end;
-            sep.push(this.sourceToken);
+            sep3 = scalar.end;
+            sep3.push(this.sourceToken);
             delete scalar.end;
           } else
-            sep = [this.sourceToken];
+            sep3 = [this.sourceToken];
           const map = {
             type: "block-map",
             offset: scalar.offset,
             indent: scalar.indent,
-            items: [{ start, key: scalar, sep }]
+            items: [{ start, key: scalar, sep: sep3 }]
           };
           this.onKeyLine = true;
           this.stack[this.stack.length - 1] = map;
@@ -6918,15 +6918,15 @@ var require_parser = __commonJS({
                 } else if (isFlowToken(it.key) && !includesToken(it.sep, "newline")) {
                   const start2 = getFirstKeyStartProps(it.start);
                   const key = it.key;
-                  const sep = it.sep;
-                  sep.push(this.sourceToken);
+                  const sep3 = it.sep;
+                  sep3.push(this.sourceToken);
                   delete it.key;
                   delete it.sep;
                   this.stack.push({
                     type: "block-map",
                     offset: this.offset,
                     indent: this.indent,
-                    items: [{ start: start2, key, sep }]
+                    items: [{ start: start2, key, sep: sep3 }]
                   });
                 } else if (start.length > 0) {
                   it.sep = it.sep.concat(start, this.sourceToken);
@@ -7120,13 +7120,13 @@ var require_parser = __commonJS({
             const prev = getPrevProps(parent);
             const start = getFirstKeyStartProps(prev);
             fixFlowSeqItems(fc);
-            const sep = fc.end.splice(1, fc.end.length);
-            sep.push(this.sourceToken);
+            const sep3 = fc.end.splice(1, fc.end.length);
+            sep3.push(this.sourceToken);
             const map = {
               type: "block-map",
               offset: fc.offset,
               indent: fc.indent,
-              items: [{ start, key: fc, sep }]
+              items: [{ start, key: fc, sep: sep3 }]
             };
             this.onKeyLine = true;
             this.stack[this.stack.length - 1] = map;
@@ -7410,8 +7410,28 @@ import { appendFileSync } from "node:fs";
 
 // src/output.ts
 import { relative } from "node:path";
-var coverageText = (notice) => `COVERAGE ${notice.reason} (${notice.location.file}:${notice.location.line}, ${notice.location.job})${notice.target ? `: ${notice.target}` : ""}
+var calledFrom = (call) => call ? `, called from ${call.file}:${call.line} (${call.job})` : "";
+var coverageText = (notice) => `COVERAGE ${notice.reason} (${notice.location.file}:${notice.location.line}, ${notice.location.job}${calledFrom(notice.call)})${notice.target ? `: ${notice.target}` : ""}
   ${notice.message}`;
+var callText = (call, explain) => {
+  const values = (label, entries) => Object.entries(entries ?? {}).flatMap(([name, entry]) => [
+    `  ${label} ${name} = ${entry.value}${entry.state === "unknown" ? " [unknown]" : ""}${entry.source && entry.source !== "with" ? ` (${entry.source})` : ""}`,
+    ...explain ? entry.path.map((part) => `    -> ${part}`) : []
+  ]);
+  return [
+    `CALL ${call.caller.job} (${call.caller.file}:${call.caller.line}${calledFrom(call.call)}) -> ${call.workflow ?? call.target} [expanded]`,
+    ...values("input", call.inputs),
+    ...values("output", call.outputs)
+  ];
+};
+var callsText = (report, explain) => {
+  const expanded = report.calls.filter((call) => call.status === "expanded");
+  return expanded.length ? [
+    "Reusable workflow calls:",
+    ...expanded.flatMap((call) => callText(call, explain)),
+    ""
+  ] : [];
+};
 function textReport(report, explain = false) {
   const lines = [];
   for (const diagnostic of report.diagnostics)
@@ -7422,14 +7442,19 @@ function textReport(report, explain = false) {
       ...report.coverage.map(coverageText),
       ""
     );
+  lines.push(...callsText(report, explain));
   for (const finding of report.findings) {
     lines.push(
       `${finding.ruleId} ${finding.severity.toUpperCase()} [${finding.state}]`,
       finding.message,
-      `  ${finding.location.file}:${finding.location.line} (${finding.location.job})`
+      `  ${finding.location.file}:${finding.location.line} (${finding.location.job})${calledFrom(finding.call)}`
     );
     for (const evidence of finding.evidence) {
       lines.push(`  ${evidence.reference}`);
+      if (evidence.location)
+        lines.push(
+          `    in ${evidence.location.file}:${evidence.location.line} (${evidence.location.job})${calledFrom(evidence.call)}`
+        );
       if (explain) lines.push(...evidence.path.map((part) => `    -> ${part}`));
     }
     lines.push("");
@@ -7438,7 +7463,7 @@ function textReport(report, explain = false) {
     if (operation.kind === "source-test" || operation.identity.kind !== "unknown" && !operation.runtimeIdentityUnknown)
       continue;
     lines.push(
-      `Unknown ${operation.kind} identity (${operation.location.file}:${operation.location.line}, ${operation.location.job}): ${operation.identity.reference}`,
+      `Unknown ${operation.kind} identity (${operation.location.file}:${operation.location.line}, ${operation.location.job}${calledFrom(operation.call)}): ${operation.identity.reference}`,
       ...[
         .../* @__PURE__ */ new Set([
           ...operation.identity.trace,
@@ -7463,7 +7488,7 @@ function textReport(report, explain = false) {
         const reason = deployment.checkReasons?.[kind];
         if (reason)
           lines.push(
-            `  ${kind} identity unknown (${reason.file}:${reason.line}): ${reason.reason}`
+            `  ${kind} identity unknown (${reason.file}:${reason.line}${calledFrom(reason.call)}): ${reason.reason}`
           );
       }
     }
@@ -7493,7 +7518,43 @@ function graphReport(report) {
       )
     ].join("\n")
   ).join("\n\n");
-  return [artifacts, ...report.coverage.map(coverageText)].filter(Boolean).join("\n\n");
+  return [
+    artifacts,
+    callsText(report, false).slice(0, -1).join("\n"),
+    ...report.coverage.map(coverageText)
+  ].filter(Boolean).join("\n\n");
+}
+var sarifLocation = (file, line) => ({
+  physicalLocation: {
+    artifactLocation: {
+      uri: relative(process.cwd(), file).split("/").map(encodeURIComponent).join("/"),
+      uriBaseId: "%SRCROOT%"
+    },
+    region: { startLine: line }
+  }
+});
+function relatedLocations(finding) {
+  const related = [];
+  const add = (file, line, text) => {
+    if (!related.some((item) => item.file === file && item.line === line))
+      related.push({ file, line, text });
+  };
+  const site = (call) => add(call.file, call.line, `Reusable workflow call ${call.job}`);
+  if (finding.call) site(finding.call);
+  for (const evidence of finding.evidence) {
+    if (!evidence.location) continue;
+    add(
+      evidence.location.file,
+      evidence.location.line,
+      `Evidence in called workflow (${evidence.location.job}): ${evidence.reference}`
+    );
+    if (evidence.call) site(evidence.call);
+  }
+  return related.map((item, id) => ({
+    id,
+    ...sarifLocation(item.file, item.line),
+    message: { text: item.text }
+  }));
 }
 function sarifReport(report) {
   return {
@@ -7523,17 +7584,14 @@ function sarifReport(report) {
                 descriptor: { id: notice.reason },
                 message: { text: coverageText(notice) },
                 locations: [
-                  {
-                    physicalLocation: {
-                      artifactLocation: {
-                        uri: relative(process.cwd(), notice.location.file).split("/").map(encodeURIComponent).join("/"),
-                        uriBaseId: "%SRCROOT%"
-                      },
-                      region: { startLine: notice.location.line }
-                    }
-                  }
+                  sarifLocation(notice.location.file, notice.location.line),
+                  ...notice.call ? [sarifLocation(notice.call.file, notice.call.line)] : []
                 ],
-                properties: { type: notice.type, target: notice.target }
+                properties: {
+                  type: notice.type,
+                  target: notice.target,
+                  ...notice.call ? { call: notice.call } : {}
+                }
               }))
             ]
           }
@@ -7542,21 +7600,13 @@ function sarifReport(report) {
           ruleId: finding.ruleId,
           level: finding.severity === "high" ? "error" : "warning",
           message: { text: finding.message },
-          locations: [
-            {
-              physicalLocation: {
-                artifactLocation: {
-                  uri: relative(process.cwd(), finding.location.file).split("/").map(encodeURIComponent).join("/"),
-                  uriBaseId: "%SRCROOT%"
-                },
-                region: { startLine: finding.location.line }
-              }
-            }
-          ],
+          locations: [sarifLocation(finding.location.file, finding.location.line)],
+          ...relatedLocations(finding).length ? { relatedLocations: relatedLocations(finding) } : {},
           properties: {
             confidence: finding.confidence,
             state: finding.state,
-            evidence: finding.evidence
+            evidence: finding.evidence,
+            ...finding.call ? { call: finding.call } : {}
           }
         }))
       }
@@ -7566,11 +7616,11 @@ function sarifReport(report) {
 
 // src/run.ts
 import { mkdir, readFile as readFile2, rename, rm, writeFile } from "node:fs/promises";
-import { basename as basename2, dirname, join as join3, resolve as resolve2 } from "node:path";
+import { basename as basename3, dirname as dirname2, join as join4, resolve as resolve3 } from "node:path";
 
 // src/analyzer.ts
 import { createHash } from "node:crypto";
-import { basename } from "node:path";
+import { basename as basename2, relative as relative3, sep as sep2 } from "node:path";
 
 // src/shell.ts
 function tokenize(command) {
@@ -9270,6 +9320,13 @@ function access(expr) {
     return parent ? `${parent}.${expr.index.literal.coerceString()}` : void 0;
   }
 }
+function wildcard(scope, path) {
+  const parts = path.split(".");
+  for (let length = parts.length - 1; length > 0; length--) {
+    const value = scope.get(`${parts.slice(0, length).join(".")}.*`);
+    if (value) return { ...value, unknown: true };
+  }
+}
 function resolveValue(raw, scope) {
   const text = String(raw ?? "");
   let unknown = false;
@@ -9281,6 +9338,7 @@ function resolveValue(raw, scope) {
         [
           "steps",
           "needs",
+          "jobs",
           "env",
           "github",
           "inputs",
@@ -9298,7 +9356,7 @@ function resolveValue(raw, scope) {
         trace.push("github.sha (source revision, not an image digest)");
         return "__samebyte_github_sha__";
       }
-      const value = path && scope.get(path);
+      const value = path && (scope.get(path) ?? wildcard(scope, path));
       if (value) {
         trace.push(...value.trace, body.trim());
         unknown ||= value.unknown;
@@ -9385,683 +9443,9 @@ function identity(value) {
   return { ...base, kind: "unknown" };
 }
 
-// src/rules.ts
-var normalizedCondition = (condition) => String(condition).replace(/^\s*\$\{\{\s*|\s*\}\}\s*$/g, "").trim().replace(/^\((.*)\)$/s, "$1").trim().toLowerCase();
-var explicitSuccess = (condition) => condition === void 0 || normalizedCondition(condition) === "success()";
-var bypassesSuccess = (condition) => hasStatusCheck(condition) && !explicitSuccess(condition);
-var neverRuns = (condition) => normalizedCondition(condition) === "false";
-var isDisabled = (operation, workflow) => {
-  const job = workflow.jobs[operation.location.job];
-  return neverRuns(job.if) || neverRuns(job.steps[operation.location.step]?.if);
-};
-function jobIsSkippedByNeeds(jobId, workflow, memo = /* @__PURE__ */ new Map(), visiting = /* @__PURE__ */ new Set()) {
-  const cached = memo.get(jobId);
-  if (cached !== void 0) return cached;
-  const job = workflow.jobs[jobId];
-  if (neverRuns(job.if)) {
-    memo.set(jobId, true);
-    return true;
-  }
-  if (bypassesSuccess(job.if) || visiting.has(jobId)) {
-    if (!visiting.has(jobId)) memo.set(jobId, false);
-    return false;
-  }
-  visiting.add(jobId);
-  const skipped = job.needs.some(
-    (need) => jobIsSkippedByNeeds(need, workflow, memo, visiting)
-  );
-  visiting.delete(jobId);
-  memo.set(jobId, skipped);
-  return skipped;
-}
-var operationIsUnreachable = (operation, workflow, memo = /* @__PURE__ */ new Map()) => isDisabled(operation, workflow) || jobIsSkippedByNeeds(operation.location.job, workflow, memo);
-function jobDependsOn(from, to, workflow) {
-  if (from === to) return true;
-  const seen = /* @__PURE__ */ new Set();
-  const visit = (job) => {
-    if (seen.has(job)) return false;
-    seen.add(job);
-    return workflow.jobs[job].needs.some((need) => need === from || visit(need));
-  };
-  return visit(to);
-}
-function dependsOn(a, b, workflow) {
-  return jobDependsOn(a.location.job, b.location.job, workflow);
-}
-function precedes(a, b, workflow) {
-  if (!dependsOn(a, b, workflow)) return false;
-  if (a.location.job !== b.location.job) return true;
-  if (a.order >= b.order) return false;
-  return a.completionStep === void 0 || a.completionStep < b.location.step;
-}
-function analyzeRules(operations, workflow) {
-  const findings = [];
-  const deployments = [];
-  const reachability = /* @__PURE__ */ new Map();
-  const evidence = (ops) => ops.map((op) => ({
-    operation: op.id,
-    reference: op.identity.reference,
-    path: op.identity.trace
-  }));
-  for (const deploy of operations.filter(
-    (op) => op.kind === "deploy" && !operationIsUnreachable(op, workflow, reachability)
-  )) {
-    const checks = {
-      test: "unknown",
-      scan: "unknown",
-      attest: "unknown"
-    };
-    const checkReasons = {};
-    const add = (ruleId, message, state2, ops, high = true) => findings.push({
-      ruleId,
-      message,
-      state: state2,
-      severity: high ? "high" : "medium",
-      confidence: high ? "high" : "medium",
-      location: deploy.location,
-      evidence: evidence([...ops, deploy])
-    });
-    if (deploy.identity.kind === "mutable")
-      add(
-        "SB005",
-        "Mutable deployment reference. Artifact identity cannot be proven.",
-        "unknown",
-        []
-      );
-    if (deploy.identity.kind === "unknown")
-      add(
-        "SB006",
-        "Artifact identity lost or unsupported deployment boundary.",
-        "unknown",
-        [],
-        false
-      );
-    for (const kind of ["test", "scan", "attest"]) {
-      const candidates = operations.filter(
-        (op) => op.kind === kind && precedes(op, deploy, workflow)
-      );
-      const guaranteed = (op) => {
-        const safeCondition = (condition) => condition === void 0 || explicitSuccess(condition) || !hasStatusCheck(condition);
-        const operationStepConditionIsSafe = (condition) => condition === void 0 || explicitSuccess(condition);
-        const operationJob = workflow.jobs[op.location.job];
-        const operationStep = operationJob.steps[op.location.step];
-        const deploymentJob = workflow.jobs[deploy.location.job];
-        const deploymentStep = deploymentJob.steps[deploy.location.step];
-        if (!safeCondition(deploymentJob.if) || !safeCondition(deploymentStep?.if))
-          return false;
-        const visit = (id) => {
-          const job = workflow.jobs[id];
-          if (id === op.location.job)
-            return safeCondition(job.if) && operationStepConditionIsSafe(operationStep?.if) && (!op.guarded || op.guardedByJobCondition === true);
-          if (job.strategy !== void 0 || job["continue-on-error"] || !safeCondition(job.if))
-            return false;
-          return job.needs.some(visit);
-        };
-        return visit(deploy.location.job);
-      };
-      const sameIdentity = (op) => op.identity.kind === "immutable" && deploy.identity.kind === "immutable" && op.identity.key === deploy.identity.key;
-      const same = candidates.find((op) => guaranteed(op) && sameIdentity(op));
-      if (same) {
-        if (same.runtimeIdentityUnknown === void 0) checks[kind] = "proven";
-        else
-          checkReasons[kind] = {
-            file: same.location.file,
-            line: same.location.line,
-            reason: same.runtimeIdentityUnknown
-          };
-        continue;
-      }
-      const possibleSame = candidates.find(sameIdentity);
-      if (possibleSame) {
-        checkReasons[kind] = {
-          file: possibleSame.location.file,
-          line: possibleSame.location.line,
-          reason: `A preceding ${kind} consumer references the deployed artifact, but its condition is not proven to run.`
-        };
-        continue;
-      }
-      const unresolved = candidates.find(
-        (op) => op.identity.kind === "unknown" && !isDisabled(op, workflow)
-      );
-      if (unresolved) {
-        checkReasons[kind] = {
-          file: unresolved.location.file,
-          line: unresolved.location.line,
-          reason: `A preceding ${kind} consumer has unresolved artifact identity.`
-        };
-        continue;
-      }
-      const different = candidates.filter(
-        (op) => guaranteed(op) && op.identity.concrete && deploy.identity.concrete && op.identity.repository && op.identity.repository === deploy.identity.repository && op.identity.key !== deploy.identity.key
-      );
-      if (different.length) {
-        checks[kind] = "mismatch";
-        add(
-          { test: "SB002", scan: "SB003", attest: "SB004" }[kind],
-          `${{ test: "Tested", scan: "Scanned", attest: "Attested" }[kind]} artifact differs from deployed artifact.`,
-          "mismatch",
-          different
-        );
-      } else {
-        const symbolic = candidates.some(
-          (op) => op.identity.kind === "immutable" && deploy.identity.kind === "immutable" && op.identity.key !== deploy.identity.key && (!op.identity.concrete || !deploy.identity.concrete)
-        );
-        checkReasons[kind] = {
-          file: deploy.location.file,
-          line: deploy.location.line,
-          reason: deploy.identity.kind !== "immutable" ? "Deployment identity is unresolved or mutable; equality cannot be proven." : symbolic ? "Independent symbolic digests have no proven equality or inequality." : `No preceding supported ${kind} consumer proves identity and successful execution for this deployment.`
-        };
-      }
-    }
-    const sourceTests = operations.filter(
-      (op) => op.kind === "source-test" && !op.guarded && precedes(op, deploy, workflow)
-    );
-    const builds = operations.filter(
-      (op) => op.kind === "build" && !op.guarded && precedes(op, deploy, workflow)
-    );
-    const sourceCheckedBefore = (build) => sourceTests.some((test) => precedes(test, build, workflow));
-    const stronglyLinkedBuild = builds.find(
-      (build) => build.identity.kind === "immutable" && deploy.identity.kind === "immutable" && build.identity.key === deploy.identity.key && sourceCheckedBefore(build)
-    );
-    const weaklyLinkedBuild = builds.find(
-      (build) => deploy.identity.kind === "mutable" && build.producedReference === deploy.identity.reference && sourceCheckedBefore(build)
-    );
-    const possibleTestOfDeployed = operations.some(
-      (op) => op.kind === "test" && precedes(op, deploy, workflow) && deploy.identity.kind === "immutable" && (op.identity.kind === "unknown" || op.identity.kind === "immutable" && op.identity.key === deploy.identity.key || op.identity.kind === "mutable" && op.identity.repository === deploy.identity.repository)
-    );
-    if (stronglyLinkedBuild && checks.test === "unknown" && !possibleTestOfDeployed) {
-      checks.test = "mismatch";
-      delete checkReasons.test;
-      add(
-        "SB001",
-        "Production artifact was never tested. Source tests ran, but no recognized OCI test consumes the deployed digest.",
-        "mismatch",
-        [...sourceTests, stronglyLinkedBuild]
-      );
-    }
-    if (weaklyLinkedBuild && checks.test === "unknown")
-      add(
-        "SB001",
-        "A candidate production image was built after source tests, but a mutable tag cannot prove which bytes were deployed.",
-        "unknown",
-        [...sourceTests, weaklyLinkedBuild],
-        false
-      );
-    const state = Object.values(checks).includes("mismatch") ? "mismatch" : Object.values(checks).every((value) => value === "proven") ? "proven" : "unknown";
-    deployments.push({
-      operation: deploy.id,
-      state,
-      checks,
-      ...Object.keys(checkReasons).length ? { checkReasons } : {}
-    });
-  }
-  return { findings, deployments };
-}
-
-// src/analyzer.ts
-var isExplicitSuccess = (condition) => String(condition).replace(/^\s*\$\{\{\s*|\s*\}\}\s*$/g, "").replace(/^\((.*)\)$/s, "$1").trim().toLowerCase() === "success()";
-var invalidateTrivyInput = (scope) => {
-  const value = unknownValue("unknown TRIVY_INPUT value", "Shell environment mutation");
-  bind(scope, "env.TRIVY_INPUT", value);
-  scope.set("shell.TRIVY_INPUT", value);
-};
-var hasUnknownShellArgumentBeforeReference = (tokens, reference, referenceIndex) => {
-  const index = referenceIndex ?? tokens.findIndex((token) => token.includes(reference));
-  return tokens.slice(0, index < 0 ? tokens.length : index).some((token) => token.includes("__samebyte_unknown__"));
-};
-function validateConfig(raw) {
-  const config = raw;
-  if (!config || !Array.isArray(config.annotations))
-    throw new Error("Config requires an annotations array.");
-  for (const item of config.annotations) {
-    if (!item || !["build", "test", "scan", "attest", "deploy"].includes(item.operation) || ![item.workflow, item.job, item.step].every(
-      (value) => typeof value === "string" && !!value
-    ) || item.image !== void 0 && typeof item.image !== "string" || item.output !== void 0 && typeof item.output !== "string")
-      throw new Error(
-        "Invalid annotation. Expected workflow, job, step, operation and optional image/output strings."
-      );
-    if (item.operation !== "build" && !item.image)
-      throw new Error("Consumer annotations require image.");
-  }
-  return config;
-}
-function analyzeWorkflow(workflow, config = { annotations: [] }) {
-  const operations = [];
-  const coverage = [];
-  const jobOutputs = /* @__PURE__ */ new Map();
-  let digestSequence = 0;
-  const namespace = createHash("sha256").update(workflow.file).digest("hex").slice(0, 16);
-  for (const [jobId, job] of Object.entries(workflow.jobs)) {
-    const jobLocation = { file: workflow.file, line: job.line, job: jobId };
-    if (job.uses)
-      coverage.push({
-        reason: "reusable-workflow-call",
-        type: "reusable-workflow",
-        location: jobLocation,
-        target: job.uses,
-        message: "Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call."
-      });
-    if (job.strategy !== void 0)
-      coverage.push({
-        reason: "matrix-job",
-        type: "matrix",
-        location: jobLocation,
-        message: "Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven."
-      });
-    let scope = /* @__PURE__ */ new Map();
-    const backgroundOperations = /* @__PURE__ */ new Map();
-    const pendingBackgroundOutputs = /* @__PURE__ */ new Map();
-    const hasParallelBlock = job.steps.some((step) => step.parallel !== void 0);
-    const publishStepOutput = (stepId, name, value, background) => {
-      const key = `steps.${stepId}.outputs.${name}`;
-      if (!background) {
-        bind(scope, key, value);
-        return;
-      }
-      const outputs2 = pendingBackgroundOutputs.get(stepId) ?? /* @__PURE__ */ new Map();
-      outputs2.set(key, value);
-      pendingBackgroundOutputs.set(stepId, outputs2);
-      bind(
-        scope,
-        key,
-        unknownValue(value.text, "Output unavailable before background wait")
-      );
-    };
-    const releaseBackgroundOutputs = (stepId, mayHaveFailed = false) => {
-      for (const [key, value] of pendingBackgroundOutputs.get(stepId) ?? [])
-        bind(
-          scope,
-          key,
-          mayHaveFailed ? {
-            ...value,
-            unknown: true,
-            trace: [...value.trace, "Background result may have been ignored"]
-          } : value
-        );
-      pendingBackgroundOutputs.delete(stepId);
-    };
-    for (const need of job.needs)
-      for (const [key, value] of jobOutputs.get(need) ?? [])
-        bind(scope, `needs.${need}.outputs.${key}`, value);
-    scope = environment(environment(scope, workflow.env), job.env);
-    for (const [index, step] of job.steps.entries()) {
-      if (step.wait !== void 0 || step["wait-all"] === true || step["wait-all"] === null) {
-        const mayHaveFailed = !!step["continue-on-error"] || step.if !== void 0 && !isExplicitSuccess(step.if);
-        const targets = step["wait-all"] === true || step["wait-all"] === null ? [...backgroundOperations.keys()] : Array.isArray(step.wait) ? step.wait : [step.wait];
-        for (const target of targets) {
-          for (const operation of backgroundOperations.get(target) ?? []) {
-            operation.completionStep = index;
-            operation.guarded ||= mayHaveFailed;
-            if (mayHaveFailed) operation.guardedByJobCondition = false;
-          }
-          releaseBackgroundOutputs(target, mayHaveFailed);
-          backgroundOperations.delete(target);
-        }
-        continue;
-      }
-      if (step.cancel !== void 0) {
-        const targets = Array.isArray(step.cancel) ? step.cancel : [step.cancel];
-        for (const target of targets) {
-          for (const operation of backgroundOperations.get(target) ?? []) {
-            operation.completionStep = index;
-            operation.guarded = true;
-            operation.guardedByJobCondition = false;
-          }
-          pendingBackgroundOutputs.delete(target);
-          backgroundOperations.delete(target);
-        }
-        continue;
-      }
-      const firstOperation = operations.length;
-      const backgroundId = step.id ?? `__samebyte_background_${index}`;
-      const stepScope = environment(scope, step.env);
-      const stepId = step.id ?? String(index + 1);
-      const guarded = job.if !== void 0 && !isExplicitSuccess(job.if) || step.if !== void 0 && !isExplicitSuccess(step.if) || job.strategy !== void 0 || hasParallelBlock || !!job["continue-on-error"] || !!step["continue-on-error"];
-      const guardedByJobCondition = guarded && job.if !== void 0 && !isExplicitSuccess(job.if) && step.if === void 0 && job.strategy === void 0 && !job["continue-on-error"] && !step["continue-on-error"] && !hasParallelBlock;
-      const prefix = `${workflow.file}#${jobId}.${stepId}`;
-      const record = (kind, value, label, extraGuard = false) => {
-        const operationIdentity = identity({
-          ...value,
-          trace: [...value.trace, `${jobId} step ${index + 1}: ${label}`]
-        });
-        const runtimeIdentityUnknown = kind === "test" && operationIdentity.concrete ? "digest may reference an OCI index; selected platform manifest is not tracked" : void 0;
-        const operation = {
-          id: `${prefix}:${operations.length}`,
-          kind,
-          identity: runtimeIdentityUnknown ? {
-            ...operationIdentity,
-            trace: [...operationIdentity.trace, runtimeIdentityUnknown]
-          } : operationIdentity,
-          label,
-          runtimeIdentityUnknown,
-          order: operations.length,
-          guardedByJobCondition: guardedByJobCondition && !extraGuard,
-          completionStep: step.background === true ? job.steps.length : void 0,
-          guarded: guarded || extraGuard,
-          location: {
-            file: workflow.file,
-            line: step.line,
-            job: jobId,
-            step: index
-          }
-        };
-        operations.push(operation);
-        return operation;
-      };
-      const produce = (label, output, reference, unknownIdentity = false) => {
-        const digest = {
-          text: `__samebyte_digest_${namespace}_${++digestSequence}__`,
-          unknown: guarded || unknownIdentity,
-          trace: [
-            `${jobId}.${stepId}: ${label}`,
-            ...unknownIdentity ? ["multi-platform child manifest identity is not tracked"] : [],
-            "OCI digest output"
-          ]
-        };
-        const build = record("build", digest, label);
-        if (reference && !reference.unknown && !/[\s,]/.test(reference.text))
-          build.producedReference = reference.text;
-        if (output && step.id)
-          publishStepOutput(step.id, output, digest, step.background === true);
-      };
-      const annotations = config.annotations.filter(
-        (a) => a.workflow === basename(workflow.file) && a.job === jobId && a.step === step.id
-      );
-      const notice = (reason, type, message, target) => {
-        if (coverage.some(
-          (item) => item.reason === reason && item.location.job === jobId && item.location.step === index
-        ))
-          return;
-        coverage.push({
-          reason,
-          type,
-          location: { ...jobLocation, line: step.line, step: index },
-          message,
-          ...target ? { target } : {}
-        });
-      };
-      if (step.uses?.startsWith("./"))
-        notice(
-          "local-action-call",
-          "action",
-          "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
-          step.uses
-        );
-      if (annotations.length) {
-        if (step.run)
-          notice(
-            "unsupported-shell",
-            "shell",
-            "Shell interpretation is replaced by trusted annotations. Additional operations and value transfers are not analyzed."
-          );
-        if (step.uses && !step.uses.startsWith("./"))
-          notice(
-            "unsupported-action-call",
-            "action",
-            "Action interpretation is replaced by trusted annotations. Its contents and additional behavior are not analyzed.",
-            step.uses
-          );
-        for (const a of annotations) {
-          if (a.operation === "build")
-            produce(
-              "User-declared OCI producer",
-              a.output ?? "digest",
-              a.image ? resolveValue(a.image, stepScope) : void 0
-            );
-          else
-            record(
-              a.operation,
-              resolveValue(a.image, stepScope),
-              "User-declared artifact consumer"
-            );
-        }
-        if (step.background === true)
-          backgroundOperations.set(backgroundId, operations.slice(firstOperation));
-        continue;
-      }
-      if (step.uses) {
-        const action = step.uses.split("@")[0].toLowerCase();
-        if (action === "docker/build-push-action") {
-          const platforms = String(step.with?.platforms ?? "").trim();
-          const multiPlatform = platforms.includes("${{") || platforms.split(/[\s,]+/).filter(Boolean).length > 1;
-          produce(
-            step.uses,
-            "digest",
-            step.with?.tags ? resolveValue(step.with.tags, stepScope) : void 0,
-            multiPlatform
-          );
-        } else {
-          const inputs = Object.fromEntries(
-            Object.entries(step.with ?? {}).map(([key, raw]) => [
-              key,
-              resolveValue(raw, stepScope)
-            ])
-          );
-          const consumers = actionConsumption(
-            step.uses,
-            Object.fromEntries(
-              Object.entries(inputs).map(([key, value]) => [key, value.text])
-            ),
-            Object.fromEntries(
-              [...stepScope].filter(([key]) => key.startsWith("shell.")).map(([key, value]) => [key.slice(6), value.text])
-            )
-          );
-          if (!consumers.length && !step.uses.startsWith("./"))
-            notice(
-              "unsupported-action-call",
-              "action",
-              "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
-              step.uses
-            );
-          for (const consumer of consumers) {
-            const usedInputs = consumer.usedInputs ?? [];
-            record(
-              consumer.kind,
-              consumer.reference ? {
-                text: consumer.reference,
-                unknown: usedInputs.some((key) => inputs[key]?.unknown),
-                trace: usedInputs.flatMap((key) => {
-                  const value = inputs[key];
-                  return value ? [...value.trace, `with.${key} = ${value.text}`] : [];
-                })
-              } : unknownValue(step.uses, "Unsupported or missing image input"),
-              step.uses
-            );
-          }
-        }
-      }
-      if (step.run) {
-        const lines = step.run.replace(/\\\r?\n/g, " ").split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
-        const shell = resolveShell(workflow, job, step);
-        const unsupportedShell = !shell.supported;
-        const complex = unsupportedShell || lines.some((line) => !balancedQuotes(line)) || lines.some(
-          (line) => /^(if|then|else|elif|fi|for|while|until|case|esac|do|done|function|exit|return|set|source|alias|eval|exec|trap|unset|read|declare|typeset|local|readonly)\b|\$\(|`|\|\||&&|;|\||<<|^\.\s|[{}]/.test(
-            line.replace(/\$\{\{.*?\}\}/g, "EXPR").replace(/\$\{[A-Za-z_]\w*\}/g, "VAR")
-          )
-        );
-        const outputPattern = /^echo\s+(["'])([A-Za-z_][\w-]*)=(.*?)\1\s*>>\s*["']?\$(?:GITHUB_OUTPUT|\{GITHUB_OUTPUT\})["']?$/;
-        const unknownOutputWrite = lines.some(
-          (line) => line.includes("GITHUB_OUTPUT") && !outputPattern.test(line)
-        );
-        const shellNotice = () => notice(
-          "unsupported-shell",
-          "shell",
-          shell.supported ? "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved." : `Shell is not supported or cannot be established: ${shell.reason}. Operations and value transfers in this script are not interpreted.`
-        );
-        if (complex || unknownOutputWrite) shellNotice();
-        for (const line of lines) {
-          const output = /^echo\s+(["'])([A-Za-z_][\w-]*)=(.*?)\1\s*>>\s*["']?\$(?:GITHUB_OUTPUT|\{GITHUB_OUTPUT\})["']?$/.exec(
-            line
-          );
-          if (output && step.id) {
-            const value = complex || unknownOutputWrite ? unknownValue("unknown step output", "Complex shell output") : output[1] === "'" ? resolveValue(output[3], stepScope) : shellValue(output[3], stepScope);
-            value.unknown ||= guarded;
-            publishStepOutput(step.id, output[2], value, step.background === true);
-            continue;
-          }
-          if (line.includes("GITHUB_ENV")) {
-            for (const target of [scope, stepScope])
-              for (const key of target.keys())
-                if (key.startsWith("env.") || key.startsWith("shell."))
-                  target.set(
-                    key,
-                    unknownValue("unknown environment value", "GITHUB_ENV mutation")
-                  );
-            invalidateTrivyInput(scope);
-            invalidateTrivyInput(stepScope);
-          }
-          const resolved = shellValue(line, stepScope);
-          const tokens = complex ? void 0 : tokenize(resolved.text);
-          if (!tokens) {
-            shellNotice();
-            if (/\b(kubectl|helm)\b/.test(line))
-              record(
-                "deploy",
-                unknownValue(
-                  "unknown deployment reference",
-                  "Unsupported shell syntax"
-                ),
-                "unsupported shell command",
-                true
-              );
-            if (/\bdocker\s+(?:run|compose)\b/.test(line))
-              record(
-                "test",
-                unknownValue("unknown image reference", "Unsupported shell syntax"),
-                "unsupported shell command",
-                true
-              );
-            continue;
-          }
-          const build = shellBuild(tokens);
-          if (build)
-            produce(
-              tokens.slice(0, 3).join(" "),
-              void 0,
-              build.tag ? { ...resolved, text: build.tag } : void 0
-            );
-          const consumers = shellConsumption(
-            tokens,
-            Object.fromEntries(
-              [...stepScope].filter(([key]) => key.startsWith("shell.")).map(([key, value]) => [key.slice(6), value.text])
-            )
-          );
-          if (!build && !consumers.length && !nonMutatingDeployment(tokens) && tokens[0] !== "echo")
-            notice(
-              "uninterpreted-command",
-              "shell",
-              "This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.",
-              tokens[0]
-            );
-          for (const consumer of consumers)
-            record(
-              consumer.kind,
-              consumer.reference ? {
-                ...resolved,
-                text: consumer.reference,
-                // An unrelated unresolved variable in a test command must
-                // not erase an image identity that was parsed separately.
-                // Unknown shell expansions before the image may shift its
-                // argument position, so their boundary remains unresolved.
-                // Expansions after the image cannot change its identity.
-                unknown: consumer.identityUnknown !== void 0 || consumer.reference.includes("__samebyte_unknown__") || hasUnknownShellArgumentBeforeReference(
-                  tokens,
-                  consumer.reference,
-                  consumer.referenceIndex
-                ),
-                trace: consumer.identityUnknown ? [...resolved.trace, consumer.identityUnknown] : resolved.trace
-              } : consumer.kind === "source-test" ? unknownValue(
-                "local application build",
-                "source tests do not establish OCI identity"
-              ) : unknownValue(
-                "unknown image reference",
-                "Image reference could not be resolved"
-              ),
-              tokens.slice(0, 2).join(" ")
-            );
-          if (/^[A-Za-z_]\w*=/.test(line) || tokens[0] === "export" || line.includes("GITHUB_ENV")) {
-            for (const key of stepScope.keys())
-              if (key.startsWith("env.") || key.startsWith("shell."))
-                stepScope.set(
-                  key,
-                  unknownValue(
-                    "unknown environment value",
-                    "Shell environment mutation"
-                  )
-                );
-            const assignedTrivyInput = /^TRIVY_INPUT=/.test(line) || tokens[0] === "export" && tokens.slice(1).some((token) => /^TRIVY_INPUT(?:=|$)/.test(token));
-            if (assignedTrivyInput) invalidateTrivyInput(stepScope);
-            if (line.includes("GITHUB_ENV")) {
-              for (const key of scope.keys())
-                if (key.startsWith("env.") || key.startsWith("shell."))
-                  scope.set(
-                    key,
-                    unknownValue("unknown environment value", "GITHUB_ENV mutation")
-                  );
-            }
-            if (line.includes("GITHUB_ENV")) invalidateTrivyInput(scope);
-          }
-        }
-      }
-      if (step.background === true)
-        backgroundOperations.set(backgroundId, operations.slice(firstOperation));
-    }
-    for (const stepId of pendingBackgroundOutputs.keys())
-      releaseBackgroundOutputs(stepId);
-    const outputs = /* @__PURE__ */ new Map();
-    for (const [key, raw] of Object.entries(job.outputs ?? {}))
-      bind(outputs, key, resolveValue(raw, scope));
-    jobOutputs.set(jobId, outputs);
-  }
-  const reachability = /* @__PURE__ */ new Map();
-  const reachableOperations = operations.filter(
-    (operation) => !operationIsUnreachable(operation, workflow, reachability)
-  );
-  const artifacts = [];
-  for (const operation of reachableOperations.filter(
-    (op) => op.kind !== "source-test"
-  )) {
-    let artifact = operation.identity.kind === "immutable" ? artifacts.find((a) => a.identity.key === operation.identity.key) : void 0;
-    if (!artifact) {
-      artifact = {
-        id: `${workflow.file}#artifact-${artifacts.length + 1}`,
-        identity: operation.identity,
-        producers: [],
-        consumers: []
-      };
-      artifacts.push(artifact);
-    }
-    (operation.kind === "build" ? artifact.producers : artifact.consumers).push(
-      operation.id
-    );
-  }
-  const result = analyzeRules(reachableOperations, workflow);
-  const diagnostics = Object.entries(workflow.jobs).filter(([, job]) => job.steps.some((step) => step.parallel !== void 0)).map(([job]) => ({
-    file: workflow.file,
-    message: `Job ${job} contains a parallel block whose nested operations are not analyzed; artifact lineage is incomplete.`
-  }));
-  return {
-    version: 1,
-    workflows: [workflow.file],
-    operations: reachableOperations,
-    artifacts,
-    ...result,
-    diagnostics,
-    coverage
-  };
-}
-function mergeReports(reports) {
-  return {
-    version: 1,
-    workflows: reports.flatMap((r) => r.workflows),
-    operations: reports.flatMap((r) => r.operations),
-    artifacts: reports.flatMap((r) => r.artifacts),
-    deployments: reports.flatMap((r) => r.deployments),
-    findings: reports.flatMap((r) => r.findings),
-    diagnostics: reports.flatMap((r) => r.diagnostics),
-    coverage: reports.flatMap((r) => r.coverage)
-  };
-}
+// src/reusable.ts
+import { open, realpath } from "node:fs/promises";
+import { basename, dirname, join as join3, relative as relative2, resolve as resolve2, sep } from "node:path";
 
 // src/parser.ts
 var import_yaml = __toESM(require_dist(), 1);
@@ -10080,11 +9464,57 @@ async function discover(input2) {
   }
   return (await readdir(directory, { withFileTypes: true })).filter((entry) => entry.isFile() && /\.ya?ml$/i.test(entry.name)).map((entry) => join2(directory, entry.name)).sort();
 }
+function workflowCall(on, lineOf) {
+  const triggers = typeof on === "string" ? [on] : Array.isArray(on) ? on.map(String) : mapping(on) ? Object.keys(on) : [];
+  if (!triggers.includes("workflow_call")) return { callOnly: false };
+  const callOnly = triggers.length === 1;
+  const contract = { inputs: {}, outputs: {} };
+  const fail = (error) => ({ call: { ...contract, error }, callOnly });
+  const body = mapping(on) ? on.workflow_call : void 0;
+  if (body === void 0 || body === null) return { call: contract, callOnly };
+  if (!mapping(body)) return fail("on.workflow_call must be a mapping");
+  for (const key of ["inputs", "outputs"])
+    if (body[key] !== void 0 && body[key] !== null && !mapping(body[key]))
+      return fail(`on.workflow_call.${key} must be a mapping`);
+  const seen = /* @__PURE__ */ new Set();
+  for (const [name, input2] of Object.entries(body.inputs ?? {})) {
+    if (seen.has(name.toLowerCase()))
+      return fail(`workflow_call input ${name} is declared more than once`);
+    seen.add(name.toLowerCase());
+    if (!mapping(input2)) return fail(`workflow_call input ${name} must be a mapping`);
+    if (!["string", "number", "boolean"].includes(input2.type))
+      return fail(`workflow_call input ${name} needs type string, number or boolean`);
+    if (input2.required !== void 0 && typeof input2.required !== "boolean")
+      return fail(`workflow_call input ${name}: required must be a boolean`);
+    if (input2.default !== void 0 && (input2.default === null || typeof input2.default === "object"))
+      return fail(`workflow_call input ${name}: default must be a scalar`);
+    contract.inputs[name] = {
+      type: input2.type,
+      required: input2.required === true,
+      ...input2.default !== void 0 ? { default: input2.default } : {},
+      line: lineOf(["on", "workflow_call", "inputs", name])
+    };
+  }
+  seen.clear();
+  for (const [name, output] of Object.entries(body.outputs ?? {})) {
+    if (seen.has(name.toLowerCase()))
+      return fail(`workflow_call output ${name} is declared more than once`);
+    seen.add(name.toLowerCase());
+    if (!mapping(output) || typeof output.value !== "string")
+      return fail(`workflow_call output ${name} needs a string value`);
+    contract.outputs[name] = {
+      value: output.value,
+      line: lineOf(["on", "workflow_call", "outputs", name])
+    };
+  }
+  return { call: contract, callOnly };
+}
 function parseWorkflow(source, file) {
   const lines = new import_yaml.LineCounter();
   const doc = (0, import_yaml.parseDocument)(source, { lineCounter: lines, uniqueKeys: true });
   if (doc.errors.length) throw new Error(doc.errors.map((e) => e.message).join("\n"));
   const raw = doc.toJS({ maxAliasCount: 100 });
+  const lineOf = (path) => lines.linePos(doc.getIn(path, true)?.range?.[0] ?? 0).line;
   if (!mapping(raw) || !mapping(raw.jobs) || !Object.keys(raw.jobs).length)
     throw new Error("Workflow must contain a non-empty jobs mapping.");
   const validateMap = (value, label) => {
@@ -10199,7 +9629,15 @@ function parseWorkflow(source, file) {
       ...value,
       steps,
       needs,
-      line: lines.linePos(node?.range?.[0] ?? 0).line
+      line: lines.linePos(node?.range?.[0] ?? 0).line,
+      ...value.uses && mapping(value.with) ? {
+        withLines: Object.fromEntries(
+          Object.keys(value.with).map((key) => [
+            key,
+            lineOf(["jobs", id, "with", key])
+          ])
+        )
+      } : {}
     };
   }
   const visited = /* @__PURE__ */ new Set();
@@ -10220,11 +9658,1123 @@ function parseWorkflow(source, file) {
     file,
     jobs: ordered,
     defaults: raw.defaults,
-    env: mapping(raw.env) ? raw.env : void 0
+    env: mapping(raw.env) ? raw.env : void 0,
+    ...workflowCall(raw.on, lineOf)
   };
 }
 async function readWorkflow(file) {
   return parseWorkflow(await readFile(file, "utf8"), file);
+}
+
+// src/reusable.ts
+var maxWorkflowBytes = 1024 * 1024;
+var opaqueCallMessage = "Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call.";
+function repositoryRoot(file) {
+  const directory = dirname(resolve2(file));
+  if (basename(directory) !== "workflows" || basename(dirname(directory)) !== ".github")
+    return void 0;
+  return dirname(dirname(directory));
+}
+var isLocalCall = (uses) => uses.startsWith("./") || uses.startsWith("$/");
+var boundary = (reason, message) => ({
+  status: "boundary",
+  reason,
+  message
+});
+function unloadedCall(uses) {
+  if (uses.includes("${{"))
+    return boundary(
+      "reusable-workflow-call",
+      "The workflow path is dynamic. GitHub does not allow expressions in uses, and no file is loaded for it."
+    );
+  if (!isLocalCall(uses)) return boundary("reusable-workflow-call", opaqueCallMessage);
+  const path = uses.slice(2);
+  if (path.includes("@"))
+    return boundary(
+      "reusable-workflow-path",
+      "A local reusable workflow runs from the caller commit and cannot name a ref. The call is not analyzed."
+    );
+  if (!/^\.github\/workflows\/[^/\\]+\.[yY][aA]?[mM][lL]$/.test(path) || path.includes(".."))
+    return boundary(
+      "reusable-workflow-path",
+      "A local reusable workflow must be a YAML file directly in .github/workflows of the analyzed repository. The call is not analyzed."
+    );
+}
+async function load(root, uses) {
+  const unloaded = unloadedCall(uses);
+  if (unloaded) return unloaded;
+  const file = join3(root, uses.slice(2));
+  let handle;
+  try {
+    const [realRoot, realFile] = await Promise.all([realpath(root), realpath(file)]);
+    if (!realFile.startsWith(realRoot + sep))
+      return boundary(
+        "reusable-workflow-path",
+        "The reusable workflow path resolves outside the analyzed repository root. The file is not read."
+      );
+    handle = await open(realFile, "r");
+  } catch (error) {
+    return error.code === "ENOENT" ? boundary(
+      "reusable-workflow-not-found",
+      `Reusable workflow file ${relative2(root, file)} does not exist under the analyzed repository root. Its operations and outputs are unknown.`
+    ) : boundary(
+      "reusable-workflow-invalid",
+      `Reusable workflow file cannot be read: ${error.message}`
+    );
+  }
+  let source;
+  try {
+    const info = await handle.stat();
+    if (!info.isFile())
+      return boundary(
+        "reusable-workflow-path",
+        "The reusable workflow path is not a regular file. The call is not analyzed."
+      );
+    if (info.size > maxWorkflowBytes)
+      return boundary(
+        "reusable-workflow-invalid",
+        `Reusable workflow file exceeds ${maxWorkflowBytes} bytes and is not read.`
+      );
+    source = await handle.readFile("utf8");
+  } finally {
+    await handle.close();
+  }
+  let workflow;
+  try {
+    workflow = parseWorkflow(source, file);
+  } catch (error) {
+    return boundary(
+      "reusable-workflow-invalid",
+      `Reusable workflow file is not a valid workflow: ${error.message.replace(/\s+/g, " ").trim()}`
+    );
+  }
+  if (!workflow.call)
+    return boundary(
+      "reusable-workflow-contract",
+      "The called workflow does not declare on.workflow_call, so it cannot be called. Its contents are not joined to this caller."
+    );
+  if (workflow.call.error)
+    return boundary(
+      "reusable-workflow-contract",
+      `The called workflow has an invalid workflow_call contract: ${workflow.call.error}.`
+    );
+  return { status: "ok", workflow };
+}
+async function resolveCalls(workflow, cache = /* @__PURE__ */ new Map()) {
+  const root = repositoryRoot(workflow.file);
+  const callees = /* @__PURE__ */ new Map();
+  if (!root) return { callees };
+  for (const job of Object.values(workflow.jobs)) {
+    if (!job.uses || callees.has(job.uses)) continue;
+    const key = `${root}\0${job.uses}`;
+    let callee = cache.get(key);
+    if (!callee) {
+      callee = load(root, job.uses);
+      cache.set(key, callee);
+    }
+    callees.set(job.uses, await callee);
+  }
+  return { root, callees };
+}
+
+// src/rules.ts
+var normalizedCondition = (condition) => String(condition).replace(/^\s*\$\{\{\s*|\s*\}\}\s*$/g, "").trim().replace(/^\((.*)\)$/s, "$1").trim().toLowerCase();
+var explicitSuccess = (condition) => condition === void 0 || normalizedCondition(condition) === "success()";
+var bypassesSuccess = (condition) => hasStatusCheck(condition) && !explicitSuccess(condition);
+var neverRuns = (condition) => normalizedCondition(condition) === "false";
+var isDisabled = (operation, workflow) => {
+  const job = workflow.jobs[operation.location.job];
+  return neverRuns(job.if) || neverRuns(job.steps[operation.location.step]?.if);
+};
+function jobIsSkippedByNeeds(jobId, workflow, memo = /* @__PURE__ */ new Map(), visiting = /* @__PURE__ */ new Set()) {
+  const cached = memo.get(jobId);
+  if (cached !== void 0) return cached;
+  const job = workflow.jobs[jobId];
+  if (neverRuns(job.if)) {
+    memo.set(jobId, true);
+    return true;
+  }
+  if (job.callEntry && !visiting.has(job.callEntry) && jobIsSkippedByNeeds(job.callEntry, workflow, memo, visiting)) {
+    memo.set(jobId, true);
+    return true;
+  }
+  if (bypassesSuccess(job.if) || visiting.has(jobId)) {
+    if (!visiting.has(jobId)) memo.set(jobId, false);
+    return false;
+  }
+  visiting.add(jobId);
+  const skipped = job.needs.some(
+    (need) => (!workflow.jobs[need].callEntry || workflow.jobs[need].callEntry === job.callEntry) && jobIsSkippedByNeeds(need, workflow, memo, visiting)
+  );
+  visiting.delete(jobId);
+  memo.set(jobId, skipped);
+  return skipped;
+}
+var operationIsUnreachable = (operation, workflow, memo = /* @__PURE__ */ new Map()) => isDisabled(operation, workflow) || jobIsSkippedByNeeds(operation.location.job, workflow, memo);
+function jobDependsOn(from, to, workflow) {
+  if (from === to) return true;
+  const seen = /* @__PURE__ */ new Set();
+  const visit = (job) => {
+    if (seen.has(job)) return false;
+    seen.add(job);
+    return workflow.jobs[job].needs.some((need) => need === from || visit(need));
+  };
+  return visit(to);
+}
+function dependsOn(a, b, workflow) {
+  return jobDependsOn(a.location.job, b.location.job, workflow);
+}
+function precedes(a, b, workflow) {
+  if (!dependsOn(a, b, workflow)) return false;
+  if (a.location.job !== b.location.job) return true;
+  if (a.order >= b.order) return false;
+  return a.completionStep === void 0 || a.completionStep < b.location.step;
+}
+function analyzeRules(operations, workflow) {
+  const findings = [];
+  const deployments = [];
+  const reachability = /* @__PURE__ */ new Map();
+  const evidence = (ops) => ops.map((op) => ({
+    operation: op.id,
+    reference: op.identity.reference,
+    path: op.identity.trace,
+    ...op.call ? { location: op.location, call: op.call } : {}
+  }));
+  for (const deploy of operations.filter(
+    (op) => op.kind === "deploy" && !operationIsUnreachable(op, workflow, reachability)
+  )) {
+    const checks = {
+      test: "unknown",
+      scan: "unknown",
+      attest: "unknown"
+    };
+    const checkReasons = {};
+    const add = (ruleId, message, state2, ops, high = true) => findings.push({
+      ruleId,
+      message,
+      state: state2,
+      severity: high ? "high" : "medium",
+      confidence: high ? "high" : "medium",
+      location: deploy.location,
+      evidence: evidence([...ops, deploy]),
+      ...deploy.call ? { call: deploy.call } : {}
+    });
+    if (deploy.identity.kind === "mutable")
+      add(
+        "SB005",
+        "Mutable deployment reference. Artifact identity cannot be proven.",
+        "unknown",
+        []
+      );
+    if (deploy.identity.kind === "unknown")
+      add(
+        "SB006",
+        "Artifact identity lost or unsupported deployment boundary.",
+        "unknown",
+        [],
+        false
+      );
+    for (const kind of ["test", "scan", "attest"]) {
+      const candidates = operations.filter(
+        (op) => op.kind === kind && precedes(op, deploy, workflow)
+      );
+      const callGate = (op) => {
+        const entry = workflow.jobs[op.location.job].callEntry;
+        if (!entry || workflow.jobs[deploy.location.job].callEntry === entry)
+          return void 0;
+        const operationJob = workflow.jobs[op.location.job];
+        if (operationJob["continue-on-error"] || operationJob.steps[op.location.step]?.["continue-on-error"])
+          return `continue-on-error inside the reusable workflow lets the call succeed when this ${kind} fails.`;
+        if (workflow.jobs[entry].strategy !== void 0)
+          return `The reusable workflow is called with a strategy; this ${kind} is a template, not proof for each instance.`;
+        const seen = /* @__PURE__ */ new Set();
+        const conditional = (id) => {
+          const job = workflow.jobs[id];
+          if (job.callEntry !== entry || seen.has(id)) return void 0;
+          seen.add(id);
+          if (!explicitSuccess(job.if)) return id;
+          for (const need of job.needs) {
+            const found = conditional(need);
+            if (found) return found;
+          }
+        };
+        const skipped = conditional(op.location.job);
+        if (skipped)
+          return `Callee job ${skipped} is conditional; when it is skipped the reusable workflow call can still succeed, so this ${kind} is not a proven gate.`;
+        if (operationJob.strategy !== void 0)
+          return `The callee job has a strategy; this ${kind} is a template, not proof for each instance.`;
+      };
+      const guaranteed = (op) => {
+        if (callGate(op)) return false;
+        const safeCondition = (condition) => condition === void 0 || explicitSuccess(condition) || !hasStatusCheck(condition);
+        const operationStepConditionIsSafe = (condition) => condition === void 0 || explicitSuccess(condition);
+        const operationJob = workflow.jobs[op.location.job];
+        const operationStep = operationJob.steps[op.location.step];
+        const deploymentJob = workflow.jobs[deploy.location.job];
+        const deploymentStep = deploymentJob.steps[deploy.location.step];
+        if (!safeCondition(deploymentJob.if) || !safeCondition(deploymentStep?.if))
+          return false;
+        const visited = /* @__PURE__ */ new Map();
+        const visit = (id) => {
+          const known = visited.get(id);
+          if (known !== void 0) return known;
+          const job = workflow.jobs[id];
+          const result = id === op.location.job ? safeCondition(job.if) && operationStepConditionIsSafe(operationStep?.if) && (!op.guarded || op.guardedByJobCondition === true) : job.strategy === void 0 && !job["continue-on-error"] && safeCondition(job.if) && job.needs.some(visit);
+          visited.set(id, result);
+          return result;
+        };
+        return visit(deploy.location.job);
+      };
+      const sameIdentity = (op) => op.identity.kind === "immutable" && deploy.identity.kind === "immutable" && op.identity.key === deploy.identity.key;
+      const same = candidates.find((op) => guaranteed(op) && sameIdentity(op));
+      if (same) {
+        if (same.runtimeIdentityUnknown === void 0) checks[kind] = "proven";
+        else
+          checkReasons[kind] = {
+            file: same.location.file,
+            line: same.location.line,
+            reason: same.runtimeIdentityUnknown,
+            ...same.call ? { call: same.call } : {}
+          };
+        continue;
+      }
+      const possibleSame = candidates.find(sameIdentity);
+      if (possibleSame) {
+        checkReasons[kind] = {
+          file: possibleSame.location.file,
+          line: possibleSame.location.line,
+          reason: callGate(possibleSame) ?? `A preceding ${kind} consumer references the deployed artifact, but its condition is not proven to run.`,
+          ...possibleSame.call ? { call: possibleSame.call } : {}
+        };
+        continue;
+      }
+      const unresolved = candidates.find(
+        (op) => op.identity.kind === "unknown" && !isDisabled(op, workflow)
+      );
+      if (unresolved) {
+        checkReasons[kind] = {
+          file: unresolved.location.file,
+          line: unresolved.location.line,
+          reason: `A preceding ${kind} consumer has unresolved artifact identity.`,
+          ...unresolved.call ? { call: unresolved.call } : {}
+        };
+        continue;
+      }
+      const different = candidates.filter(
+        (op) => guaranteed(op) && op.identity.concrete && deploy.identity.concrete && op.identity.repository && op.identity.repository === deploy.identity.repository && op.identity.key !== deploy.identity.key
+      );
+      if (different.length) {
+        checks[kind] = "mismatch";
+        add(
+          { test: "SB002", scan: "SB003", attest: "SB004" }[kind],
+          `${{ test: "Tested", scan: "Scanned", attest: "Attested" }[kind]} artifact differs from deployed artifact.`,
+          "mismatch",
+          different
+        );
+      } else {
+        const symbolic = candidates.some(
+          (op) => op.identity.kind === "immutable" && deploy.identity.kind === "immutable" && op.identity.key !== deploy.identity.key && (!op.identity.concrete || !deploy.identity.concrete)
+        );
+        const unordered = operations.find(
+          (op) => op.kind === kind && sameIdentity(op) && op.call?.id !== deploy.call?.id && !precedes(op, deploy, workflow)
+        );
+        const callSite = unordered?.call ?? deploy.call;
+        checkReasons[kind] = unordered ? {
+          file: unordered.location.file,
+          line: unordered.location.line,
+          reason: `The deployed artifact has a ${kind} consumer across reusable workflow call ${callSite?.job}, but the deployment does not depend on its completion.`,
+          ...unordered.call ? { call: unordered.call } : {}
+        } : {
+          file: deploy.location.file,
+          line: deploy.location.line,
+          reason: deploy.identity.kind !== "immutable" ? "Deployment identity is unresolved or mutable; equality cannot be proven." : symbolic ? "Independent symbolic digests have no proven equality or inequality." : `No preceding supported ${kind} consumer proves identity and successful execution for this deployment.`,
+          ...deploy.call ? { call: deploy.call } : {}
+        };
+      }
+    }
+    const sourceTests = operations.filter(
+      (op) => op.kind === "source-test" && !op.guarded && precedes(op, deploy, workflow)
+    );
+    const builds = operations.filter(
+      (op) => op.kind === "build" && !op.guarded && precedes(op, deploy, workflow)
+    );
+    const sourceCheckedBefore = (build) => sourceTests.some((test) => precedes(test, build, workflow));
+    const stronglyLinkedBuild = builds.find(
+      (build) => build.identity.kind === "immutable" && deploy.identity.kind === "immutable" && build.identity.key === deploy.identity.key && sourceCheckedBefore(build)
+    );
+    const weaklyLinkedBuild = builds.find(
+      (build) => deploy.identity.kind === "mutable" && build.producedReference === deploy.identity.reference && sourceCheckedBefore(build)
+    );
+    const possibleTestOfDeployed = operations.some(
+      (op) => op.kind === "test" && precedes(op, deploy, workflow) && deploy.identity.kind === "immutable" && (op.identity.kind === "unknown" || op.identity.kind === "immutable" && op.identity.key === deploy.identity.key || op.identity.kind === "mutable" && op.identity.repository === deploy.identity.repository)
+    );
+    if (stronglyLinkedBuild && checks.test === "unknown" && !possibleTestOfDeployed) {
+      checks.test = "mismatch";
+      delete checkReasons.test;
+      add(
+        "SB001",
+        "Production artifact was never tested. Source tests ran, but no recognized OCI test consumes the deployed digest.",
+        "mismatch",
+        [...sourceTests, stronglyLinkedBuild]
+      );
+    }
+    if (weaklyLinkedBuild && checks.test === "unknown")
+      add(
+        "SB001",
+        "A candidate production image was built after source tests, but a mutable tag cannot prove which bytes were deployed.",
+        "unknown",
+        [...sourceTests, weaklyLinkedBuild],
+        false
+      );
+    const state = Object.values(checks).includes("mismatch") ? "mismatch" : Object.values(checks).every((value) => value === "proven") ? "proven" : "unknown";
+    deployments.push({
+      operation: deploy.id,
+      state,
+      checks,
+      ...Object.keys(checkReasons).length ? { checkReasons } : {}
+    });
+  }
+  return { findings, deployments };
+}
+
+// src/analyzer.ts
+var isExplicitSuccess = (condition) => String(condition).replace(/^\s*\$\{\{\s*|\s*\}\}\s*$/g, "").replace(/^\((.*)\)$/s, "$1").trim().toLowerCase() === "success()";
+var invalidateTrivyInput = (scope) => {
+  const value = unknownValue("unknown TRIVY_INPUT value", "Shell environment mutation");
+  bind(scope, "env.TRIVY_INPUT", value);
+  scope.set("shell.TRIVY_INPUT", value);
+};
+var hasUnknownShellArgumentBeforeReference = (tokens, reference, referenceIndex) => {
+  const index = referenceIndex ?? tokens.findIndex((token) => token.includes(reference));
+  return tokens.slice(0, index < 0 ? tokens.length : index).some((token) => token.includes("__samebyte_unknown__"));
+};
+function validateConfig(raw) {
+  const config = raw;
+  if (!config || !Array.isArray(config.annotations))
+    throw new Error("Config requires an annotations array.");
+  for (const item of config.annotations) {
+    if (!item || !["build", "test", "scan", "attest", "deploy"].includes(item.operation) || ![item.workflow, item.job, item.step].every(
+      (value) => typeof value === "string" && !!value
+    ) || item.image !== void 0 && typeof item.image !== "string" || item.output !== void 0 && typeof item.output !== "string")
+      throw new Error(
+        "Invalid annotation. Expected workflow, job, step, operation and optional image/output strings."
+      );
+    if (item.operation !== "build" && !item.image)
+      throw new Error("Consumer annotations require image.");
+  }
+  return config;
+}
+var isMapping = (value) => !!value && typeof value === "object" && !Array.isArray(value);
+function typedInput(raw, type, scope) {
+  if (typeof raw === "string" && raw.includes("${{")) {
+    const value = resolveValue(raw, scope);
+    if (type === "string") return value;
+    return {
+      ...value,
+      unknown: true,
+      trace: [...value.trace, `Expression result is not verified as ${type}`]
+    };
+  }
+  const literal = raw === null ? "null" : typeof raw;
+  if (literal === type) return { text: String(raw), unknown: false, trace: [] };
+  return unknownValue(
+    String(raw ?? ""),
+    `Literal ${literal} does not match declared type ${type}`
+  );
+}
+function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
+  const operations = [];
+  const coverage = [];
+  const calls = [];
+  const diagnostics = [];
+  const graph = {};
+  let digestSequence = 0;
+  const namespace = createHash("sha256").update(workflow.file).digest("hex").slice(0, 16);
+  const display = (file) => resolution?.root ? relative3(resolution.root, file).split(sep2).join("/") : basename2(file);
+  const callValue = (value, extra) => ({
+    state: value.unknown ? "unknown" : "resolved",
+    value: value.text,
+    ...extra,
+    path: value.trace
+  });
+  const analyzeJobs = (frame) => {
+    const wf = frame.workflow;
+    const jobOutputs = /* @__PURE__ */ new Map();
+    for (const [localJobId, job] of Object.entries(wf.jobs)) {
+      const jobId = frame.id(localJobId);
+      const jobLocation = { file: wf.file, line: job.line, job: jobId };
+      const site = frame.call ? { ...frame.call, calleeJob: localJobId } : void 0;
+      const inCall = site ? { call: site } : {};
+      graph[jobId] = frame.entry ? {
+        ...job,
+        needs: [...job.needs.map(frame.id), frame.entry],
+        callEntry: frame.entry
+      } : job;
+      if (job.steps.some((step) => step.parallel !== void 0))
+        diagnostics.push({
+          file: wf.file,
+          message: `Job ${jobId} contains a parallel block whose nested operations are not analyzed; artifact lineage is incomplete.`
+        });
+      let scope = /* @__PURE__ */ new Map();
+      for (const need of job.needs)
+        for (const [key, value] of jobOutputs.get(need) ?? [])
+          if (key === "*") scope.set(`needs.${need.toLowerCase()}.outputs.*`, value);
+          else bind(scope, `needs.${need}.outputs.${key}`, value);
+      for (const [name, value] of frame.inputs) bind(scope, `inputs.${name}`, value);
+      if (job.strategy !== void 0 && !job.uses)
+        coverage.push({
+          reason: "matrix-job",
+          type: "matrix",
+          location: jobLocation,
+          message: "Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven.",
+          ...inCall
+        });
+      if (job.uses) {
+        jobOutputs.set(
+          localJobId,
+          analyzeCall(frame, job, jobId, jobLocation, scope)
+        );
+        continue;
+      }
+      const backgroundOperations = /* @__PURE__ */ new Map();
+      const pendingBackgroundOutputs = /* @__PURE__ */ new Map();
+      const hasParallelBlock = job.steps.some((step) => step.parallel !== void 0);
+      const publishStepOutput = (stepId, name, value, background) => {
+        const key = `steps.${stepId}.outputs.${name}`;
+        if (!background) {
+          bind(scope, key, value);
+          return;
+        }
+        const outputs2 = pendingBackgroundOutputs.get(stepId) ?? /* @__PURE__ */ new Map();
+        outputs2.set(key, value);
+        pendingBackgroundOutputs.set(stepId, outputs2);
+        bind(
+          scope,
+          key,
+          unknownValue(value.text, "Output unavailable before background wait")
+        );
+      };
+      const releaseBackgroundOutputs = (stepId, mayHaveFailed = false) => {
+        for (const [key, value] of pendingBackgroundOutputs.get(stepId) ?? [])
+          bind(
+            scope,
+            key,
+            mayHaveFailed ? {
+              ...value,
+              unknown: true,
+              trace: [...value.trace, "Background result may have been ignored"]
+            } : value
+          );
+        pendingBackgroundOutputs.delete(stepId);
+      };
+      scope = environment(environment(scope, wf.env), job.env);
+      for (const [index, step] of job.steps.entries()) {
+        if (step.wait !== void 0 || step["wait-all"] === true || step["wait-all"] === null) {
+          const mayHaveFailed = !!step["continue-on-error"] || step.if !== void 0 && !isExplicitSuccess(step.if);
+          const targets = step["wait-all"] === true || step["wait-all"] === null ? [...backgroundOperations.keys()] : Array.isArray(step.wait) ? step.wait : [step.wait];
+          for (const target of targets) {
+            for (const operation of backgroundOperations.get(target) ?? []) {
+              operation.completionStep = index;
+              operation.guarded ||= mayHaveFailed;
+              if (mayHaveFailed) operation.guardedByJobCondition = false;
+            }
+            releaseBackgroundOutputs(target, mayHaveFailed);
+            backgroundOperations.delete(target);
+          }
+          continue;
+        }
+        if (step.cancel !== void 0) {
+          const targets = Array.isArray(step.cancel) ? step.cancel : [step.cancel];
+          for (const target of targets) {
+            for (const operation of backgroundOperations.get(target) ?? []) {
+              operation.completionStep = index;
+              operation.guarded = true;
+              operation.guardedByJobCondition = false;
+            }
+            pendingBackgroundOutputs.delete(target);
+            backgroundOperations.delete(target);
+          }
+          continue;
+        }
+        const firstOperation = operations.length;
+        const backgroundId = step.id ?? `__samebyte_background_${index}`;
+        const stepScope = environment(scope, step.env);
+        const stepId = step.id ?? String(index + 1);
+        const guarded = job.if !== void 0 && !isExplicitSuccess(job.if) || step.if !== void 0 && !isExplicitSuccess(step.if) || job.strategy !== void 0 || frame.template || hasParallelBlock || !!job["continue-on-error"] || !!step["continue-on-error"];
+        const guardedByJobCondition = guarded && job.if !== void 0 && !isExplicitSuccess(job.if) && step.if === void 0 && job.strategy === void 0 && !frame.template && !job["continue-on-error"] && !step["continue-on-error"] && !hasParallelBlock;
+        const prefix = site ? `${site.id} > ${wf.file}#${localJobId}.${stepId}` : `${wf.file}#${jobId}.${stepId}`;
+        const record = (kind, value, label, extraGuard = false) => {
+          const operationIdentity = identity({
+            ...value,
+            trace: [...value.trace, `${jobId} step ${index + 1}: ${label}`]
+          });
+          const runtimeIdentityUnknown = kind === "test" && operationIdentity.concrete ? "digest may reference an OCI index; selected platform manifest is not tracked" : void 0;
+          const operation = {
+            id: `${prefix}:${operations.length}`,
+            kind,
+            identity: runtimeIdentityUnknown ? {
+              ...operationIdentity,
+              trace: [...operationIdentity.trace, runtimeIdentityUnknown]
+            } : operationIdentity,
+            label,
+            runtimeIdentityUnknown,
+            order: operations.length,
+            guardedByJobCondition: guardedByJobCondition && !extraGuard,
+            completionStep: step.background === true ? job.steps.length : void 0,
+            guarded: guarded || extraGuard,
+            location: {
+              file: wf.file,
+              line: step.line,
+              job: jobId,
+              step: index
+            },
+            ...inCall
+          };
+          operations.push(operation);
+          return operation;
+        };
+        const produce = (label, output, reference, unknownIdentity = false) => {
+          const digest = {
+            text: `__samebyte_digest_${namespace}_${++digestSequence}__`,
+            unknown: guarded || unknownIdentity,
+            trace: [
+              `${jobId}.${stepId}: ${label}`,
+              ...unknownIdentity ? ["multi-platform child manifest identity is not tracked"] : [],
+              "OCI digest output"
+            ]
+          };
+          const build = record("build", digest, label);
+          if (reference && !reference.unknown && !/[\s,]/.test(reference.text))
+            build.producedReference = reference.text;
+          if (output && step.id)
+            publishStepOutput(step.id, output, digest, step.background === true);
+        };
+        const annotations = config.annotations.filter(
+          (a) => a.workflow === basename2(wf.file) && a.job === localJobId && a.step === step.id
+        );
+        const notice = (reason, type, message, target) => {
+          if (coverage.some(
+            (item) => item.reason === reason && item.location.job === jobId && item.location.step === index
+          ))
+            return;
+          coverage.push({
+            reason,
+            type,
+            location: { ...jobLocation, line: step.line, step: index },
+            message,
+            ...target ? { target } : {},
+            ...inCall
+          });
+        };
+        if (step.uses?.startsWith("./"))
+          notice(
+            "local-action-call",
+            "action",
+            "Local action contents are not analyzed. Additional operations and value transfers may be hidden behind this call.",
+            step.uses
+          );
+        if (annotations.length) {
+          if (step.run)
+            notice(
+              "unsupported-shell",
+              "shell",
+              "Shell interpretation is replaced by trusted annotations. Additional operations and value transfers are not analyzed."
+            );
+          if (step.uses && !step.uses.startsWith("./"))
+            notice(
+              "unsupported-action-call",
+              "action",
+              "Action interpretation is replaced by trusted annotations. Its contents and additional behavior are not analyzed.",
+              step.uses
+            );
+          for (const a of annotations) {
+            if (a.operation === "build")
+              produce(
+                "User-declared OCI producer",
+                a.output ?? "digest",
+                a.image ? resolveValue(a.image, stepScope) : void 0
+              );
+            else
+              record(
+                a.operation,
+                resolveValue(a.image, stepScope),
+                "User-declared artifact consumer"
+              );
+          }
+          if (step.background === true)
+            backgroundOperations.set(backgroundId, operations.slice(firstOperation));
+          continue;
+        }
+        if (step.uses) {
+          const action = step.uses.split("@")[0].toLowerCase();
+          if (action === "docker/build-push-action") {
+            const platforms = String(step.with?.platforms ?? "").trim();
+            const multiPlatform = platforms.includes("${{") || platforms.split(/[\s,]+/).filter(Boolean).length > 1;
+            produce(
+              step.uses,
+              "digest",
+              step.with?.tags ? resolveValue(step.with.tags, stepScope) : void 0,
+              multiPlatform
+            );
+          } else {
+            const inputs = Object.fromEntries(
+              Object.entries(step.with ?? {}).map(([key, raw]) => [
+                key,
+                resolveValue(raw, stepScope)
+              ])
+            );
+            const consumers = actionConsumption(
+              step.uses,
+              Object.fromEntries(
+                Object.entries(inputs).map(([key, value]) => [key, value.text])
+              ),
+              Object.fromEntries(
+                [...stepScope].filter(([key]) => key.startsWith("shell.")).map(([key, value]) => [key.slice(6), value.text])
+              )
+            );
+            if (!consumers.length && !step.uses.startsWith("./"))
+              notice(
+                "unsupported-action-call",
+                "action",
+                "No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.",
+                step.uses
+              );
+            for (const consumer of consumers) {
+              const usedInputs = consumer.usedInputs ?? [];
+              record(
+                consumer.kind,
+                consumer.reference ? {
+                  text: consumer.reference,
+                  unknown: usedInputs.some((key) => inputs[key]?.unknown),
+                  trace: usedInputs.flatMap((key) => {
+                    const value = inputs[key];
+                    return value ? [...value.trace, `with.${key} = ${value.text}`] : [];
+                  })
+                } : unknownValue(step.uses, "Unsupported or missing image input"),
+                step.uses
+              );
+            }
+          }
+        }
+        if (step.run) {
+          const lines = step.run.replace(/\\\r?\n/g, " ").split(/\r?\n/).map((line) => line.trim()).filter((line) => line && !line.startsWith("#"));
+          const shell = resolveShell(wf, job, step);
+          const unsupportedShell = !shell.supported;
+          const complex = unsupportedShell || lines.some((line) => !balancedQuotes(line)) || lines.some(
+            (line) => /^(if|then|else|elif|fi|for|while|until|case|esac|do|done|function|exit|return|set|source|alias|eval|exec|trap|unset|read|declare|typeset|local|readonly)\b|\$\(|`|\|\||&&|;|\||<<|^\.\s|[{}]/.test(
+              line.replace(/\$\{\{.*?\}\}/g, "EXPR").replace(/\$\{[A-Za-z_]\w*\}/g, "VAR")
+            )
+          );
+          const outputPattern = /^echo\s+(["'])([A-Za-z_][\w-]*)=(.*?)\1\s*>>\s*["']?\$(?:GITHUB_OUTPUT|\{GITHUB_OUTPUT\})["']?$/;
+          const unknownOutputWrite = lines.some(
+            (line) => line.includes("GITHUB_OUTPUT") && !outputPattern.test(line)
+          );
+          const shellNotice = () => notice(
+            "unsupported-shell",
+            "shell",
+            shell.supported ? "Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved." : `Shell is not supported or cannot be established: ${shell.reason}. Operations and value transfers in this script are not interpreted.`
+          );
+          if (complex || unknownOutputWrite) shellNotice();
+          for (const line of lines) {
+            const output = /^echo\s+(["'])([A-Za-z_][\w-]*)=(.*?)\1\s*>>\s*["']?\$(?:GITHUB_OUTPUT|\{GITHUB_OUTPUT\})["']?$/.exec(
+              line
+            );
+            if (output && step.id) {
+              const value = complex || unknownOutputWrite ? unknownValue("unknown step output", "Complex shell output") : output[1] === "'" ? resolveValue(output[3], stepScope) : shellValue(output[3], stepScope);
+              value.unknown ||= guarded;
+              publishStepOutput(step.id, output[2], value, step.background === true);
+              continue;
+            }
+            if (line.includes("GITHUB_ENV")) {
+              for (const target of [scope, stepScope])
+                for (const key of target.keys())
+                  if (key.startsWith("env.") || key.startsWith("shell."))
+                    target.set(
+                      key,
+                      unknownValue("unknown environment value", "GITHUB_ENV mutation")
+                    );
+              invalidateTrivyInput(scope);
+              invalidateTrivyInput(stepScope);
+            }
+            const resolved = shellValue(line, stepScope);
+            const tokens = complex ? void 0 : tokenize(resolved.text);
+            if (!tokens) {
+              shellNotice();
+              if (/\b(kubectl|helm)\b/.test(line))
+                record(
+                  "deploy",
+                  unknownValue(
+                    "unknown deployment reference",
+                    "Unsupported shell syntax"
+                  ),
+                  "unsupported shell command",
+                  true
+                );
+              if (/\bdocker\s+(?:run|compose)\b/.test(line))
+                record(
+                  "test",
+                  unknownValue("unknown image reference", "Unsupported shell syntax"),
+                  "unsupported shell command",
+                  true
+                );
+              continue;
+            }
+            const build = shellBuild(tokens);
+            if (build)
+              produce(
+                tokens.slice(0, 3).join(" "),
+                void 0,
+                build.tag ? { ...resolved, text: build.tag } : void 0
+              );
+            const consumers = shellConsumption(
+              tokens,
+              Object.fromEntries(
+                [...stepScope].filter(([key]) => key.startsWith("shell.")).map(([key, value]) => [key.slice(6), value.text])
+              )
+            );
+            if (!build && !consumers.length && !nonMutatingDeployment(tokens) && tokens[0] !== "echo")
+              notice(
+                "uninterpreted-command",
+                "shell",
+                "This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.",
+                tokens[0]
+              );
+            for (const consumer of consumers)
+              record(
+                consumer.kind,
+                consumer.reference ? {
+                  ...resolved,
+                  text: consumer.reference,
+                  // An unrelated unresolved variable in a test command must
+                  // not erase an image identity that was parsed separately.
+                  // Unknown shell expansions before the image may shift its
+                  // argument position, so their boundary remains unresolved.
+                  // Expansions after the image cannot change its identity.
+                  unknown: consumer.identityUnknown !== void 0 || consumer.reference.includes("__samebyte_unknown__") || hasUnknownShellArgumentBeforeReference(
+                    tokens,
+                    consumer.reference,
+                    consumer.referenceIndex
+                  ),
+                  trace: consumer.identityUnknown ? [...resolved.trace, consumer.identityUnknown] : resolved.trace
+                } : consumer.kind === "source-test" ? unknownValue(
+                  "local application build",
+                  "source tests do not establish OCI identity"
+                ) : unknownValue(
+                  "unknown image reference",
+                  "Image reference could not be resolved"
+                ),
+                tokens.slice(0, 2).join(" ")
+              );
+            if (/^[A-Za-z_]\w*=/.test(line) || tokens[0] === "export" || line.includes("GITHUB_ENV")) {
+              for (const key of stepScope.keys())
+                if (key.startsWith("env.") || key.startsWith("shell."))
+                  stepScope.set(
+                    key,
+                    unknownValue(
+                      "unknown environment value",
+                      "Shell environment mutation"
+                    )
+                  );
+              const assignedTrivyInput = /^TRIVY_INPUT=/.test(line) || tokens[0] === "export" && tokens.slice(1).some((token) => /^TRIVY_INPUT(?:=|$)/.test(token));
+              if (assignedTrivyInput) invalidateTrivyInput(stepScope);
+              if (line.includes("GITHUB_ENV")) {
+                for (const key of scope.keys())
+                  if (key.startsWith("env.") || key.startsWith("shell."))
+                    scope.set(
+                      key,
+                      unknownValue("unknown environment value", "GITHUB_ENV mutation")
+                    );
+              }
+              if (line.includes("GITHUB_ENV")) invalidateTrivyInput(scope);
+            }
+          }
+        }
+        if (step.background === true)
+          backgroundOperations.set(backgroundId, operations.slice(firstOperation));
+      }
+      for (const stepId of pendingBackgroundOutputs.keys())
+        releaseBackgroundOutputs(stepId);
+      const outputs = /* @__PURE__ */ new Map();
+      for (const [key, raw] of Object.entries(job.outputs ?? {}))
+        bind(outputs, key, resolveValue(raw, scope));
+      jobOutputs.set(localJobId, outputs);
+    }
+    return jobOutputs;
+  };
+  const analyzeCall = (frame, job, jobId, jobLocation, callScope) => {
+    const wf = frame.workflow;
+    const callId = `${wf.file}#${jobId}`;
+    const outer = frame.call ? { call: frame.call } : {};
+    const caller = { file: wf.file, line: job.line, job: jobId };
+    const opaque = (reason, message) => {
+      coverage.push({
+        reason,
+        type: "reusable-workflow",
+        location: jobLocation,
+        target: job.uses,
+        message,
+        ...outer
+      });
+      if (job.strategy !== void 0) matrixNotice();
+      calls.push({
+        id: callId,
+        caller,
+        target: job.uses,
+        status: "boundary",
+        reason,
+        ...outer
+      });
+      return /* @__PURE__ */ new Map([
+        [
+          "*",
+          unknownValue(
+            "unknown reusable workflow output",
+            `Reusable workflow call ${jobId} is not expanded (${reason}); its outputs are unknown`
+          )
+        ]
+      ]);
+    };
+    const matrixNotice = () => coverage.push({
+      reason: "matrix-job",
+      type: "matrix",
+      location: jobLocation,
+      message: "Job strategy is not expanded. Operations represent templates; per-instance identity and unconditional execution are not proven.",
+      ...outer
+    });
+    if (frame.call)
+      return opaque(
+        "nested-reusable-workflow-call",
+        "A reusable workflow called from a reusable workflow is not expanded: one level of local calls is analyzed. Operations, outputs and execution gates behind this nested call are unknown."
+      );
+    const unloaded = unloadedCall(job.uses);
+    if (unloaded?.status === "boundary")
+      return opaque(unloaded.reason, unloaded.message);
+    if (!resolution) return opaque("reusable-workflow-call", opaqueCallMessage);
+    if (!resolution.root)
+      return opaque(
+        "reusable-workflow-call",
+        `The calling workflow is not stored in a .github/workflows directory, so no repository root is established and the local reusable workflow is not loaded. ${opaqueCallMessage}`
+      );
+    const resolved = resolution.callees.get(job.uses);
+    if (!resolved) return opaque("reusable-workflow-call", opaqueCallMessage);
+    if (resolved.status === "boundary")
+      return opaque(resolved.reason, resolved.message);
+    const callee = resolved.workflow;
+    const contract = callee.call ?? { inputs: {}, outputs: {} };
+    const calleeName = display(callee.file);
+    const passed = job.with === void 0 || job.with === null ? {} : job.with;
+    const problems = [];
+    if (!isMapping(passed)) problems.push("with must be a mapping");
+    const withValues = isMapping(passed) ? passed : {};
+    const declared = new Set(
+      Object.keys(contract.inputs).map((name) => name.toLowerCase())
+    );
+    for (const [key, value] of Object.entries(withValues)) {
+      if (!declared.has(key.toLowerCase()))
+        problems.push(`input ${key} is not declared by the called workflow`);
+      else if (typeof value === "object" && value !== null)
+        problems.push(`input ${key} must be a scalar`);
+    }
+    const passedKey = (name) => Object.keys(withValues).find((key) => key.toLowerCase() === name.toLowerCase());
+    for (const [name, input2] of Object.entries(contract.inputs))
+      if (input2.required && passedKey(name) === void 0)
+        problems.push(`required input ${name} is not provided`);
+    if (problems.length)
+      return opaque(
+        "reusable-workflow-contract",
+        `The call does not match the workflow_call contract of ${calleeName}: ${problems.join("; ")}. GitHub rejects such a call, so the callee is not joined to this caller.`
+      );
+    const site = { id: callId, ...caller, workflow: callee.file };
+    if (job.strategy !== void 0) matrixNotice();
+    if (job.secrets !== void 0)
+      coverage.push({
+        reason: "reusable-workflow-secrets",
+        type: "reusable-workflow",
+        location: jobLocation,
+        target: job.uses,
+        message: "Secrets passed to the reusable workflow are not resolved. Values derived from secrets inside the callee stay unknown."
+      });
+    const inputs = /* @__PURE__ */ new Map();
+    const callInputs = {};
+    for (const [name, input2] of Object.entries(contract.inputs)) {
+      const key = passedKey(name);
+      const declaration = `${calleeName}:${input2.line} workflow_call input ${name}`;
+      let value;
+      let source;
+      if (key !== void 0) {
+        source = "with";
+        value = typedInput(withValues[key], input2.type, callScope);
+        value.trace.push(
+          `${display(wf.file)}:${job.withLines?.[key] ?? job.line} job ${jobId}: with.${key}`
+        );
+      } else if (input2.default !== void 0) {
+        source = "default";
+        value = typedInput(input2.default, input2.type, /* @__PURE__ */ new Map());
+        value.trace.push(`${declaration}: default`);
+      } else {
+        source = "type-default";
+        value = {
+          text: { string: "", number: "0", boolean: "false" }[input2.type],
+          unknown: false,
+          trace: [`${declaration}: not passed, ${input2.type} default`]
+        };
+      }
+      value.trace.push(`call ${jobId} -> ${declaration}`);
+      inputs.set(name, value);
+      callInputs[name] = callValue(value, { source, line: input2.line });
+    }
+    const entry = `${jobId} (call)`;
+    const id = (calleeJob) => `${jobId} / ${calleeJob}`;
+    graph[entry] = {
+      line: job.line,
+      needs: job.needs,
+      steps: [],
+      if: job.if,
+      strategy: job.strategy
+    };
+    const inner = analyzeJobs({
+      workflow: callee,
+      id,
+      call: site,
+      entry,
+      inputs,
+      template: job.strategy !== void 0
+    });
+    graph[jobId] = {
+      ...job,
+      steps: [],
+      needs: [...job.needs, entry, ...Object.keys(callee.jobs).map(id)]
+    };
+    const uncertainOutputs = (calleeJob, seen = /* @__PURE__ */ new Set()) => {
+      if (seen.has(calleeJob)) return void 0;
+      seen.add(calleeJob);
+      const target = callee.jobs[calleeJob];
+      if (target.if !== void 0 && !isExplicitSuccess(target.if))
+        return `Callee job ${calleeJob} is conditional; its outputs are empty when it is skipped`;
+      if (target["continue-on-error"])
+        return `Callee job ${calleeJob} ignores failure; its outputs may be unset`;
+      if (target.strategy !== void 0)
+        return `Callee job ${calleeJob} has a strategy; its outputs come from one instance`;
+      for (const need of target.needs) {
+        const reason = uncertainOutputs(need, seen);
+        if (reason) return reason;
+      }
+    };
+    const outputScope = /* @__PURE__ */ new Map();
+    for (const [name, value] of inputs) bind(outputScope, `inputs.${name}`, value);
+    outputScope.set(
+      "jobs.*",
+      unknownValue(
+        "unknown job output",
+        `Workflow output references a job that does not exist in ${calleeName}`
+      )
+    );
+    for (const calleeJob of Object.keys(callee.jobs)) {
+      const uncertain = uncertainOutputs(calleeJob);
+      const prefix = `jobs.${calleeJob}.outputs`;
+      outputScope.set(
+        `${prefix.toLowerCase()}.*`,
+        unknownValue(
+          "unknown job output",
+          `Callee job ${calleeJob} in ${calleeName} declares no output with this name`
+        )
+      );
+      for (const [key, value] of inner.get(calleeJob) ?? [])
+        if (key === "*") outputScope.set(`${prefix.toLowerCase()}.*`, value);
+        else
+          bind(
+            outputScope,
+            `${prefix}.${key}`,
+            uncertain ? { ...value, unknown: true, trace: [...value.trace, uncertain] } : value
+          );
+    }
+    const outputs = /* @__PURE__ */ new Map();
+    const callOutputs = {};
+    for (const [name, output] of Object.entries(contract.outputs)) {
+      const value = resolveValue(output.value, outputScope);
+      if (job.strategy !== void 0) {
+        value.unknown = true;
+        value.trace.push("Matrix call: the output comes from one unspecified instance");
+      }
+      value.trace.push(
+        `${calleeName}:${output.line} workflow_call output ${name}`,
+        `call ${jobId} (${display(wf.file)}:${job.line}) output ${name}`
+      );
+      bind(outputs, name, value);
+      callOutputs[name] = callValue(value, { line: output.line });
+    }
+    outputs.set(
+      "*",
+      unknownValue(
+        "unknown reusable workflow output",
+        `${calleeName} declares no workflow_call output with this name (call ${jobId})`
+      )
+    );
+    calls.push({
+      id: callId,
+      caller,
+      target: job.uses,
+      workflow: callee.file,
+      status: "expanded",
+      inputs: callInputs,
+      outputs: callOutputs,
+      jobs: Object.keys(callee.jobs).map(id)
+    });
+    return outputs;
+  };
+  analyzeJobs({
+    workflow,
+    id: (job) => job,
+    inputs: /* @__PURE__ */ new Map(),
+    template: false
+  });
+  const jobGraph = { ...workflow, jobs: graph };
+  const reachability = /* @__PURE__ */ new Map();
+  const reachableOperations = operations.filter(
+    (operation) => !operationIsUnreachable(operation, jobGraph, reachability)
+  );
+  const artifacts = [];
+  for (const operation of reachableOperations.filter(
+    (op) => op.kind !== "source-test"
+  )) {
+    let artifact = operation.identity.kind === "immutable" ? artifacts.find((a) => a.identity.key === operation.identity.key) : void 0;
+    if (!artifact) {
+      artifact = {
+        id: `${workflow.file}#artifact-${artifacts.length + 1}`,
+        identity: operation.identity,
+        producers: [],
+        consumers: []
+      };
+      artifacts.push(artifact);
+    }
+    (operation.kind === "build" ? artifact.producers : artifact.consumers).push(
+      operation.id
+    );
+  }
+  const result = analyzeRules(reachableOperations, jobGraph);
+  return {
+    version: 1,
+    workflows: [workflow.file],
+    operations: reachableOperations,
+    artifacts,
+    ...result,
+    diagnostics,
+    coverage,
+    calls
+  };
+}
+function mergeReports(reports) {
+  return {
+    version: 1,
+    workflows: reports.flatMap((r) => r.workflows),
+    operations: reports.flatMap((r) => r.operations),
+    artifacts: reports.flatMap((r) => r.artifacts),
+    deployments: reports.flatMap((r) => r.deployments),
+    findings: reports.flatMap((r) => r.findings),
+    diagnostics: reports.flatMap((r) => r.diagnostics),
+    coverage: reports.flatMap((r) => r.coverage),
+    calls: reports.flatMap((r) => r.calls)
+  };
 }
 
 // src/run.ts
@@ -10237,16 +10787,43 @@ async function analyze(input2, configFile) {
   const diagnostics = [];
   const files = await discover(input2);
   if (!files.length)
-    diagnostics.push({ file: resolve2(input2), message: "No YAML workflows found." });
+    diagnostics.push({ file: resolve3(input2), message: "No YAML workflows found." });
+  const failed = (file, error) => diagnostics.push({
+    file,
+    message: error instanceof Error ? error.message : String(error)
+  });
+  const workflows = [];
   for (const file of files) {
     try {
-      reports.push(analyzeWorkflow(await readWorkflow(file), config));
+      workflows.push(await readWorkflow(file));
     } catch (error) {
-      diagnostics.push({
-        file,
-        message: error instanceof Error ? error.message : String(error)
-      });
+      failed(file, error);
     }
+  }
+  const callees = /* @__PURE__ */ new Map();
+  const analyzed = /* @__PURE__ */ new Map();
+  const run = async (workflow) => {
+    try {
+      analyzed.set(
+        workflow,
+        analyzeWorkflow(workflow, config, await resolveCalls(workflow, callees))
+      );
+    } catch (error) {
+      failed(workflow.file, error);
+    }
+  };
+  const reusableOnly = (workflow) => files.length > 1 && !!workflow.callOnly;
+  for (const workflow of workflows) if (!reusableOnly(workflow)) await run(workflow);
+  const expanded = new Set(
+    [...analyzed.values()].flatMap(
+      (report2) => report2.calls.map((call) => call.workflow)
+    )
+  );
+  for (const workflow of workflows)
+    if (reusableOnly(workflow) && !expanded.has(workflow.file)) await run(workflow);
+  for (const workflow of workflows) {
+    const result = analyzed.get(workflow);
+    if (result) reports.push(result);
   }
   const report = mergeReports(reports);
   report.diagnostics.push(...diagnostics);
@@ -10263,12 +10840,12 @@ function render(report, format2, command = "check") {
 }
 var exitCode = (report) => report.diagnostics.length ? 2 : report.findings.some((f) => f.confidence === "high") ? 1 : 0;
 async function writeReportFile(path, content) {
-  const temporary = join3(
-    dirname(path),
-    `.${basename2(path)}.${process.pid}.${Date.now()}.tmp`
+  const temporary = join4(
+    dirname2(path),
+    `.${basename3(path)}.${process.pid}.${Date.now()}.tmp`
   );
   try {
-    await mkdir(dirname(path), { recursive: true });
+    await mkdir(dirname2(path), { recursive: true });
     await writeFile(temporary, `${content}
 `, { flag: "wx" });
     await rename(temporary, path);
@@ -10286,7 +10863,7 @@ async function execute(options) {
     outcome.writeError = "analysis failed; no report file was written";
     return outcome;
   }
-  const path = resolve2(options.output);
+  const path = resolve3(options.output);
   try {
     await writeReportFile(path, rendered);
     outcome.reportFile = path;

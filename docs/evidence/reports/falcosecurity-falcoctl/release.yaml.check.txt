@@ -1,0 +1,100 @@
+Analysis coverage is incomplete. Unsupported boundaries may hide operations.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:16, goreleaser): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE uninterpreted-command (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:21, goreleaser): git
+  This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:24, goreleaser): actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:30, goreleaser): goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:40, goreleaser)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE reusable-workflow-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:56, provenance-for-binaries): slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+  Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:66, verification): slsa-framework/slsa-verifier/actions/installer@v2.7.1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:69, verification)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:79, verification)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE unsupported-shell (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:102, docker-configure)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE reusable-workflow-secrets (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111, docker-image): ./.github/workflows/docker-image.yaml
+  Secrets passed to the reusable workflow are not resolved. Values derived from secrets inside the callee stay unknown.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:35, docker-image / docker-image, called from docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111 (docker-image)): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:40, docker-image / docker-image, called from docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111 (docker-image)): docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:43, docker-image / docker-image, called from docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111 (docker-image)): docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:47, docker-image / docker-image, called from docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111 (docker-image)): docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:53, docker-image / docker-image, called from docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111 (docker-image)): aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:59, docker-image / docker-image, called from docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111 (docker-image)): aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:65, docker-image / docker-image, called from docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111 (docker-image)): docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:94, docker-image / docker-image, called from docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111 (docker-image)): sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:98, docker-image / docker-image, called from docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111 (docker-image))
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+COVERAGE reusable-workflow-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:129, provenance-for-images-docker): slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0
+  Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:146, login-to-amazon-ecr): aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:152, login-to-amazon-ecr): aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE reusable-workflow-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:169, provenance-for-images-aws-ecr): slsa-framework/slsa-github-generator/.github/workflows/generator_container_slsa3.yml@v2.1.0
+  Reusable workflow contents and outputs are not analyzed. Operations and execution gates may be hidden behind this call.
+
+Reusable workflow calls:
+CALL docker-image (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111) -> docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml [expanded]
+  input release = __samebyte_unknown__ [unknown]
+    -> Complex shell output
+    -> steps.vars.outputs.release
+    -> steps.vars.outputs.release
+    -> release
+    -> needs.docker-configure.outputs.release
+    -> needs.docker-configure.outputs.release
+    -> .github/workflows/release.yaml:118 job docker-image: with.release
+    -> call docker-image -> .github/workflows/docker-image.yaml:7 workflow_call input release
+  input commit = __samebyte_unknown__ [unknown]
+    -> Complex shell output
+    -> steps.vars.outputs.commit
+    -> steps.vars.outputs.commit
+    -> commit
+    -> needs.docker-configure.outputs.commit
+    -> needs.docker-configure.outputs.commit
+    -> .github/workflows/release.yaml:119 job docker-image: with.commit
+    -> call docker-image -> .github/workflows/docker-image.yaml:10 workflow_call input commit
+  input build_date = __samebyte_unknown__ [unknown]
+    -> Complex shell output
+    -> steps.vars.outputs.build_date
+    -> steps.vars.outputs.build_date
+    -> build_date
+    -> needs.docker-configure.outputs.build_date
+    -> needs.docker-configure.outputs.build_date
+    -> .github/workflows/release.yaml:120 job docker-image: with.build_date
+    -> call docker-image -> .github/workflows/docker-image.yaml:13 workflow_call input build_date
+  input sign = true
+    -> .github/workflows/release.yaml:121 job docker-image: with.sign
+    -> call docker-image -> .github/workflows/docker-image.yaml:16 workflow_call input sign
+  output digest = __samebyte_unknown__ [unknown]
+    -> docker-image / docker-image.build-and-push: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+    -> multi-platform child manifest identity is not tracked
+    -> OCI digest output
+    -> steps.build-and-push.outputs.digest
+    -> steps.build-and-push.outputs.digest
+    -> digest
+    -> jobs.docker-image.outputs.digest
+    -> jobs.docker-image.outputs.digest
+    -> .github/workflows/docker-image.yaml:21 workflow_call output digest
+    -> call docker-image (.github/workflows/release.yaml:111) output digest
+
+Unknown build identity (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:79, docker-image / docker-image, called from docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/release.yaml:111 (docker-image)): __samebyte_digest_0c068a2e8aee5458_1__
+  docker-image / docker-image.build-and-push: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+  multi-platform child manifest identity is not tracked
+  OCI digest output
+  docker-image / docker-image step 8: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+No supported deployments found. Artifact lineage was not verified.

@@ -1,0 +1,26 @@
+Analysis coverage is incomplete. Unsupported boundaries may hide operations.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:35, docker-image): actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:40, docker-image): docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:43, docker-image): docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:47, docker-image): docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:53, docker-image): aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:59, docker-image): aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:65, docker-image): docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-action-call (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:94, docker-image): sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+  No OCI adapter interprets this action call. Its contents may contain operations or value transfers outside the analyzed graph.
+COVERAGE unsupported-shell (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:98, docker-image)
+  Shell syntax, shell selection, or output writes are outside the supported interpreter. Operations and value transfers may be missing or unresolved.
+
+Unknown build identity (docs/evidence/falcosecurity-falcoctl/upstream/.github/workflows/docker-image.yaml:79, docker-image): __samebyte_digest_e9a69756e032b52c_1__
+  docker-image.build-and-push: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+  multi-platform child manifest identity is not tracked
+  OCI digest output
+  docker-image step 8: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+No supported deployments found. Artifact lineage was not verified.

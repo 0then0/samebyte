@@ -1,10 +1,16 @@
 # Real-world workflow examples
 
-These examples show what SameByte can establish from GitHub Actions release
-pipelines and how to interpret incomplete coverage. The collection contains
-seven workflows from four repositories, pinned to the commits linked below.
-Analysis is local and static: upstream workflows, actions, scripts, builds, and
-deployments are never executed by the replay tool.
+This directory applies SameByte to release pipelines of public projects. It
+shows what the tool can establish in workflows it was not written for, and how
+to read a report whose coverage is incomplete. Most of these pipelines are
+larger than the analysis supports, so expect `unknown` results and many coverage
+notices; that is the point of the examples.
+
+The collection contains nine workflows from five repositories, each pinned to
+the commit linked in its section. Analysis is local and static: upstream
+workflows, actions, scripts, builds, and deployments are never executed. For
+small workflows with fully proven lineage, see the fixtures in
+[`tests/fixtures`](../../tests/fixtures).
 
 ## Files and report layout
 
@@ -13,22 +19,22 @@ Each repository directory contains:
 - `provenance.json`: repository, full commit, source URLs, and SHA-256 checksums.
 - `upstream/`: unchanged workflow files and related composite action metadata.
 
-`baseline/` contains results from SameByte commit
-`e28803445e42bfe32a5cb8e90436cbd5eb868708` (version `0.1.0`). `updated/` contains
-results for the analysis behavior described in this documentation. Each workflow
-has a JSON report with its invocation and exit code, plus `check` and `explain`
-text output. Each set also has a `summary.json` with operation identities,
-deployments, findings, errors, and, when available, coverage boundaries.
+`reports/` contains the saved results of the current analyzer. Each workflow has
+a JSON report with the command that produced it and its exit code, plus `check`
+and `explain` text output. `reports/summary.json` lists operation identities,
+deployments, findings, errors, and the number of coverage notices for every
+workflow. A test compares the saved reports with a fresh replay, so they always
+match the code in this repository.
 
-The comparison illustrates a reporting change: supported operation identities
-are preserved while unsupported boundaries become visible. Boundary counts are
-not percentages and do not count hidden operations. Exit code `0` does not prove
-that an entire release pipeline was verified.
+Notice counts are not percentages and do not count hidden operations. Exit code
+`0` does not prove that an entire release pipeline was verified.
 
 Composite action files provide context for the dependency maps below. The CLI
-analyzes workflows, not standalone action metadata, and does not expand local or
-remote reusable workflows. Analyzing a callee separately does not connect its
-operations to the caller.
+analyzes workflows, not standalone action metadata. A caller is followed one
+level into a local reusable workflow stored next to it under
+`upstream/.github/workflows`; remote and nested calls are not expanded. Each
+workflow file is also replayed by itself, and analyzing a callee separately does
+not connect its operations to a caller.
 
 ## Reproduce the reports
 
@@ -36,8 +42,8 @@ From a repository checkout with Node.js 22 or later and installed dependencies:
 
 ```sh
 npm run build
-node docs/evidence/replay.mjs /tmp/samebyte-updated
-diff -r docs/evidence/updated /tmp/samebyte-updated
+node docs/evidence/replay.mjs /tmp/samebyte-reports
+diff -r docs/evidence/reports /tmp/samebyte-reports
 ```
 
 The replay tool validates every saved source checksum, then invokes SameByte for
@@ -46,23 +52,8 @@ code. Reports normalize checkout prefixes and file-dependent symbolic namespaces
 so that they can be compared across machines. Inputs and identity relationships
 are unchanged by this normalization.
 
-An optional second argument selects a different CLI bundle. To reproduce the
-baseline without changing your checkout or Git index:
-
-```sh
-baseline_dir=$(mktemp -d /tmp/samebyte-baseline.XXXXXX)
-git archive e28803445e42bfe32a5cb8e90436cbd5eb868708 src | tar -x -C "$baseline_dir"
-NODE_PATH="$PWD/node_modules" node_modules/.bin/esbuild "$baseline_dir/src/cli.ts" \
-  --bundle --external:yaml --platform=node --format=esm --target=node22 \
-  --outfile=dist/evidence-baseline.js
-node docs/evidence/replay.mjs /tmp/samebyte-baseline-replay dist/evidence-baseline.js
-diff -r docs/evidence/baseline /tmp/samebyte-baseline-replay
-rm dist/evidence-baseline.js
-```
-
-The baseline JSON invocation refers to `dist/evidence-baseline.js`; rebuild that
-bundle with the commands above before running an individual baseline invocation.
-For a single workflow with the current CLI:
+An optional second argument selects a different CLI bundle, for example one
+built from another revision. To analyze a single workflow directly:
 
 ```sh
 node dist/cli.js docs/evidence/nvidia-aicr/upstream/.github/workflows/on-tag.yaml --format json
@@ -114,24 +105,30 @@ resolution are separate operations in the inspected attestation composite.
 The implementation and behavior of nested actions and release scripts have not
 been inferred from their names.
 
-Baseline `on-tag.yaml`: **3 operations**, all identity `unknown`: build templates
-at lines 413 and 534, and the Anchore scan template at line 729. No deployments,
+`on-tag.yaml`: **3 operations**, all identity `unknown`: build templates at
+lines 413 and 534, and the Anchore scan template at line 729. No deployments,
 findings, or errors; exit `0`. Separately analyzed qualification and attestation
 workflows each yield zero operations, deployments, findings, and errors.
 
-Updated results preserve those operations and states. `on-tag.yaml` has **80
-boundary notices**: 2 reusable calls, 23 local action calls, 22 other opaque
-actions, 3 strategy boundaries, 26 complex shell boundaries, and 4 uninterpreted
-command boundaries. Qualification has **14** notices; attestation has **5**.
+Both local calls are expanded, so the 19 boundaries inside the callees (14 in
+qualification, 5 in attestation) are reported with their callee location and
+call site. `on-tag.yaml` has **97 boundary notices**: 34 local action calls, 28 other opaque actions, 4 strategy
+boundaries, 27 complex shell boundaries, and 4 uninterpreted command boundaries.
+Analyzed alone, qualification has **14** notices and attestation **5**.
 These are boundary counts, not missing-operation counts or coverage percentages.
 
-The coverage notices identify these limits: local reusable calls hide qualification and
-attestation; local composites hide producers and consumers; matrix instances are
-not expanded; digest-map construction, `fromJSON`, dynamic indexing, registry
-inspection, manifest assembly, shell gates, and promotion remain unsupported.
-Analyzing callee files independently does not join their operations, inputs, or
-outputs to the caller. The analyzed caller therefore has no proven consumer
-identity or recognized deployment for this release chain.
+Expansion does not add an operation here. The `tests` call passes no inputs, so
+the callee's three inputs take their declared defaults; its jobs only run local
+composite actions. The `attest` call passes `candidate_tag` and `digest_map`,
+both unknown because the caller writes them from complex shell; the callee
+validates them in shell, fans out over a matrix, and attests through a local
+composite. Neither callee declares workflow outputs.
+
+The coverage notices identify these limits: local composites hide producers and
+consumers; matrix instances are not expanded; digest-map construction,
+`fromJSON`, dynamic indexing, registry inspection, manifest assembly, shell
+gates, and promotion remain unsupported. The analyzed caller therefore has no
+proven consumer identity or recognized deployment for this release chain.
 
 ## prebid/salesagent
 
@@ -153,14 +150,14 @@ release_created condition -> build-and-push:
   -> scan published digest (exit-code 0, reporting rather than vulnerability gate)
 ```
 
-Baseline and updated: **8 operations**. Three builds (lines 115, 137, 161) have
+Result: **8 operations**. Three builds (lines 115, 137, 161) have
 unknown identity because the job is conditional; the last also builds multiple
 platforms. Two pre-push scans (128, 150) use mutable local tags. Two attestations
 (238, 243) and the published scan (248) have unknown identities. Inputs such as
 `github.repository`, secrets, metadata action outputs, and the guarded build
 output are unresolved. No supported deployments, findings, or errors; exit `0`.
-Updated output adds **17 notices** (13 opaque action calls, 4 complex shell
-boundaries), alongside explicit unknown-operation explanations.
+There are **17 notices** (13 opaque action calls, 4 complex shell
+boundaries), and each unknown operation carries its explanation.
 
 The pre-push builds are distinct producers from the publication build. Their
 byte relationship is unknown, even with shared build arguments or caches; there
@@ -184,9 +181,9 @@ does not directly invoke the composite. The route from the remote callee to
 that composite cannot be established from the inspected files alone. The
 composite's description describes the intended route, not executed evidence.
 
-Baseline caller: **0 operations**, deployments, findings, and errors; exit `0`.
-Updated caller: the same results with **1 reusable-workflow boundary**, carrying
-the exact remote call target and its line 21. The composite producer is manually
+Result: **0 operations**, deployments, findings, and errors; exit `0`, with
+**1 reusable-workflow boundary** carrying the exact remote call target and its
+line 21. The composite producer is manually
 observed but remains outside the analyzed workflow graph. It is not fabricated
 as a detected caller build. The remote call and composite are separate coverage
 boundaries. Multi-platform runtime identity also requires manifest evidence
@@ -208,20 +205,65 @@ published application image. `exact_image` conditionally builds the application
 for two platforms; further manifest checks and promotion are shell/script logic.
 This is a source-test gate, not an OCI test of the publication output.
 
-Baseline and updated: release has **1 unknown build** (line 914); test workflow
-has zero supported operations. Both have zero supported deployments, findings,
-and errors, and exit `0`. Updated release has **76 notices**, including the
-preflight call and a local release-notes action; callee test workflow has **19**.
+Result: release has **1 unknown build** (line 914); test workflow has zero
+supported operations. Both have zero supported deployments, findings, and
+errors, and exit `0`. Release has **94 notices**: the preflight call is
+expanded, so the 19 notices of the callee test workflow appear next to 75 in
+the caller, including a local release-notes
+action. Both passed inputs (`ref`, `base_image_version`) are unknown because the
+caller derives them in complex shell. Analyzed alone, the test workflow has
+**19** notices.
 The preflight job tests source code in a base container rather than the published
 application image. Its script execution, recovery paths, and conditional
 multi-platform build do not establish an OCI test of the publication output.
 
+## falcosecurity/falcoctl
+
+Commit [eb5bf8b132ef047e7f3e830866a16dfb759470aa](https://github.com/falcosecurity/falcoctl/tree/eb5bf8b132ef047e7f3e830866a16dfb759470aa),
+the head of `main` when the case was added.
+Inputs: `.github/workflows/release.yaml` and its local callee `docker-image.yaml`.
+
+This is a small caller/callee pair that returns an OCI digest through a
+workflow output:
+
+```text
+docker-configure -> release, commit, build_date (shell outputs)
+docker-configure -> docker-image (local docker-image.yaml; four scalar inputs)
+   -> docker/build-push-action, linux/amd64 + linux/arm64
+   -> job output digest -> workflow output digest
+   -> optional cosign signing in shell (inputs.sign)
+[docker-configure, docker-image] -> two remote SLSA container generator calls,
+   each with digest: needs.docker-image.outputs.digest
+```
+
+`release.yaml`: **1 operation**, the build inside the callee at
+`docker-image.yaml` line 79, reported as job `docker-image / docker-image` with
+call site `release.yaml` line 111. The call is expanded. `sign` resolves to the
+literal `true`; `release`, `commit`, and `build_date` are unknown because the
+caller writes them in a shell step outside the supported interpreter. The workflow output `digest`
+is traced `steps.build-and-push.outputs.digest` -> job output `digest` ->
+`jobs.docker-image.outputs.digest` (`docker-image.yaml` line 21) ->
+`needs.docker-image.outputs.digest` in the caller.
+
+The value on that path is unknown, and the report says why: the build is
+multi-platform, so the digest names an index and the child manifest is not
+tracked. No supported deployments, findings, or errors; exit `0`. There are
+**24 notices**: 15 in the caller, including the three remote reusable calls and
+the unresolved `secrets: inherit`, and 9 inside the callee (8 opaque actions and
+the signing shell step). The remote generator calls that consume the digest stay
+opaque, so no attestation operation is detected. Analyzed alone,
+`docker-image.yaml` has the same build with unknown inputs and 9 notices.
+
+A complete chain with proven test, scan, and attestation through a callee is
+covered by the controlled fixtures under `tests/fixtures/reusable/`, not by this
+upstream example.
+
 ## Analysis limits
 
-Reusable workflow calls remain boundaries. Their inputs, outputs, and execution
-gates are not expanded into the caller's graph. In these examples, expanding
-local calls alone would still leave composite actions, shell logic, dynamic
-expressions, or platform selection unresolved.
+Local reusable workflow calls are expanded one level; remote and nested calls
+remain boundaries. In these examples, expansion makes the boundaries inside the
+callees visible but leaves composite actions, shell logic, dynamic expressions,
+matrix instances, and platform selection unresolved.
 
 Independent builds are not proven to produce different bytes. A multi-platform
 index is not proof that a particular runtime manifest was tested. Conditional

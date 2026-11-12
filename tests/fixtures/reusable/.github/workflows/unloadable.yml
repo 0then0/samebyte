@@ -1,0 +1,24 @@
+name: Calls that cannot be loaded
+on: push
+jobs:
+  missing:
+    uses: ./.github/workflows/does-not-exist.yml
+  escape:
+    uses: ./.github/workflows/../../../outside.yml
+  elsewhere:
+    uses: ./workflows/verify-image.yml
+  with-ref:
+    uses: ./.github/workflows/verify-image.yml@main
+  invalid-yaml:
+    uses: ./.github/workflows/not-a-workflow.yml
+  not-callable:
+    uses: ./.github/workflows/pipeline.yml
+  broken-contract:
+    uses: ./.github/workflows/broken-contract.yml
+    with:
+      image: ghcr.io/acme/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  deploy:
+    needs: [missing, escape, elsewhere, with-ref, invalid-yaml, not-callable, broken-contract]
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/api api=ghcr.io/acme/api@${{ needs.missing.outputs.digest }}

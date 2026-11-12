@@ -1,0 +1,21 @@
+name: Build image
+on:
+  workflow_call:
+    inputs:
+      tags:
+        type: string
+        default: ghcr.io/acme/api:release
+    outputs:
+      digest:
+        value: ${{ jobs.build.outputs.digest }}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ${{ inputs.tags }}

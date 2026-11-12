@@ -1,0 +1,12 @@
+name: Caller env is not propagated into the callee
+on: push
+env:
+  IMAGE: ghcr.io/acme/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+jobs:
+  verify:
+    uses: ./.github/workflows/env-callee.yml
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/api api=$IMAGE

@@ -1,0 +1,33 @@
+name: Workflow outputs that do not map to a job output
+on:
+  workflow_call:
+    outputs:
+      digest:
+        value: ${{ jobs.build.outputs.digest }}
+      missing-job-digest:
+        value: ${{ jobs.publish.outputs.digest }}
+      missing-output-digest:
+        value: ${{ jobs.build.outputs.image-digest }}
+      computed-digest:
+        value: ${{ format('{0}', jobs.build.outputs.digest) }}
+      skipped-digest:
+        value: ${{ jobs.optional.outputs.digest }}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ghcr.io/acme/api:release
+  optional:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ needs.build.outputs.digest }}
+    steps:
+      - run: echo optional

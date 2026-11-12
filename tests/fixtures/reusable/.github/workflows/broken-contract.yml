@@ -1,0 +1,11 @@
+name: Input without a type
+on:
+  workflow_call:
+    inputs:
+      image:
+        required: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: docker run --rm ${{ inputs.image }} npm test

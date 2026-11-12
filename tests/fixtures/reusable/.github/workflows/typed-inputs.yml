@@ -1,0 +1,26 @@
+name: Required, default, boolean and number inputs
+on: push
+jobs:
+  defaults:
+    uses: ./.github/workflows/typed-inputs-callee.yml
+    with:
+      image: ghcr.io/acme/api
+  explicit:
+    uses: ./.github/workflows/typed-inputs-callee.yml
+    with:
+      image: ghcr.io/acme/api
+      tag: v2
+      push: false
+      dry-run: true
+      retries: 3
+      shards: ${{ vars.SHARDS }}
+      note: 7
+  missing-required:
+    uses: ./.github/workflows/typed-inputs-callee.yml
+    with:
+      tag: v3
+  undeclared:
+    uses: ./.github/workflows/typed-inputs-callee.yml
+    with:
+      image: ghcr.io/acme/api
+      registry: ghcr.io

@@ -1,0 +1,23 @@
+name: Rebuilds and tests its own image
+on:
+  workflow_call:
+    outputs:
+      digest:
+        value: ${{ jobs.build.outputs.digest }}
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: ghcr.io/acme/api:candidate
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - id: build
+        run: docker run --rm ghcr.io/acme/api@${{ needs.build.outputs.digest }} npm test

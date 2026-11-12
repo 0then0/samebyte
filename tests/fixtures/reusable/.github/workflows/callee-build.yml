@@ -1,0 +1,24 @@
+name: A reusable workflow builds, the caller verifies and deploys
+on: push
+jobs:
+  build:
+    uses: ./.github/workflows/build-image.yml
+  verify:
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      IMAGE: ghcr.io/acme/api@${{ needs.build.outputs.digest }}
+    steps:
+      - run: docker run --rm "$IMAGE" npm test
+      - uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: ${{ env.IMAGE }}
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/acme/api
+          subject-digest: ${{ needs.build.outputs.digest }}
+  deploy:
+    needs: [build, verify]
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/api api=ghcr.io/acme/api@${{ needs.build.outputs.digest }}

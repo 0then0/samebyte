@@ -1,0 +1,33 @@
+name: Calls that stay coverage boundaries
+on: push
+jobs:
+  nested:
+    uses: ./.github/workflows/nested-callee.yml
+    with:
+      image: ghcr.io/acme/api
+      digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  matrix:
+    strategy:
+      matrix:
+        image: [ghcr.io/acme/api, ghcr.io/acme/worker]
+    uses: ./.github/workflows/verify-image.yml
+    with:
+      image: ${{ matrix.image }}
+      digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  remote:
+    uses: acme/ci/.github/workflows/verify-image.yml@v1
+    with:
+      image: ghcr.io/acme/api
+      digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  secrets:
+    uses: ./.github/workflows/verify-image.yml
+    secrets: inherit
+    with:
+      image: ghcr.io/acme/api
+      digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  deploy:
+    needs: [nested, matrix, remote]
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/api api=ghcr.io/acme/api@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      - run: kubectl set image deployment/nested api=ghcr.io/acme/api@${{ needs.nested.outputs.digest }}

@@ -1,0 +1,13 @@
+name: The callee verifies a different digest than the one deployed
+on: push
+jobs:
+  verify:
+    uses: ./.github/workflows/verify-image.yml
+    with:
+      image: ghcr.io/acme/api
+      digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  deploy:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/api api=ghcr.io/acme/api@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb

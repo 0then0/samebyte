@@ -1,0 +1,32 @@
+name: Typed inputs
+on:
+  workflow_call:
+    inputs:
+      image:
+        type: string
+        required: true
+      tag:
+        type: string
+        default: stable
+      push:
+        type: boolean
+        default: true
+      dry-run:
+        type: boolean
+      retries:
+        type: number
+      shards:
+        type: number
+        default: 2
+      note:
+        type: string
+    outputs:
+      reference:
+        value: ${{ jobs.test.outputs.reference }}
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    outputs:
+      reference: ${{ inputs.image }}:${{ inputs.tag }}
+    steps:
+      - run: docker run --rm ${{ inputs.image }}:${{ inputs.tag }} npm test -- --retries=${{ inputs.retries }}

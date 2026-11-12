@@ -1,0 +1,39 @@
+name: Two invocations of one callee with different digests
+on: push
+jobs:
+  build-api:
+    uses: ./.github/workflows/build-image.yml
+    with:
+      tags: ghcr.io/acme/api:release
+  build-worker:
+    uses: ./.github/workflows/build-image.yml
+    with:
+      tags: ghcr.io/acme/worker:release
+  verify-api:
+    needs: build-api
+    uses: ./.github/workflows/verify-image.yml
+    with:
+      image: ghcr.io/acme/api
+      digest: ${{ needs.build-api.outputs.digest }}
+  verify-worker:
+    needs: build-worker
+    uses: ./.github/workflows/verify-image.yml
+    with:
+      image: ghcr.io/acme/worker
+      digest: ${{ needs.build-worker.outputs.digest }}
+  deploy-api:
+    needs: [build-api, verify-api]
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/api api=ghcr.io/acme/api@${{ needs.build-api.outputs.digest }}
+  deploy-worker:
+    needs: [build-worker, verify-worker]
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/worker worker=ghcr.io/acme/worker@${{ needs.build-worker.outputs.digest }}
+  # Waits for the other invocation only: nothing qualifies this deployment.
+  deploy-api-unqualified:
+    needs: [build-api, verify-worker]
+    runs-on: ubuntu-latest
+    steps:
+      - run: kubectl set image deployment/api api=ghcr.io/acme/api@${{ needs.build-api.outputs.digest }}

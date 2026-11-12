@@ -4,7 +4,7 @@ The repository includes a [JavaScript action](../action.yml) that runs on the ru
 
 Inputs:
 
-- `path` (default `.`): repository, workflow directory or YAML file. Relative paths resolve against `GITHUB_WORKSPACE`.
+- `path` (default `.`): repository, workflow directory or YAML file. Relative paths resolve against `GITHUB_WORKSPACE`. Local reusable workflows called by an analyzed workflow are read from `.github/workflows` of the same checkout, so check out the whole repository.
 - `format` (default `text`): `text`, `json` or `sarif`.
 - `config` (default empty): optional annotations file, relative to the workspace.
 - `output` (default empty): report file in the selected format, relative to the workspace; parent directories are created. Without it the report is printed to the step log.
