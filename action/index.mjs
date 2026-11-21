@@ -7285,7 +7285,7 @@ var require_public_api = __commonJS({
         return docs;
       return Object.assign([], { empty: true }, composer$1.streamInfo());
     }
-    function parseDocument2(source, options = {}) {
+    function parseDocument3(source, options = {}) {
       const { lineCounter: lineCounter2, prettyErrors } = parseOptions(options);
       const parser$1 = new parser.Parser(lineCounter2?.addNewLine);
       const composer$1 = new composer.Composer(options);
@@ -7311,7 +7311,7 @@ var require_public_api = __commonJS({
       } else if (options === void 0 && reviver2 && typeof reviver2 === "object") {
         options = reviver2;
       }
-      const doc = parseDocument2(src, options);
+      const doc = parseDocument3(src, options);
       if (!doc)
         return null;
       doc.warnings.forEach((warning) => log.warn(doc.options.logLevel, warning));
@@ -7347,7 +7347,7 @@ var require_public_api = __commonJS({
     }
     exports.parse = parse;
     exports.parseAllDocuments = parseAllDocuments;
-    exports.parseDocument = parseDocument2;
+    exports.parseDocument = parseDocument3;
     exports.stringify = stringify;
   }
 });
@@ -7432,6 +7432,26 @@ var callsText = (report, explain) => {
     ""
   ] : [];
 };
+function platformText(report) {
+  const coverage = report.platformCoverage;
+  if (!coverage) return [];
+  const { publication, index, manifests } = coverage;
+  return [
+    `Publication ${publication.job}.${publication.step}: ${publication.reference} [${publication.status}]`,
+    `  ${publication.reason}`,
+    `OCI index ${index.digest} [${index.status}]`,
+    ...index.status === "mismatch" ? [`  Local bytes: ${index.actualDigest}`] : [],
+    ...index.reason ? [`  ${index.reason}`] : [],
+    ...manifests.flatMap(({ position, platform, digest, status, reason, test }) => [
+      `  ${platform ?? `Descriptor #${position + 1}`}${digest ? ` ${digest}` : ""} [${status}]`,
+      `    ${reason}`,
+      ...test ? [
+        `    Test ${test.reference}${test.selector ? ` (platform ${test.selector})` : ""} at ${test.location.file}:${test.location.line} (${test.location.job}${calledFrom(test.call)})`
+      ] : []
+    ]),
+    ...index.status === "verified" && !manifests.length ? ["  The index has no descriptors."] : []
+  ];
+}
 function textReport(report, explain = false) {
   const lines = [];
   for (const diagnostic of report.diagnostics)
@@ -7443,6 +7463,13 @@ function textReport(report, explain = false) {
       ""
     );
   lines.push(...callsText(report, explain));
+  const platforms = platformText(report);
+  if (platforms.length) lines.push(...platforms, "");
+  const testsInPlatformReport = new Set(
+    report.platformCoverage?.manifests.flatMap(
+      ({ test }) => test ? [test.operation] : []
+    )
+  );
   for (const finding of report.findings) {
     lines.push(
       `${finding.ruleId} ${finding.severity.toUpperCase()} [${finding.state}]`,
@@ -7460,7 +7487,7 @@ function textReport(report, explain = false) {
     lines.push("");
   }
   for (const operation of report.operations) {
-    if (operation.kind === "source-test" || operation.identity.kind !== "unknown" && !operation.runtimeIdentityUnknown)
+    if (operation.kind === "source-test" || testsInPlatformReport.has(operation.id) || operation.identity.kind !== "unknown" && !operation.runtimeIdentityUnknown)
       continue;
     lines.push(
       `Unknown ${operation.kind} identity (${operation.location.file}:${operation.location.line}, ${operation.location.job}${calledFrom(operation.call)}): ${operation.identity.reference}`,
@@ -7493,7 +7520,7 @@ function textReport(report, explain = false) {
       }
     }
   }
-  if (!report.deployments.length)
+  if (!report.deployments.length && !report.platformCoverage)
     lines.push("No supported deployments found. Artifact lineage was not verified.");
   if (report.diagnostics.length)
     lines.push("Analysis failed. Artifact lineage was not verified.");
@@ -7521,7 +7548,8 @@ function graphReport(report) {
   return [
     artifacts,
     callsText(report, false).slice(0, -1).join("\n"),
-    ...report.coverage.map(coverageText)
+    ...report.coverage.map(coverageText),
+    platformText(report).join("\n")
   ].filter(Boolean).join("\n\n");
 }
 var sarifLocation = (file, line) => ({
@@ -7574,6 +7602,7 @@ function sarifReport(report) {
         invocations: [
           {
             executionSuccessful: report.diagnostics.length === 0,
+            ...report.platformCoverage ? { properties: { platformCoverage: report.platformCoverage } } : {},
             toolExecutionNotifications: [
               ...report.diagnostics.map((d) => ({
                 level: "error",
@@ -7619,7 +7648,7 @@ import { mkdir, readFile as readFile2, rename, rm, writeFile } from "node:fs/pro
 import { basename as basename3, dirname as dirname2, join as join4, resolve as resolve3 } from "node:path";
 
 // src/analyzer.ts
-import { createHash } from "node:crypto";
+import { createHash as createHash2 } from "node:crypto";
 import { basename as basename2, relative as relative3, sep as sep2 } from "node:path";
 
 // src/shell.ts
@@ -7679,13 +7708,18 @@ function runImage(tokens) {
     "--entrypoint",
     "-u",
     "--user",
-    "--platform",
     "--pull",
     "--label"
   ]);
   const switches = /* @__PURE__ */ new Set(["--rm", "-i", "-t", "-it", "--init"]);
+  let platform;
   for (let i = 2; i < tokens.length; i++) {
     const token = tokens[i];
+    if (token === "--platform" || token.startsWith("--platform=")) {
+      const value = token === "--platform" ? tokens[++i] : token.slice("--platform=".length);
+      platform = platform === void 0 ? value ?? null : null;
+      continue;
+    }
     if (argumentFlags.has(token)) {
       i++;
       continue;
@@ -7693,7 +7727,7 @@ function runImage(tokens) {
     if (switches.has(token) || token.includes("=") && argumentFlags.has(token.split("=")[0]))
       continue;
     if (token.startsWith("-")) return void 0;
-    return { reference: token, index: i };
+    return { reference: token, index: i, platform };
   }
   return void 0;
 }
@@ -7884,6 +7918,7 @@ function shellConsumption(tokens, env = {}) {
         kind: "test",
         reference: image?.reference,
         referenceIndex: image?.index,
+        dockerRun: image,
         identityUnknown: tokens.some(
           (token, index) => token === "--platform" || token.startsWith("--platform=") || index > 0 && tokens[index - 1] === "--platform"
         ) ? "platform-specific child manifest is not tracked" : void 0
@@ -9443,15 +9478,604 @@ function identity(value) {
   return { ...base, kind: "unknown" };
 }
 
+// src/oci-index.ts
+var import_yaml = __toESM(require_dist(), 1);
+import { createHash } from "node:crypto";
+
+// src/rules.ts
+var normalizedCondition = (condition) => String(condition).replace(/^\s*\$\{\{\s*|\s*\}\}\s*$/g, "").trim().replace(/^\((.*)\)$/s, "$1").trim().toLowerCase();
+var explicitSuccess = (condition) => condition === void 0 || normalizedCondition(condition) === "success()";
+var bypassesSuccess = (condition) => hasStatusCheck(condition) && !explicitSuccess(condition);
+var neverRuns = (condition) => normalizedCondition(condition) === "false";
+var isDisabled = (operation, workflow) => {
+  const job = workflow.jobs[operation.location.job];
+  return neverRuns(job.if) || neverRuns(job.steps[operation.location.step]?.if);
+};
+function jobIsSkippedByNeeds(jobId, workflow, memo = /* @__PURE__ */ new Map(), visiting = /* @__PURE__ */ new Set()) {
+  const cached = memo.get(jobId);
+  if (cached !== void 0) return cached;
+  const job = workflow.jobs[jobId];
+  if (neverRuns(job.if)) {
+    memo.set(jobId, true);
+    return true;
+  }
+  if (job.callEntry && !visiting.has(job.callEntry) && jobIsSkippedByNeeds(job.callEntry, workflow, memo, visiting)) {
+    memo.set(jobId, true);
+    return true;
+  }
+  if (bypassesSuccess(job.if) || visiting.has(jobId)) {
+    if (!visiting.has(jobId)) memo.set(jobId, false);
+    return false;
+  }
+  visiting.add(jobId);
+  const skipped = job.needs.some(
+    (need) => (!workflow.jobs[need].callEntry || workflow.jobs[need].callEntry === job.callEntry) && jobIsSkippedByNeeds(need, workflow, memo, visiting)
+  );
+  visiting.delete(jobId);
+  memo.set(jobId, skipped);
+  return skipped;
+}
+var operationIsUnreachable = (operation, workflow, memo = /* @__PURE__ */ new Map()) => isDisabled(operation, workflow) || jobIsSkippedByNeeds(operation.location.job, workflow, memo);
+function jobDependsOn(from, to, workflow) {
+  if (from === to) return true;
+  const seen = /* @__PURE__ */ new Set();
+  const visit = (job) => {
+    if (seen.has(job)) return false;
+    seen.add(job);
+    return workflow.jobs[job].needs.some((need) => need === from || visit(need));
+  };
+  return visit(to);
+}
+function dependsOn(a, b, workflow) {
+  return jobDependsOn(a.location.job, b.location.job, workflow);
+}
+function precedes(a, b, workflow) {
+  if (!dependsOn(a, b, workflow)) return false;
+  if (a.location.job !== b.location.job) return true;
+  if (a.order >= b.order) return false;
+  return a.completionStep === void 0 || a.completionStep < b.location.step;
+}
+function reusableGateReason(op, target, workflow) {
+  const kind = op.kind;
+  const entry = workflow.jobs[op.location.job].callEntry;
+  if (!entry || workflow.jobs[target.location.job].callEntry === entry)
+    return void 0;
+  const operationJob = workflow.jobs[op.location.job];
+  if (operationJob["continue-on-error"] || operationJob.steps[op.location.step]?.["continue-on-error"])
+    return `continue-on-error inside the reusable workflow lets the call succeed when this ${kind} fails.`;
+  if (workflow.jobs[entry].strategy !== void 0)
+    return `The reusable workflow is called with a strategy; this ${kind} is a template, not proof for each instance.`;
+  const seen = /* @__PURE__ */ new Set();
+  const conditional = (id) => {
+    const job = workflow.jobs[id];
+    if (job.callEntry !== entry || seen.has(id)) return void 0;
+    seen.add(id);
+    if (!explicitSuccess(job.if)) return id;
+    for (const need of job.needs) {
+      const found = conditional(need);
+      if (found) return found;
+    }
+  };
+  const skipped = conditional(op.location.job);
+  if (skipped)
+    return `Callee job ${skipped} is conditional; when it is skipped the reusable workflow call can still succeed, so this ${kind} is not a proven gate.`;
+  if (operationJob.strategy !== void 0)
+    return `The callee job has a strategy; this ${kind} is a template, not proof for each instance.`;
+}
+function checkIsRequired(op, target, workflow) {
+  if (reusableGateReason(op, target, workflow)) return false;
+  const safeCondition = (condition) => condition === void 0 || explicitSuccess(condition) || !hasStatusCheck(condition);
+  const operationStepConditionIsSafe = (condition) => condition === void 0 || explicitSuccess(condition);
+  const operationJob = workflow.jobs[op.location.job];
+  const operationStep = operationJob.steps[op.location.step];
+  const targetJob = workflow.jobs[target.location.job];
+  const targetStep = targetJob.steps[target.location.step];
+  if (!safeCondition(targetJob.if) || !safeCondition(targetStep?.if)) return false;
+  const visited = /* @__PURE__ */ new Map();
+  const visit = (id) => {
+    const known = visited.get(id);
+    if (known !== void 0) return known;
+    const job = workflow.jobs[id];
+    const result = id === op.location.job ? safeCondition(job.if) && operationStepConditionIsSafe(operationStep?.if) && (!op.guarded || op.guardedByJobCondition === true) : job.strategy === void 0 && !job["continue-on-error"] && safeCondition(job.if) && job.needs.some(visit);
+    visited.set(id, result);
+    return result;
+  };
+  return visit(target.location.job);
+}
+function analyzeRules(operations, workflow) {
+  const findings = [];
+  const deployments = [];
+  const reachability = /* @__PURE__ */ new Map();
+  const evidence = (ops) => ops.map((op) => ({
+    operation: op.id,
+    reference: op.identity.reference,
+    path: op.identity.trace,
+    ...op.call ? { location: op.location, call: op.call } : {}
+  }));
+  for (const deploy of operations.filter(
+    (op) => op.kind === "deploy" && !operationIsUnreachable(op, workflow, reachability)
+  )) {
+    const checks = {
+      test: "unknown",
+      scan: "unknown",
+      attest: "unknown"
+    };
+    const checkReasons = {};
+    const add = (ruleId, message, state2, ops, high = true) => findings.push({
+      ruleId,
+      message,
+      state: state2,
+      severity: high ? "high" : "medium",
+      confidence: high ? "high" : "medium",
+      location: deploy.location,
+      evidence: evidence([...ops, deploy]),
+      ...deploy.call ? { call: deploy.call } : {}
+    });
+    if (deploy.identity.kind === "mutable")
+      add(
+        "SB005",
+        "Mutable deployment reference. Artifact identity cannot be proven.",
+        "unknown",
+        []
+      );
+    if (deploy.identity.kind === "unknown")
+      add(
+        "SB006",
+        "Artifact identity lost or unsupported deployment boundary.",
+        "unknown",
+        [],
+        false
+      );
+    for (const kind of ["test", "scan", "attest"]) {
+      const candidates = operations.filter(
+        (op) => op.kind === kind && precedes(op, deploy, workflow)
+      );
+      const guaranteed = (op) => checkIsRequired(op, deploy, workflow);
+      const sameIdentity = (op) => op.identity.kind === "immutable" && deploy.identity.kind === "immutable" && op.identity.key === deploy.identity.key;
+      const same = candidates.find((op) => guaranteed(op) && sameIdentity(op));
+      if (same) {
+        if (same.runtimeIdentityUnknown === void 0) checks[kind] = "proven";
+        else
+          checkReasons[kind] = {
+            file: same.location.file,
+            line: same.location.line,
+            reason: same.runtimeIdentityUnknown,
+            ...same.call ? { call: same.call } : {}
+          };
+        continue;
+      }
+      const possibleSame = candidates.find(sameIdentity);
+      if (possibleSame) {
+        checkReasons[kind] = {
+          file: possibleSame.location.file,
+          line: possibleSame.location.line,
+          reason: reusableGateReason(possibleSame, deploy, workflow) ?? `A preceding ${kind} consumer references the deployed artifact, but its condition is not proven to run.`,
+          ...possibleSame.call ? { call: possibleSame.call } : {}
+        };
+        continue;
+      }
+      const unresolved = candidates.find(
+        (op) => op.identity.kind === "unknown" && !isDisabled(op, workflow)
+      );
+      if (unresolved) {
+        checkReasons[kind] = {
+          file: unresolved.location.file,
+          line: unresolved.location.line,
+          reason: `A preceding ${kind} consumer has unresolved artifact identity.`,
+          ...unresolved.call ? { call: unresolved.call } : {}
+        };
+        continue;
+      }
+      const different = candidates.filter(
+        (op) => guaranteed(op) && op.identity.concrete && deploy.identity.concrete && op.identity.repository && op.identity.repository === deploy.identity.repository && op.identity.key !== deploy.identity.key
+      );
+      if (different.length) {
+        checks[kind] = "mismatch";
+        add(
+          { test: "SB002", scan: "SB003", attest: "SB004" }[kind],
+          `${{ test: "Tested", scan: "Scanned", attest: "Attested" }[kind]} artifact differs from deployed artifact.`,
+          "mismatch",
+          different
+        );
+      } else {
+        const symbolic = candidates.some(
+          (op) => op.identity.kind === "immutable" && deploy.identity.kind === "immutable" && op.identity.key !== deploy.identity.key && (!op.identity.concrete || !deploy.identity.concrete)
+        );
+        const unordered = operations.find(
+          (op) => op.kind === kind && sameIdentity(op) && op.call?.id !== deploy.call?.id && !precedes(op, deploy, workflow)
+        );
+        const callSite = unordered?.call ?? deploy.call;
+        checkReasons[kind] = unordered ? {
+          file: unordered.location.file,
+          line: unordered.location.line,
+          reason: `The deployed artifact has a ${kind} consumer across reusable workflow call ${callSite?.job}, but the deployment does not depend on its completion.`,
+          ...unordered.call ? { call: unordered.call } : {}
+        } : {
+          file: deploy.location.file,
+          line: deploy.location.line,
+          reason: deploy.identity.kind !== "immutable" ? "Deployment identity is unresolved or mutable; equality cannot be proven." : symbolic ? "Independent symbolic digests have no proven equality or inequality." : `No preceding supported ${kind} consumer proves identity and successful execution for this deployment.`,
+          ...deploy.call ? { call: deploy.call } : {}
+        };
+      }
+    }
+    const sourceTests = operations.filter(
+      (op) => op.kind === "source-test" && !op.guarded && precedes(op, deploy, workflow)
+    );
+    const builds = operations.filter(
+      (op) => op.kind === "build" && !op.guarded && precedes(op, deploy, workflow)
+    );
+    const sourceCheckedBefore = (build) => sourceTests.some((test) => precedes(test, build, workflow));
+    const stronglyLinkedBuild = builds.find(
+      (build) => build.identity.kind === "immutable" && deploy.identity.kind === "immutable" && build.identity.key === deploy.identity.key && sourceCheckedBefore(build)
+    );
+    const weaklyLinkedBuild = builds.find(
+      (build) => deploy.identity.kind === "mutable" && build.producedReference === deploy.identity.reference && sourceCheckedBefore(build)
+    );
+    const possibleTestOfDeployed = operations.some(
+      (op) => op.kind === "test" && precedes(op, deploy, workflow) && deploy.identity.kind === "immutable" && (op.identity.kind === "unknown" || op.identity.kind === "immutable" && op.identity.key === deploy.identity.key || op.identity.kind === "mutable" && op.identity.repository === deploy.identity.repository)
+    );
+    if (stronglyLinkedBuild && checks.test === "unknown" && !possibleTestOfDeployed) {
+      checks.test = "mismatch";
+      delete checkReasons.test;
+      add(
+        "SB001",
+        "Production artifact was never tested. Source tests ran, but no recognized OCI test consumes the deployed digest.",
+        "mismatch",
+        [...sourceTests, stronglyLinkedBuild]
+      );
+    }
+    if (weaklyLinkedBuild && checks.test === "unknown")
+      add(
+        "SB001",
+        "A candidate production image was built after source tests, but a mutable tag cannot prove which bytes were deployed.",
+        "unknown",
+        [...sourceTests, weaklyLinkedBuild],
+        false
+      );
+    const state = Object.values(checks).includes("mismatch") ? "mismatch" : Object.values(checks).every((value) => value === "proven") ? "proven" : "unknown";
+    deployments.push({
+      operation: deploy.id,
+      state,
+      checks,
+      ...Object.keys(checkReasons).length ? { checkReasons } : {}
+    });
+  }
+  return { findings, deployments };
+}
+
+// src/oci-index.ts
+var indexType = "application/vnd.oci.image.index.v1+json";
+var manifestType = "application/vnd.oci.image.manifest.v1+json";
+var attestationType = "application/vnd.docker.attestation.manifest.v1+json";
+var sha256 = /^sha256:[a-f0-9]{64}$/;
+var ociDigest = /^[a-z0-9]+(?:[+._-][a-z0-9]+)*:[a-zA-Z0-9=_-]+$/;
+var mediaType = /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/i;
+var component = /^[a-z0-9][a-z0-9._-]*$/;
+var architectureAliases = /* @__PURE__ */ new Map([
+  ["x86_64", "amd64"],
+  ["x86-64", "amd64"],
+  ["i386", "386"],
+  ["aarch64", "arm64"],
+  ["armhf", "arm"],
+  ["armel", "arm"]
+]);
+var namePart = "[a-z0-9]+(?:(?:[._]|__|-+)[a-z0-9]+)*";
+var hostPart = "[a-z0-9]+(?:-+[a-z0-9]+)*";
+var host = `(?:${hostPart}(?:\\.${hostPart})*|\\[[0-9a-fA-F:]+\\])`;
+var repositoryName = new RegExp(
+  `^(?:${host}(?::[0-9]+)?/)?${namePart}(?:/${namePart})*$`
+);
+var mapping = (value) => value !== null && typeof value === "object" && !Array.isArray(value);
+var matches = (value, pattern) => typeof value === "string" && pattern.test(value);
+var stringMap = (value) => mapping(value) && Object.values(value).every((entry) => typeof entry === "string");
+var strings = (value) => Array.isArray(value) && value.every((entry) => typeof entry === "string");
+function namedDigest(reference) {
+  const [repository, digest, extra] = reference.split("@");
+  if (repositoryName.test(repository) && sha256.test(digest) && extra === void 0)
+    return { repository, digest };
+}
+function parsePublication(raw) {
+  if (mapping(raw) && typeof raw.job === "string" && raw.job.trim() && typeof raw.step === "string" && raw.step.trim() && typeof raw.reference === "string") {
+    const reference = namedDigest(raw.reference);
+    if (reference)
+      return { job: raw.job, step: raw.step, reference: raw.reference, ...reference };
+  }
+  throw new Error(
+    "Publication binding requires job and step IDs and an exact repository@sha256:<64 lowercase hex digits> reference."
+  );
+}
+function hasDuplicateJsonKeys(source) {
+  return (0, import_yaml.parseDocument)(source, { schema: "json", uniqueKeys: true }).errors.some(
+    (error) => error.code === "DUPLICATE_KEY"
+  );
+}
+function parsePublicationFile(source) {
+  const raw = JSON.parse(source);
+  if (hasDuplicateJsonKeys(source))
+    throw new Error("Publication binding contains duplicate JSON object keys.");
+  return parsePublication(raw);
+}
+function publicationRepository(tag) {
+  const end = tag.lastIndexOf(":");
+  if (end <= tag.lastIndexOf("/")) return repositoryName.test(tag) ? tag : void 0;
+  const repository = tag.slice(0, end);
+  if (repositoryName.test(repository) && /^[\w][\w.-]{0,127}$/.test(tag.slice(end + 1)))
+    return repository;
+}
+function imagetoolsPublication(tokens) {
+  if (tokens.slice(0, 4).join(" ") !== "docker buildx imagetools create") return;
+  let repository;
+  const sources = [];
+  for (let i = 4; i < tokens.length; i++) {
+    const token = tokens[i];
+    if (token === "-t" || token === "--tag" || token.startsWith("--tag=")) {
+      if (repository) return;
+      repository = publicationRepository(
+        token.startsWith("--tag=") ? token.slice("--tag=".length) : tokens[++i] ?? ""
+      );
+      if (!repository) return;
+    } else {
+      if (token === "--prefer-index=false" || token === "--prefer-index=true") continue;
+      const source = identity({ text: token, trace: [], unknown: false });
+      if (source.kind !== "immutable" || !source.repository || !repositoryName.test(source.repository))
+        return;
+      sources.push(source);
+    }
+  }
+  if (!repository || !sources.length || new Set(sources.map((source) => source.key)).size !== sources.length)
+    return;
+  const concreteDigests = sources.flatMap(
+    ({ concrete, key }) => concrete && key ? [key] : []
+  );
+  return {
+    repository,
+    digest: sources.length === 1 ? concreteDigests[0] : void 0,
+    mergeSources: sources.length > 1 && sources.length === concreteDigests.length ? concreteDigests : void 0
+  };
+}
+function validData(raw, digest) {
+  if (raw.data === void 0) return true;
+  if (typeof raw.data !== "string") return false;
+  const bytes = Buffer.from(raw.data, "base64");
+  if (bytes.length !== raw.size || bytes.toString("base64") !== raw.data) return false;
+  const algorithm = digest.split(":", 1)[0];
+  return algorithm !== "sha256" && algorithm !== "sha512" || `${algorithm}:${createHash(algorithm).update(bytes).digest("hex")}` === digest;
+}
+function validDescriptor(raw) {
+  return matches(raw.mediaType, mediaType) && matches(raw.digest, ociDigest) && (!raw.digest.startsWith("sha256:") || sha256.test(raw.digest)) && (!raw.digest.startsWith("sha512:") || /^sha512:[a-f0-9]{128}$/.test(raw.digest)) && typeof raw.size === "number" && Number.isSafeInteger(raw.size) && raw.size >= 0 && (raw.annotations === void 0 || stringMap(raw.annotations)) && (raw.artifactType === void 0 || matches(raw.artifactType, mediaType)) && (raw.urls === void 0 || strings(raw.urls)) && validData(raw, raw.digest);
+}
+function platformIdentifier(raw) {
+  if (mapping(raw) && matches(raw.os, component) && matches(raw.architecture, component) && (raw.variant === void 0 || matches(raw.variant, component)) && (raw["os.version"] === void 0 || typeof raw["os.version"] === "string") && (raw["os.features"] === void 0 || strings(raw["os.features"])) && (raw.features === void 0 || strings(raw.features))) {
+    return [raw.os, raw.architecture, raw.variant].filter(Boolean).join("/");
+  }
+}
+function parseManifest(raw, position) {
+  if (!mapping(raw))
+    return {
+      position,
+      status: "invalid",
+      reason: "Expected an OCI descriptor object."
+    };
+  const platform = platformIdentifier(raw.platform);
+  const digest = typeof raw.digest === "string" ? raw.digest : void 0;
+  const descriptor = {
+    position,
+    platform,
+    digest,
+    mediaType: typeof raw.mediaType === "string" ? raw.mediaType : void 0
+  };
+  if (!validDescriptor(raw) || raw.platform !== void 0 && platform === void 0)
+    return {
+      ...descriptor,
+      status: "invalid",
+      reason: "Invalid OCI descriptor fields or platform."
+    };
+  if (raw.mediaType !== manifestType)
+    return {
+      ...descriptor,
+      status: "unsupported",
+      reason: "Only flat OCI image manifests are supported."
+    };
+  const attestation = raw.artifactType === attestationType || mapping(raw.annotations) && raw.annotations["vnd.docker.reference.type"] === "attestation-manifest";
+  if (attestation && (!platform || platform === "unknown/unknown"))
+    return {
+      ...descriptor,
+      status: "service",
+      reason: "Buildx attestation descriptor."
+    };
+  if (attestation || raw.artifactType !== void 0)
+    return {
+      ...descriptor,
+      status: "unsupported",
+      reason: "Artifact descriptor does not establish a runnable image."
+    };
+  if (!platform || platform.split("/").slice(0, 2).includes("unknown"))
+    return {
+      ...descriptor,
+      status: "unsupported",
+      reason: "No identifiable runtime platform."
+    };
+  if (!digest || !sha256.test(digest))
+    return {
+      ...descriptor,
+      status: "unsupported",
+      reason: "Only SHA-256 image digests are supported."
+    };
+  return { ...descriptor, status: "unknown", reason: "Insufficient test evidence." };
+}
+function readIndex(input2) {
+  const digest = input2.binding.digest;
+  const actualDigest = `sha256:${createHash("sha256").update(input2.bytes).digest("hex")}`;
+  const index = { file: input2.file, digest, actualDigest };
+  if (actualDigest !== digest)
+    return {
+      index: {
+        ...index,
+        status: "mismatch",
+        reason: "Index bytes do not match the publication digest."
+      },
+      manifests: []
+    };
+  const invalid = (reason, manifests2 = []) => ({
+    index: { ...index, status: "invalid", reason },
+    manifests: manifests2
+  });
+  let raw;
+  try {
+    const source = new TextDecoder("utf-8", { fatal: true }).decode(input2.bytes);
+    raw = JSON.parse(source);
+    if (hasDuplicateJsonKeys(source))
+      return invalid("Index contains duplicate JSON object keys.");
+  } catch {
+    return invalid("Index is not valid UTF-8 JSON.");
+  }
+  if (!mapping(raw) || raw.schemaVersion !== 2 || raw.mediaType !== void 0 && raw.mediaType !== indexType || raw.artifactType !== void 0 || !Array.isArray(raw.manifests) || raw.annotations !== void 0 && !stringMap(raw.annotations) || raw.subject !== void 0 && (!mapping(raw.subject) || !validDescriptor(raw.subject)))
+    return invalid(
+      "Expected an OCI image index with schemaVersion 2 and a manifests array."
+    );
+  const manifests = raw.manifests.map(parseManifest);
+  if (manifests.some((manifest) => manifest.status === "invalid"))
+    return invalid("Index contains malformed OCI descriptors.", manifests);
+  return { index: { ...index, status: "verified" }, manifests };
+}
+function platformKey(platform) {
+  const [os, arch, rawVariant, extra] = platform.split("/");
+  if (!component.test(os) || !arch || !component.test(arch) || rawVariant !== void 0 && !component.test(rawVariant) || extra !== void 0)
+    return platform;
+  const architecture = architectureAliases.get(arch) ?? arch;
+  let variant = rawVariant ?? "";
+  if (architecture === "amd64" && variant === "v1") variant = "";
+  if (arch === "i386") variant = "";
+  if (architecture === "arm64") {
+    if (["8", "v8", "v8.0"].includes(variant)) variant = "";
+    if (["9", "9.0", "v9.0"].includes(variant)) variant = "v9";
+  }
+  if (architecture === "arm") {
+    if (arch === "armel") variant = "v6";
+    else if (arch === "armhf" || variant === "v7" || variant === "7") variant = "";
+    else if (["5", "6", "8"].includes(variant)) variant = `v${variant}`;
+  }
+  return [os === "macos" ? "darwin" : os, architecture, variant].filter(Boolean).join("/");
+}
+var compatible = (platform, selector) => selector === void 0 || typeof selector === "string" && platformKey(selector) === platformKey(platform);
+function duplicates(keys) {
+  const seen = /* @__PURE__ */ new Set();
+  const repeated = /* @__PURE__ */ new Set();
+  for (const key of keys) {
+    if (key === void 0) continue;
+    if (seen.has(key)) repeated.add(key);
+    seen.add(key);
+  }
+  return repeated;
+}
+function testEvidence({
+  operation,
+  identity: identity2,
+  selector
+}) {
+  return {
+    operation: operation.id,
+    location: operation.location,
+    reference: identity2.reference,
+    selector,
+    ...operation.call ? { call: operation.call } : {}
+  };
+}
+function analyzePlatformCoverage(input2, point, tests, workflow, diagnostics) {
+  const { binding } = input2;
+  const { index, manifests } = readIndex(input2);
+  const mergeSources = point?.mergeSources;
+  const imageDigests = new Set(
+    manifests.filter((row) => row.mediaType === manifestType).map((row) => row.digest)
+  );
+  const mergeConflict = index.status === "verified" && mergeSources && mergeSources.every((digest) => imageDigests.has(digest)) && (mergeSources.length !== manifests.length || mergeSources.some((digest, i) => digest !== manifests[i].digest));
+  const publicationProblem = !point ? "The binding must select a supported publication step in a non-matrix job." : point.repository !== binding.repository ? "The binding repository differs from the publication destination." : point.digest !== void 0 && point.digest !== binding.digest ? "The binding digest differs from the digest pinned by the publication step." : mergeConflict ? "Index descriptors differ from the standalone manifest sources of the publication step." : operationIsUnreachable(point, workflow) ? "The selected publication step cannot run." : void 0;
+  if (index.reason) diagnostics.push({ file: input2.file, message: index.reason });
+  if (publicationProblem)
+    diagnostics.push({ file: input2.bindingFile, message: publicationProblem });
+  const result = {
+    publication: {
+      job: binding.job,
+      step: binding.step,
+      reference: binding.reference,
+      evidence: "input",
+      status: publicationProblem ? "unresolved" : "bound",
+      reason: publicationProblem ?? "Publication binding supplied as input evidence. Coverage describes the static workflow.",
+      location: point?.location
+    },
+    index,
+    manifests
+  };
+  if (!point || diagnostics.length) {
+    for (const manifest of manifests)
+      if (manifest.status === "unknown")
+        manifest.reason = index.reason ?? publicationProblem ?? "Workflow analysis is incomplete.";
+    return result;
+  }
+  const reachability = /* @__PURE__ */ new Map();
+  const candidates = tests.filter((test) => !operationIsUnreachable(test.operation, workflow, reachability)).map((test) => ({
+    ...test,
+    pinned: test.identity.concrete ? namedDigest(test.identity.reference) : void 0,
+    required: precedes(test.operation, point, workflow) && checkIsRequired(test.operation, point, workflow)
+  }));
+  const runtime = manifests.filter((manifest) => manifest.status !== "service");
+  const ambiguousPlatforms = duplicates(
+    runtime.map((row) => row.platform && platformKey(row.platform))
+  );
+  const ambiguousDigests = duplicates(manifests.map((row) => row.digest));
+  for (const manifest of runtime) {
+    const { digest, platform } = manifest;
+    if (manifest.status !== "unknown" || !digest || !platform) continue;
+    if (ambiguousPlatforms.has(platformKey(platform)) || ambiguousDigests.has(digest)) {
+      manifest.reason = "Platform or child digest occurs in multiple descriptors.";
+      continue;
+    }
+    const exact = candidates.filter(
+      (candidate2) => candidate2.pinned?.repository === binding.repository && candidate2.pinned.digest === digest && digest !== binding.digest
+    );
+    const proven = exact.find(
+      (test) => test.required && compatible(platform, test.selector)
+    );
+    if (proven) {
+      manifest.status = "proven";
+      manifest.reason = "A required test pins this repository and child digest.";
+      manifest.test = testEvidence(proven);
+      continue;
+    }
+    const aimedAtPlatform = candidates.filter(
+      (test) => typeof test.selector === "string" && compatible(platform, test.selector)
+    );
+    const different = aimedAtPlatform.find(
+      (test) => test.required && test.pinned?.repository === binding.repository && test.pinned.digest !== digest && test.pinned.digest !== binding.digest
+    );
+    if (different) {
+      manifest.status = "mismatch";
+      manifest.reason = "A required test selects this platform but pins a different digest.";
+      manifest.test = testEvidence(different);
+      continue;
+    }
+    const candidate = exact[0] ?? aimedAtPlatform.find((test) => test.identity.repository === binding.repository) ?? candidates.find(
+      (test) => test.pinned?.repository === binding.repository && test.pinned.digest === binding.digest && compatible(platform, test.selector)
+    );
+    if (candidate) {
+      manifest.test = testEvidence(candidate);
+      manifest.reason = !compatible(platform, candidate.selector) ? "The test platform selector is unresolved or conflicts with this child manifest." : candidate.pinned?.digest !== digest ? "The test does not pin the expected child digest." : reusableGateReason(candidate.operation, point, workflow) ?? "The publication does not require this test to complete successfully.";
+    } else {
+      manifest.reason = "No recognized test pins this repository and child digest.";
+    }
+  }
+  return result;
+}
+
 // src/reusable.ts
 import { open, realpath } from "node:fs/promises";
 import { basename, dirname, join as join3, relative as relative2, resolve as resolve2, sep } from "node:path";
 
 // src/parser.ts
-var import_yaml = __toESM(require_dist(), 1);
+var import_yaml2 = __toESM(require_dist(), 1);
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join as join2, resolve } from "node:path";
-var mapping = (value) => !!value && typeof value === "object" && !Array.isArray(value);
+var mapping2 = (value) => !!value && typeof value === "object" && !Array.isArray(value);
 async function discover(input2) {
   const path = resolve(input2);
   const info = await stat(path);
@@ -9465,23 +10089,23 @@ async function discover(input2) {
   return (await readdir(directory, { withFileTypes: true })).filter((entry) => entry.isFile() && /\.ya?ml$/i.test(entry.name)).map((entry) => join2(directory, entry.name)).sort();
 }
 function workflowCall(on, lineOf) {
-  const triggers = typeof on === "string" ? [on] : Array.isArray(on) ? on.map(String) : mapping(on) ? Object.keys(on) : [];
+  const triggers = typeof on === "string" ? [on] : Array.isArray(on) ? on.map(String) : mapping2(on) ? Object.keys(on) : [];
   if (!triggers.includes("workflow_call")) return { callOnly: false };
   const callOnly = triggers.length === 1;
   const contract = { inputs: {}, outputs: {} };
   const fail = (error) => ({ call: { ...contract, error }, callOnly });
-  const body = mapping(on) ? on.workflow_call : void 0;
+  const body = mapping2(on) ? on.workflow_call : void 0;
   if (body === void 0 || body === null) return { call: contract, callOnly };
-  if (!mapping(body)) return fail("on.workflow_call must be a mapping");
+  if (!mapping2(body)) return fail("on.workflow_call must be a mapping");
   for (const key of ["inputs", "outputs"])
-    if (body[key] !== void 0 && body[key] !== null && !mapping(body[key]))
+    if (body[key] !== void 0 && body[key] !== null && !mapping2(body[key]))
       return fail(`on.workflow_call.${key} must be a mapping`);
   const seen = /* @__PURE__ */ new Set();
   for (const [name, input2] of Object.entries(body.inputs ?? {})) {
     if (seen.has(name.toLowerCase()))
       return fail(`workflow_call input ${name} is declared more than once`);
     seen.add(name.toLowerCase());
-    if (!mapping(input2)) return fail(`workflow_call input ${name} must be a mapping`);
+    if (!mapping2(input2)) return fail(`workflow_call input ${name} must be a mapping`);
     if (!["string", "number", "boolean"].includes(input2.type))
       return fail(`workflow_call input ${name} needs type string, number or boolean`);
     if (input2.required !== void 0 && typeof input2.required !== "boolean")
@@ -9500,7 +10124,7 @@ function workflowCall(on, lineOf) {
     if (seen.has(name.toLowerCase()))
       return fail(`workflow_call output ${name} is declared more than once`);
     seen.add(name.toLowerCase());
-    if (!mapping(output) || typeof output.value !== "string")
+    if (!mapping2(output) || typeof output.value !== "string")
       return fail(`workflow_call output ${name} needs a string value`);
     contract.outputs[name] = {
       value: output.value,
@@ -9510,34 +10134,34 @@ function workflowCall(on, lineOf) {
   return { call: contract, callOnly };
 }
 function parseWorkflow(source, file) {
-  const lines = new import_yaml.LineCounter();
-  const doc = (0, import_yaml.parseDocument)(source, { lineCounter: lines, uniqueKeys: true });
+  const lines = new import_yaml2.LineCounter();
+  const doc = (0, import_yaml2.parseDocument)(source, { lineCounter: lines, uniqueKeys: true });
   if (doc.errors.length) throw new Error(doc.errors.map((e) => e.message).join("\n"));
   const raw = doc.toJS({ maxAliasCount: 100 });
   const lineOf = (path) => lines.linePos(doc.getIn(path, true)?.range?.[0] ?? 0).line;
-  if (!mapping(raw) || !mapping(raw.jobs) || !Object.keys(raw.jobs).length)
+  if (!mapping2(raw) || !mapping2(raw.jobs) || !Object.keys(raw.jobs).length)
     throw new Error("Workflow must contain a non-empty jobs mapping.");
   const validateMap = (value, label) => {
-    if (value !== void 0 && !mapping(value))
+    if (value !== void 0 && !mapping2(value))
       throw new Error(`Invalid ${label}: expected mapping`);
   };
   const validateScalarMap = (value, label) => {
     validateMap(value, label);
-    if (mapping(value) && Object.values(value).some(
+    if (mapping2(value) && Object.values(value).some(
       (item) => item === null || typeof item === "object" && item !== null
     ))
       throw new Error(`Invalid ${label}: values must be scalar`);
   };
   validateScalarMap(raw.env, "workflow env");
   validateMap(raw.defaults, "workflow defaults");
-  if (mapping(raw.defaults)) {
+  if (mapping2(raw.defaults)) {
     validateMap(raw.defaults.run, "workflow defaults.run");
-    if (mapping(raw.defaults.run) && raw.defaults.run.shell !== void 0 && typeof raw.defaults.run.shell !== "string")
+    if (mapping2(raw.defaults.run) && raw.defaults.run.shell !== void 0 && typeof raw.defaults.run.shell !== "string")
       throw new Error("Invalid workflow defaults.run.shell: expected string");
   }
   const jobs = {};
   for (const [id, value] of Object.entries(raw.jobs)) {
-    if (!mapping(value)) throw new Error(`Invalid job ${id}`);
+    if (!mapping2(value)) throw new Error(`Invalid job ${id}`);
     if (value.uses !== void 0 && (typeof value.uses !== "string" || !value.uses))
       throw new Error(`Invalid job ${id}: uses must be a non-empty string`);
     if (value.uses !== void 0 && (value.steps !== void 0 || value["runs-on"] !== void 0))
@@ -9546,18 +10170,18 @@ function parseWorkflow(source, file) {
       );
     if (value.uses === void 0 && value["runs-on"] === void 0)
       throw new Error(`Invalid job ${id}: runs-on is required`);
-    if (value["runs-on"] !== void 0 && typeof value["runs-on"] !== "string" && !Array.isArray(value["runs-on"]) && !mapping(value["runs-on"]))
+    if (value["runs-on"] !== void 0 && typeof value["runs-on"] !== "string" && !Array.isArray(value["runs-on"]) && !mapping2(value["runs-on"]))
       throw new Error(`Invalid job ${id}: invalid runs-on value`);
     if (Array.isArray(value["runs-on"]) && (!value["runs-on"].length || value["runs-on"].some((runner) => typeof runner !== "string")))
       throw new Error(`Invalid job ${id}: runs-on arrays must contain strings`);
-    if (mapping(value["runs-on"])) {
+    if (mapping2(value["runs-on"])) {
       const runner = value["runs-on"];
       if (Object.keys(runner).some((key) => !["group", "labels"].includes(key)) || !Object.keys(runner).length || runner.group !== void 0 && (typeof runner.group !== "string" || !runner.group) || runner.labels !== void 0 && typeof runner.labels !== "string" && (!Array.isArray(runner.labels) || !runner.labels.length || runner.labels.some((label) => typeof label !== "string")) || typeof runner.labels === "string" && !runner.labels)
         throw new Error(`Invalid job ${id}: runs-on mapping requires group or labels`);
     }
     validateScalarMap(value.env, `${id} env`);
     validateMap(value.outputs, `${id} outputs`);
-    if (mapping(value.outputs) && Object.values(value.outputs).some((output) => typeof output !== "string"))
+    if (mapping2(value.outputs) && Object.values(value.outputs).some((output) => typeof output !== "string"))
       throw new Error(`Invalid ${id} outputs: values must be strings or expressions`);
     const needs = value.needs === void 0 ? [] : typeof value.needs === "string" ? [value.needs] : value.needs;
     if (!Array.isArray(needs) || needs.some((item) => typeof item !== "string"))
@@ -9570,11 +10194,11 @@ function parseWorkflow(source, file) {
     const waitTargets = [];
     const backgroundIds = /* @__PURE__ */ new Set();
     const steps = (value.steps ?? []).map((step, index) => {
-      if (!mapping(step) || typeof step.run !== "string" && typeof step.uses !== "string" && !["wait", "wait-all", "cancel", "parallel"].some((key) => key in step))
+      if (!mapping2(step) || typeof step.run !== "string" && typeof step.uses !== "string" && !["wait", "wait-all", "cancel", "parallel"].some((key) => key in step))
         throw new Error(`Invalid step ${id}[${index}]`);
       validateScalarMap(step.env, `${id} step env`);
       validateMap(step.with, `${id} step inputs`);
-      if (mapping(step.with) && Object.values(step.with).some(
+      if (mapping2(step.with) && Object.values(step.with).some(
         (input2) => input2 === null || typeof input2 === "object" && input2 !== null
       ))
         throw new Error(`Invalid ${id} step inputs: values must be scalar`);
@@ -9603,7 +10227,7 @@ function parseWorkflow(source, file) {
         if (Array.isArray(target)) waitTargets.push(...target);
       }
       if (step.parallel !== void 0 && (!Array.isArray(step.parallel) || step.parallel.some(
-        (parallelStep) => !mapping(parallelStep) || typeof parallelStep.run !== "string" && typeof parallelStep.uses !== "string" || parallelStep.run !== void 0 && parallelStep.uses !== void 0
+        (parallelStep) => !mapping2(parallelStep) || typeof parallelStep.run !== "string" && typeof parallelStep.uses !== "string" || parallelStep.run !== void 0 && parallelStep.uses !== void 0
       )))
         throw new Error(`Invalid parallel block in ${id}[${index}]`);
       if (step.id !== void 0) {
@@ -9630,7 +10254,7 @@ function parseWorkflow(source, file) {
       steps,
       needs,
       line: lines.linePos(node?.range?.[0] ?? 0).line,
-      ...value.uses && mapping(value.with) ? {
+      ...value.uses && mapping2(value.with) ? {
         withLines: Object.fromEntries(
           Object.keys(value.with).map((key) => [
             key,
@@ -9658,7 +10282,7 @@ function parseWorkflow(source, file) {
     file,
     jobs: ordered,
     defaults: raw.defaults,
-    env: mapping(raw.env) ? raw.env : void 0,
+    env: mapping2(raw.env) ? raw.env : void 0,
     ...workflowCall(raw.on, lineOf)
   };
 }
@@ -9777,272 +10401,12 @@ async function resolveCalls(workflow, cache = /* @__PURE__ */ new Map()) {
   return { root, callees };
 }
 
-// src/rules.ts
-var normalizedCondition = (condition) => String(condition).replace(/^\s*\$\{\{\s*|\s*\}\}\s*$/g, "").trim().replace(/^\((.*)\)$/s, "$1").trim().toLowerCase();
-var explicitSuccess = (condition) => condition === void 0 || normalizedCondition(condition) === "success()";
-var bypassesSuccess = (condition) => hasStatusCheck(condition) && !explicitSuccess(condition);
-var neverRuns = (condition) => normalizedCondition(condition) === "false";
-var isDisabled = (operation, workflow) => {
-  const job = workflow.jobs[operation.location.job];
-  return neverRuns(job.if) || neverRuns(job.steps[operation.location.step]?.if);
-};
-function jobIsSkippedByNeeds(jobId, workflow, memo = /* @__PURE__ */ new Map(), visiting = /* @__PURE__ */ new Set()) {
-  const cached = memo.get(jobId);
-  if (cached !== void 0) return cached;
-  const job = workflow.jobs[jobId];
-  if (neverRuns(job.if)) {
-    memo.set(jobId, true);
-    return true;
-  }
-  if (job.callEntry && !visiting.has(job.callEntry) && jobIsSkippedByNeeds(job.callEntry, workflow, memo, visiting)) {
-    memo.set(jobId, true);
-    return true;
-  }
-  if (bypassesSuccess(job.if) || visiting.has(jobId)) {
-    if (!visiting.has(jobId)) memo.set(jobId, false);
-    return false;
-  }
-  visiting.add(jobId);
-  const skipped = job.needs.some(
-    (need) => (!workflow.jobs[need].callEntry || workflow.jobs[need].callEntry === job.callEntry) && jobIsSkippedByNeeds(need, workflow, memo, visiting)
-  );
-  visiting.delete(jobId);
-  memo.set(jobId, skipped);
-  return skipped;
-}
-var operationIsUnreachable = (operation, workflow, memo = /* @__PURE__ */ new Map()) => isDisabled(operation, workflow) || jobIsSkippedByNeeds(operation.location.job, workflow, memo);
-function jobDependsOn(from, to, workflow) {
-  if (from === to) return true;
-  const seen = /* @__PURE__ */ new Set();
-  const visit = (job) => {
-    if (seen.has(job)) return false;
-    seen.add(job);
-    return workflow.jobs[job].needs.some((need) => need === from || visit(need));
-  };
-  return visit(to);
-}
-function dependsOn(a, b, workflow) {
-  return jobDependsOn(a.location.job, b.location.job, workflow);
-}
-function precedes(a, b, workflow) {
-  if (!dependsOn(a, b, workflow)) return false;
-  if (a.location.job !== b.location.job) return true;
-  if (a.order >= b.order) return false;
-  return a.completionStep === void 0 || a.completionStep < b.location.step;
-}
-function analyzeRules(operations, workflow) {
-  const findings = [];
-  const deployments = [];
-  const reachability = /* @__PURE__ */ new Map();
-  const evidence = (ops) => ops.map((op) => ({
-    operation: op.id,
-    reference: op.identity.reference,
-    path: op.identity.trace,
-    ...op.call ? { location: op.location, call: op.call } : {}
-  }));
-  for (const deploy of operations.filter(
-    (op) => op.kind === "deploy" && !operationIsUnreachable(op, workflow, reachability)
-  )) {
-    const checks = {
-      test: "unknown",
-      scan: "unknown",
-      attest: "unknown"
-    };
-    const checkReasons = {};
-    const add = (ruleId, message, state2, ops, high = true) => findings.push({
-      ruleId,
-      message,
-      state: state2,
-      severity: high ? "high" : "medium",
-      confidence: high ? "high" : "medium",
-      location: deploy.location,
-      evidence: evidence([...ops, deploy]),
-      ...deploy.call ? { call: deploy.call } : {}
-    });
-    if (deploy.identity.kind === "mutable")
-      add(
-        "SB005",
-        "Mutable deployment reference. Artifact identity cannot be proven.",
-        "unknown",
-        []
-      );
-    if (deploy.identity.kind === "unknown")
-      add(
-        "SB006",
-        "Artifact identity lost or unsupported deployment boundary.",
-        "unknown",
-        [],
-        false
-      );
-    for (const kind of ["test", "scan", "attest"]) {
-      const candidates = operations.filter(
-        (op) => op.kind === kind && precedes(op, deploy, workflow)
-      );
-      const callGate = (op) => {
-        const entry = workflow.jobs[op.location.job].callEntry;
-        if (!entry || workflow.jobs[deploy.location.job].callEntry === entry)
-          return void 0;
-        const operationJob = workflow.jobs[op.location.job];
-        if (operationJob["continue-on-error"] || operationJob.steps[op.location.step]?.["continue-on-error"])
-          return `continue-on-error inside the reusable workflow lets the call succeed when this ${kind} fails.`;
-        if (workflow.jobs[entry].strategy !== void 0)
-          return `The reusable workflow is called with a strategy; this ${kind} is a template, not proof for each instance.`;
-        const seen = /* @__PURE__ */ new Set();
-        const conditional = (id) => {
-          const job = workflow.jobs[id];
-          if (job.callEntry !== entry || seen.has(id)) return void 0;
-          seen.add(id);
-          if (!explicitSuccess(job.if)) return id;
-          for (const need of job.needs) {
-            const found = conditional(need);
-            if (found) return found;
-          }
-        };
-        const skipped = conditional(op.location.job);
-        if (skipped)
-          return `Callee job ${skipped} is conditional; when it is skipped the reusable workflow call can still succeed, so this ${kind} is not a proven gate.`;
-        if (operationJob.strategy !== void 0)
-          return `The callee job has a strategy; this ${kind} is a template, not proof for each instance.`;
-      };
-      const guaranteed = (op) => {
-        if (callGate(op)) return false;
-        const safeCondition = (condition) => condition === void 0 || explicitSuccess(condition) || !hasStatusCheck(condition);
-        const operationStepConditionIsSafe = (condition) => condition === void 0 || explicitSuccess(condition);
-        const operationJob = workflow.jobs[op.location.job];
-        const operationStep = operationJob.steps[op.location.step];
-        const deploymentJob = workflow.jobs[deploy.location.job];
-        const deploymentStep = deploymentJob.steps[deploy.location.step];
-        if (!safeCondition(deploymentJob.if) || !safeCondition(deploymentStep?.if))
-          return false;
-        const visited = /* @__PURE__ */ new Map();
-        const visit = (id) => {
-          const known = visited.get(id);
-          if (known !== void 0) return known;
-          const job = workflow.jobs[id];
-          const result = id === op.location.job ? safeCondition(job.if) && operationStepConditionIsSafe(operationStep?.if) && (!op.guarded || op.guardedByJobCondition === true) : job.strategy === void 0 && !job["continue-on-error"] && safeCondition(job.if) && job.needs.some(visit);
-          visited.set(id, result);
-          return result;
-        };
-        return visit(deploy.location.job);
-      };
-      const sameIdentity = (op) => op.identity.kind === "immutable" && deploy.identity.kind === "immutable" && op.identity.key === deploy.identity.key;
-      const same = candidates.find((op) => guaranteed(op) && sameIdentity(op));
-      if (same) {
-        if (same.runtimeIdentityUnknown === void 0) checks[kind] = "proven";
-        else
-          checkReasons[kind] = {
-            file: same.location.file,
-            line: same.location.line,
-            reason: same.runtimeIdentityUnknown,
-            ...same.call ? { call: same.call } : {}
-          };
-        continue;
-      }
-      const possibleSame = candidates.find(sameIdentity);
-      if (possibleSame) {
-        checkReasons[kind] = {
-          file: possibleSame.location.file,
-          line: possibleSame.location.line,
-          reason: callGate(possibleSame) ?? `A preceding ${kind} consumer references the deployed artifact, but its condition is not proven to run.`,
-          ...possibleSame.call ? { call: possibleSame.call } : {}
-        };
-        continue;
-      }
-      const unresolved = candidates.find(
-        (op) => op.identity.kind === "unknown" && !isDisabled(op, workflow)
-      );
-      if (unresolved) {
-        checkReasons[kind] = {
-          file: unresolved.location.file,
-          line: unresolved.location.line,
-          reason: `A preceding ${kind} consumer has unresolved artifact identity.`,
-          ...unresolved.call ? { call: unresolved.call } : {}
-        };
-        continue;
-      }
-      const different = candidates.filter(
-        (op) => guaranteed(op) && op.identity.concrete && deploy.identity.concrete && op.identity.repository && op.identity.repository === deploy.identity.repository && op.identity.key !== deploy.identity.key
-      );
-      if (different.length) {
-        checks[kind] = "mismatch";
-        add(
-          { test: "SB002", scan: "SB003", attest: "SB004" }[kind],
-          `${{ test: "Tested", scan: "Scanned", attest: "Attested" }[kind]} artifact differs from deployed artifact.`,
-          "mismatch",
-          different
-        );
-      } else {
-        const symbolic = candidates.some(
-          (op) => op.identity.kind === "immutable" && deploy.identity.kind === "immutable" && op.identity.key !== deploy.identity.key && (!op.identity.concrete || !deploy.identity.concrete)
-        );
-        const unordered = operations.find(
-          (op) => op.kind === kind && sameIdentity(op) && op.call?.id !== deploy.call?.id && !precedes(op, deploy, workflow)
-        );
-        const callSite = unordered?.call ?? deploy.call;
-        checkReasons[kind] = unordered ? {
-          file: unordered.location.file,
-          line: unordered.location.line,
-          reason: `The deployed artifact has a ${kind} consumer across reusable workflow call ${callSite?.job}, but the deployment does not depend on its completion.`,
-          ...unordered.call ? { call: unordered.call } : {}
-        } : {
-          file: deploy.location.file,
-          line: deploy.location.line,
-          reason: deploy.identity.kind !== "immutable" ? "Deployment identity is unresolved or mutable; equality cannot be proven." : symbolic ? "Independent symbolic digests have no proven equality or inequality." : `No preceding supported ${kind} consumer proves identity and successful execution for this deployment.`,
-          ...deploy.call ? { call: deploy.call } : {}
-        };
-      }
-    }
-    const sourceTests = operations.filter(
-      (op) => op.kind === "source-test" && !op.guarded && precedes(op, deploy, workflow)
-    );
-    const builds = operations.filter(
-      (op) => op.kind === "build" && !op.guarded && precedes(op, deploy, workflow)
-    );
-    const sourceCheckedBefore = (build) => sourceTests.some((test) => precedes(test, build, workflow));
-    const stronglyLinkedBuild = builds.find(
-      (build) => build.identity.kind === "immutable" && deploy.identity.kind === "immutable" && build.identity.key === deploy.identity.key && sourceCheckedBefore(build)
-    );
-    const weaklyLinkedBuild = builds.find(
-      (build) => deploy.identity.kind === "mutable" && build.producedReference === deploy.identity.reference && sourceCheckedBefore(build)
-    );
-    const possibleTestOfDeployed = operations.some(
-      (op) => op.kind === "test" && precedes(op, deploy, workflow) && deploy.identity.kind === "immutable" && (op.identity.kind === "unknown" || op.identity.kind === "immutable" && op.identity.key === deploy.identity.key || op.identity.kind === "mutable" && op.identity.repository === deploy.identity.repository)
-    );
-    if (stronglyLinkedBuild && checks.test === "unknown" && !possibleTestOfDeployed) {
-      checks.test = "mismatch";
-      delete checkReasons.test;
-      add(
-        "SB001",
-        "Production artifact was never tested. Source tests ran, but no recognized OCI test consumes the deployed digest.",
-        "mismatch",
-        [...sourceTests, stronglyLinkedBuild]
-      );
-    }
-    if (weaklyLinkedBuild && checks.test === "unknown")
-      add(
-        "SB001",
-        "A candidate production image was built after source tests, but a mutable tag cannot prove which bytes were deployed.",
-        "unknown",
-        [...sourceTests, weaklyLinkedBuild],
-        false
-      );
-    const state = Object.values(checks).includes("mismatch") ? "mismatch" : Object.values(checks).every((value) => value === "proven") ? "proven" : "unknown";
-    deployments.push({
-      operation: deploy.id,
-      state,
-      checks,
-      ...Object.keys(checkReasons).length ? { checkReasons } : {}
-    });
-  }
-  return { findings, deployments };
-}
-
 // src/analyzer.ts
 var isExplicitSuccess = (condition) => String(condition).replace(/^\s*\$\{\{\s*|\s*\}\}\s*$/g, "").replace(/^\((.*)\)$/s, "$1").trim().toLowerCase() === "success()";
-var invalidateTrivyInput = (scope) => {
-  const value = unknownValue("unknown TRIVY_INPUT value", "Shell environment mutation");
-  bind(scope, "env.TRIVY_INPUT", value);
-  scope.set("shell.TRIVY_INPUT", value);
+var invalidateShellInput = (scope, name) => {
+  const value = unknownValue(`unknown ${name} value`, "Shell environment mutation");
+  bind(scope, `env.${name}`, value);
+  scope.set(`shell.${name}`, value);
 };
 var hasUnknownShellArgumentBeforeReference = (tokens, reference, referenceIndex) => {
   const index = referenceIndex ?? tokens.findIndex((token) => token.includes(reference));
@@ -10082,14 +10446,16 @@ function typedInput(raw, type, scope) {
     `Literal ${literal} does not match declared type ${type}`
   );
 }
-function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
+function analyzeWorkflow(workflow, config = { annotations: [] }, resolution, localIndex) {
   const operations = [];
   const coverage = [];
   const calls = [];
   const diagnostics = [];
+  const platformTests = [];
+  let publication;
   const graph = {};
   let digestSequence = 0;
-  const namespace = createHash("sha256").update(workflow.file).digest("hex").slice(0, 16);
+  const namespace = createHash2("sha256").update(workflow.file).digest("hex").slice(0, 16);
   const display = (file) => resolution?.root ? relative3(resolution.root, file).split(sep2).join("/") : basename2(file);
   const callValue = (value, extra) => ({
     state: value.unknown ? "unknown" : "resolved",
@@ -10168,6 +10534,8 @@ function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
         pendingBackgroundOutputs.delete(stepId);
       };
       scope = environment(environment(scope, wf.env), job.env);
+      const containerEnv = localIndex && isMapping(job.container) && isMapping(job.container.env) ? job.container.env : void 0;
+      const containerPlatform = containerEnv?.DOCKER_DEFAULT_PLATFORM !== void 0 ? resolveValue(containerEnv.DOCKER_DEFAULT_PLATFORM, scope) : void 0;
       for (const [index, step] of job.steps.entries()) {
         if (step.wait !== void 0 || step["wait-all"] === true || step["wait-all"] === null) {
           const mayHaveFailed = !!step["continue-on-error"] || step.if !== void 0 && !isExplicitSuccess(step.if);
@@ -10200,9 +10568,11 @@ function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
         const backgroundId = step.id ?? `__samebyte_background_${index}`;
         const stepScope = environment(scope, step.env);
         const stepId = step.id ?? String(index + 1);
+        const selectedPublication = localIndex && !site && localIndex.binding.job === localJobId && localIndex.binding.step === step.id && job.strategy === void 0 && step.background !== true;
         const guarded = job.if !== void 0 && !isExplicitSuccess(job.if) || step.if !== void 0 && !isExplicitSuccess(step.if) || job.strategy !== void 0 || frame.template || hasParallelBlock || !!job["continue-on-error"] || !!step["continue-on-error"];
         const guardedByJobCondition = guarded && job.if !== void 0 && !isExplicitSuccess(job.if) && step.if === void 0 && job.strategy === void 0 && !frame.template && !job["continue-on-error"] && !step["continue-on-error"] && !hasParallelBlock;
         const prefix = site ? `${site.id} > ${wf.file}#${localJobId}.${stepId}` : `${wf.file}#${jobId}.${stepId}`;
+        const location = { file: wf.file, line: step.line, job: jobId, step: index };
         const record = (kind, value, label, extraGuard = false) => {
           const operationIdentity = identity({
             ...value,
@@ -10222,12 +10592,7 @@ function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
             guardedByJobCondition: guardedByJobCondition && !extraGuard,
             completionStep: step.background === true ? job.steps.length : void 0,
             guarded: guarded || extraGuard,
-            location: {
-              file: wf.file,
-              line: step.line,
-              job: jobId,
-              step: index
-            },
+            location,
             ...inCall
           };
           operations.push(operation);
@@ -10310,12 +10675,14 @@ function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
           if (action === "docker/build-push-action") {
             const platforms = String(step.with?.platforms ?? "").trim();
             const multiPlatform = platforms.includes("${{") || platforms.split(/[\s,]+/).filter(Boolean).length > 1;
-            produce(
-              step.uses,
-              "digest",
-              step.with?.tags ? resolveValue(step.with.tags, stepScope) : void 0,
-              multiPlatform
-            );
+            const tags = step.with?.tags ? resolveValue(step.with.tags, stepScope) : void 0;
+            if (selectedPublication && tags && !tags.unknown && step.with?.outputs === void 0) {
+              const push = resolveValue(step.with?.push, stepScope);
+              const repository = publicationRepository(tags.text);
+              if (repository && !push.unknown && push.text === "true")
+                publication = { repository, location, order: operations.length };
+            }
+            produce(step.uses, "digest", tags, multiPlatform);
           } else {
             const inputs = Object.fromEntries(
               Object.entries(step.with ?? {}).map(([key, raw]) => [
@@ -10386,15 +10753,17 @@ function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
               continue;
             }
             if (line.includes("GITHUB_ENV")) {
-              for (const target of [scope, stepScope])
-                for (const key of target.keys())
+              for (const target2 of [scope, stepScope])
+                for (const key of target2.keys())
                   if (key.startsWith("env.") || key.startsWith("shell."))
-                    target.set(
+                    target2.set(
                       key,
                       unknownValue("unknown environment value", "GITHUB_ENV mutation")
                     );
-              invalidateTrivyInput(scope);
-              invalidateTrivyInput(stepScope);
+              for (const target2 of [scope, stepScope]) {
+                invalidateShellInput(target2, "TRIVY_INPUT");
+                if (localIndex) invalidateShellInput(target2, "DOCKER_DEFAULT_PLATFORM");
+              }
             }
             const resolved = shellValue(line, stepScope);
             const tokens = complex ? void 0 : tokenize(resolved.text);
@@ -10419,6 +10788,8 @@ function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
                 );
               continue;
             }
+            const target = selectedPublication && lines.length === 1 && !resolved.unknown ? imagetoolsPublication(tokens) : void 0;
+            if (target) publication = { ...target, location, order: operations.length };
             const build = shellBuild(tokens);
             if (build)
               produce(
@@ -10432,39 +10803,49 @@ function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
                 [...stepScope].filter(([key]) => key.startsWith("shell.")).map(([key, value]) => [key.slice(6), value.text])
               )
             );
-            if (!build && !consumers.length && !nonMutatingDeployment(tokens) && tokens[0] !== "echo")
+            if (!build && !target && !consumers.length && !nonMutatingDeployment(tokens) && tokens[0] !== "echo")
               notice(
                 "uninterpreted-command",
                 "shell",
                 "This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.",
                 tokens[0]
               );
-            for (const consumer of consumers)
-              record(
+            for (const consumer of consumers) {
+              const reference = consumer.reference ? {
+                ...resolved,
+                text: consumer.reference,
+                // Expansions after the operand cannot change its identity.
+                unknown: consumer.reference.includes("__samebyte_unknown__") || hasUnknownShellArgumentBeforeReference(
+                  tokens,
+                  consumer.reference,
+                  consumer.referenceIndex
+                )
+              } : consumer.kind === "source-test" ? unknownValue(
+                "local application build",
+                "source tests do not establish OCI identity"
+              ) : unknownValue(
+                "unknown image reference",
+                "Image reference could not be resolved"
+              );
+              const operation = record(
                 consumer.kind,
-                consumer.reference ? {
-                  ...resolved,
-                  text: consumer.reference,
-                  // An unrelated unresolved variable in a test command must
-                  // not erase an image identity that was parsed separately.
-                  // Unknown shell expansions before the image may shift its
-                  // argument position, so their boundary remains unresolved.
-                  // Expansions after the image cannot change its identity.
-                  unknown: consumer.identityUnknown !== void 0 || consumer.reference.includes("__samebyte_unknown__") || hasUnknownShellArgumentBeforeReference(
-                    tokens,
-                    consumer.reference,
-                    consumer.referenceIndex
-                  ),
-                  trace: consumer.identityUnknown ? [...resolved.trace, consumer.identityUnknown] : resolved.trace
-                } : consumer.kind === "source-test" ? unknownValue(
-                  "local application build",
-                  "source tests do not establish OCI identity"
-                ) : unknownValue(
-                  "unknown image reference",
-                  "Image reference could not be resolved"
-                ),
+                consumer.reference && consumer.identityUnknown ? {
+                  ...reference,
+                  unknown: true,
+                  trace: [...reference.trace, consumer.identityUnknown]
+                } : reference,
                 tokens.slice(0, 2).join(" ")
               );
+              if (localIndex && consumer.dockerRun) {
+                const defaultPlatform = stepScope.get("shell.DOCKER_DEFAULT_PLATFORM") ?? containerPlatform;
+                const selector = consumer.dockerRun.platform;
+                platformTests.push({
+                  operation,
+                  identity: identity(reference),
+                  selector: selector !== void 0 ? selector : defaultPlatform?.unknown ? null : defaultPlatform?.text || void 0
+                });
+              }
+            }
             if (/^[A-Za-z_]\w*=/.test(line) || tokens[0] === "export" || line.includes("GITHUB_ENV")) {
               for (const key of stepScope.keys())
                 if (key.startsWith("env.") || key.startsWith("shell."))
@@ -10476,7 +10857,9 @@ function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
                     )
                   );
               const assignedTrivyInput = /^TRIVY_INPUT=/.test(line) || tokens[0] === "export" && tokens.slice(1).some((token) => /^TRIVY_INPUT(?:=|$)/.test(token));
-              if (assignedTrivyInput) invalidateTrivyInput(stepScope);
+              if (assignedTrivyInput) invalidateShellInput(stepScope, "TRIVY_INPUT");
+              if (localIndex && (/^DOCKER_DEFAULT_PLATFORM=/.test(line) || tokens[0] === "export" && tokens.slice(1).some((token) => /^DOCKER_DEFAULT_PLATFORM(?:=|$)/.test(token))))
+                invalidateShellInput(stepScope, "DOCKER_DEFAULT_PLATFORM");
               if (line.includes("GITHUB_ENV")) {
                 for (const key of scope.keys())
                   if (key.startsWith("env.") || key.startsWith("shell."))
@@ -10485,7 +10868,8 @@ function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
                       unknownValue("unknown environment value", "GITHUB_ENV mutation")
                     );
               }
-              if (line.includes("GITHUB_ENV")) invalidateTrivyInput(scope);
+              if (line.includes("GITHUB_ENV"))
+                invalidateShellInput(scope, "TRIVY_INPUT");
             }
           }
         }
@@ -10752,6 +11136,13 @@ function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
     );
   }
   const result = analyzeRules(reachableOperations, jobGraph);
+  const platformCoverage = localIndex ? analyzePlatformCoverage(
+    localIndex,
+    publication,
+    platformTests,
+    jobGraph,
+    diagnostics
+  ) : void 0;
   return {
     version: 1,
     workflows: [workflow.file],
@@ -10760,10 +11151,12 @@ function analyzeWorkflow(workflow, config = { annotations: [] }, resolution) {
     ...result,
     diagnostics,
     coverage,
-    calls
+    calls,
+    ...platformCoverage ? { platformCoverage } : {}
   };
 }
 function mergeReports(reports) {
+  const platformCoverage = reports.length === 1 ? reports[0].platformCoverage : void 0;
   return {
     version: 1,
     workflows: reports.flatMap((r) => r.workflows),
@@ -10773,19 +11166,37 @@ function mergeReports(reports) {
     findings: reports.flatMap((r) => r.findings),
     diagnostics: reports.flatMap((r) => r.diagnostics),
     coverage: reports.flatMap((r) => r.coverage),
-    calls: reports.flatMap((r) => r.calls)
+    calls: reports.flatMap((r) => r.calls),
+    ...platformCoverage ? { platformCoverage } : {}
   };
 }
 
 // src/run.ts
 var formats = ["text", "json", "sarif"];
-async function analyze(input2, configFile) {
+async function analyze(input2, configFile, indexFiles) {
   let config = { annotations: [] };
   if (configFile)
     config = validateConfig(JSON.parse(await readFile2(configFile, "utf8")));
   const reports = [];
   const diagnostics = [];
   const files = await discover(input2);
+  let localIndex;
+  if (indexFiles) {
+    if (files.length !== 1 || files[0] !== resolve3(input2))
+      throw new Error("Local OCI index analysis requires a single workflow file.");
+    const file = resolve3(indexFiles.file);
+    const bindingFile = resolve3(indexFiles.publication);
+    const [bytes, binding] = await Promise.all([
+      readFile2(file),
+      readFile2(bindingFile, "utf8")
+    ]);
+    localIndex = {
+      binding: parsePublicationFile(binding),
+      bindingFile,
+      file,
+      bytes
+    };
+  }
   if (!files.length)
     diagnostics.push({ file: resolve3(input2), message: "No YAML workflows found." });
   const failed = (file, error) => diagnostics.push({
@@ -10806,7 +11217,12 @@ async function analyze(input2, configFile) {
     try {
       analyzed.set(
         workflow,
-        analyzeWorkflow(workflow, config, await resolveCalls(workflow, callees))
+        analyzeWorkflow(
+          workflow,
+          config,
+          await resolveCalls(workflow, callees),
+          localIndex
+        )
       );
     } catch (error) {
       failed(workflow.file, error);
@@ -10855,7 +11271,7 @@ async function writeReportFile(path, content) {
   }
 }
 async function execute(options) {
-  const report = await analyze(options.input, options.config);
+  const report = await analyze(options.input, options.config, options.index);
   const rendered = render(report, options.format, options.command);
   const outcome = { report, code: exitCode(report), rendered };
   if (!options.output) return outcome;

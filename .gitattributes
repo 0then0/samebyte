@@ -1,7 +1,8 @@
 * text=auto eol=lf
 
-# Preserve checksum-pinned upstream files on every platform.
+# Preserve the raw bytes of checksum-pinned fixtures on every platform.
 docs/evidence/*/upstream/** -text linguist-vendored=true
+tests/fixtures/buildx-index.oci -text
 docs/evidence/reports/** linguist-generated=true
 
 # Generated action bundle; regenerate with npm run build:action.

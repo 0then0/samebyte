@@ -95,6 +95,31 @@ samebyte . --format sarif --output samebyte.sarif # SARIF 2.1.0 file for Code Sc
 samebyte . --config samebyte.config.json          # annotations for custom steps
 ```
 
+### Check a published OCI index offline
+
+Pass one workflow, the original bytes of its published OCI index, and a JSON
+binding. The binding names the publication job and step ID and the full
+`repository@sha256:…` reference.
+
+```json
+{
+  "job": "release",
+  "step": "publish",
+  "reference": "ghcr.io/example/smoke@sha256:2d6d4232ce3e8768f2065321bab375fd2aedc850a8424028cb274ca5c1007705"
+}
+```
+
+```bash
+samebyte .github/workflows/release.yml --oci-index index.oci \
+  --publication publication.json --format json
+```
+
+SameByte verifies the SHA-256 of the file and reports test coverage for each
+child manifest. A required `docker run` pinned to the amd64 child only covers
+amd64. The binding is evidence supplied by the caller. Results describe the
+static workflow and the supplied index. See [Local OCI index analysis](docs/analysis.md#local-oci-index-analysis)
+for supported publication steps, byte extraction, and report states.
+
 ## Read the result
 
 Each detected deployment gets a state and three checks: `test`, `scan`, and `attest`.
@@ -172,7 +197,7 @@ SameByte checks artifact identity and execution order in workflow files. It is d
 - It does not run workflows, pull images, inspect registries, or verify signatures. A `proven` result describes the workflow graph, not what happened in a particular run.
 - It does not judge the quality of tests, scan policies, or Dockerfiles, and it does not replace SLSA, in-toto, or Sigstore.
 - Composite actions, remote and nested reusable workflows, matrix expansion, complex shell scripts, and arbitrary binaries are not interpreted. They appear as coverage notices.
-- Multi-platform builds are not resolved to a platform manifest, so their identity stays `unknown`.
+- Resolving an index to individual platform manifests requires local index evidence. Registry lookup, tag resolution, and nested indexes are outside this check.
 - Identity is not joined across separate workflow runs, and only GitHub Actions is supported.
 
 ## Documentation

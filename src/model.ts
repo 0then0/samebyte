@@ -51,6 +51,7 @@ export interface Operation {
   producedReference?: string;
   call?: CallSite;
 }
+export type ExecutionPoint = Pick<Operation, 'location' | 'order'>;
 export interface Artifact {
   id: string;
   identity: Identity;
@@ -128,6 +129,40 @@ export interface Call {
   // Set for a call found inside an expanded callee.
   call?: CallSite;
 }
+export interface PlatformCoverage {
+  publication: {
+    job: string;
+    step: string;
+    reference: string;
+    evidence: 'input';
+    status: 'bound' | 'unresolved';
+    reason: string;
+    location?: Location;
+  };
+  index: {
+    file: string;
+    digest: string;
+    actualDigest: string;
+    status: 'verified' | 'mismatch' | 'invalid';
+    reason?: string;
+  };
+  manifests: PlatformManifest[];
+}
+export interface PlatformManifest {
+  position: number;
+  mediaType?: string;
+  platform?: string;
+  digest?: string;
+  status: State | 'service' | 'unsupported' | 'invalid';
+  reason: string;
+  test?: {
+    operation: string;
+    reference: string;
+    location: Location;
+    selector?: string | null;
+    call?: CallSite;
+  };
+}
 export interface Report {
   version: 1;
   workflows: string[];
@@ -138,6 +173,7 @@ export interface Report {
   diagnostics: { file: string; message: string }[];
   coverage: CoverageNotice[];
   calls: Call[];
+  platformCoverage?: PlatformCoverage;
 }
 export interface Step {
   id?: string;

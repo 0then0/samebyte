@@ -42,7 +42,7 @@ export function flag(tokens: string[], ...names: string[]): string | undefined {
 }
 export function runImage(
   tokens: string[],
-): { reference: string; index: number } | undefined {
+): { reference: string; index: number; platform?: string | null } | undefined {
   const argumentFlags = new Set([
     '-e',
     '--env',
@@ -59,13 +59,19 @@ export function runImage(
     '--entrypoint',
     '-u',
     '--user',
-    '--platform',
     '--pull',
     '--label',
   ]);
   const switches = new Set(['--rm', '-i', '-t', '-it', '--init']);
+  let platform: string | null | undefined;
   for (let i = 2; i < tokens.length; i++) {
     const token = tokens[i];
+    if (token === '--platform' || token.startsWith('--platform=')) {
+      const value =
+        token === '--platform' ? tokens[++i] : token.slice('--platform='.length);
+      platform = platform === undefined ? (value ?? null) : null;
+      continue;
+    }
     if (argumentFlags.has(token)) {
       i++;
       continue;
@@ -76,7 +82,7 @@ export function runImage(
     )
       continue;
     if (token.startsWith('-')) return undefined;
-    return { reference: token, index: i };
+    return { reference: token, index: i, platform };
   }
   return undefined;
 }

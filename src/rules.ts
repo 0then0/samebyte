@@ -1,5 +1,12 @@
 import { hasStatusCheck } from './expressions.js';
-import type { Deployment, Finding, Operation, State, Workflow } from './model.js';
+import type {
+  Deployment,
+  ExecutionPoint,
+  Finding,
+  Operation,
+  State,
+  Workflow,
+} from './model.js';
 
 const normalizedCondition = (condition: unknown) =>
   String(condition)
@@ -13,7 +20,7 @@ const explicitSuccess = (condition: unknown) =>
 const bypassesSuccess = (condition: unknown) =>
   hasStatusCheck(condition) && !explicitSuccess(condition);
 const neverRuns = (condition: unknown) => normalizedCondition(condition) === 'false';
-const isDisabled = (operation: Operation, workflow: Workflow) => {
+const isDisabled = (operation: Pick<Operation, 'location'>, workflow: Workflow) => {
   const job = workflow.jobs[operation.location.job];
   return neverRuns(job.if) || neverRuns(job.steps[operation.location.step]?.if);
 };
@@ -58,7 +65,7 @@ function jobIsSkippedByNeeds(
 }
 
 export const operationIsUnreachable = (
-  operation: Operation,
+  operation: Pick<Operation, 'location'>,
   workflow: Workflow,
   memo = new Map<string, boolean>(),
 ) =>
@@ -75,14 +82,87 @@ function jobDependsOn(from: string, to: string, workflow: Workflow): boolean {
   };
   return visit(to);
 }
-function dependsOn(a: Operation, b: Operation, workflow: Workflow): boolean {
+function dependsOn(a: Operation, b: ExecutionPoint, workflow: Workflow): boolean {
   return jobDependsOn(a.location.job, b.location.job, workflow);
 }
-export function precedes(a: Operation, b: Operation, workflow: Workflow): boolean {
+export function precedes(a: Operation, b: ExecutionPoint, workflow: Workflow): boolean {
   if (!dependsOn(a, b, workflow)) return false;
   if (a.location.job !== b.location.job) return true;
   if (a.order >= b.order) return false;
   return a.completionStep === undefined || a.completionStep < b.location.step;
+}
+// Why an operation inside a reusable workflow call may not gate the target
+// outside that call.
+export function reusableGateReason(
+  op: Operation,
+  target: ExecutionPoint,
+  workflow: Workflow,
+): string | undefined {
+  const kind = op.kind;
+  const entry = workflow.jobs[op.location.job].callEntry;
+  if (!entry || workflow.jobs[target.location.job].callEntry === entry)
+    return undefined;
+  const operationJob = workflow.jobs[op.location.job];
+  if (
+    operationJob['continue-on-error'] ||
+    operationJob.steps[op.location.step]?.['continue-on-error']
+  )
+    return `continue-on-error inside the reusable workflow lets the call succeed when this ${kind} fails.`;
+  if (workflow.jobs[entry].strategy !== undefined)
+    return `The reusable workflow is called with a strategy; this ${kind} is a template, not proof for each instance.`;
+  // Whether a skipped callee job fails the calling job is not documented,
+  // so a conditional job is not treated as a gate for the caller.
+  const seen = new Set<string>();
+  const conditional = (id: string): string | undefined => {
+    const job = workflow.jobs[id];
+    if (job.callEntry !== entry || seen.has(id)) return undefined;
+    seen.add(id);
+    if (!explicitSuccess(job.if)) return id;
+    for (const need of job.needs) {
+      const found = conditional(need);
+      if (found) return found;
+    }
+  };
+  const skipped = conditional(op.location.job);
+  if (skipped)
+    return `Callee job ${skipped} is conditional; when it is skipped the reusable workflow call can still succeed, so this ${kind} is not a proven gate.`;
+  if (operationJob.strategy !== undefined)
+    return `The callee job has a strategy; this ${kind} is a template, not proof for each instance.`;
+}
+export function checkIsRequired(
+  op: Operation,
+  target: ExecutionPoint,
+  workflow: Workflow,
+): boolean {
+  if (reusableGateReason(op, target, workflow)) return false;
+  const safeCondition = (condition: unknown) =>
+    condition === undefined || explicitSuccess(condition) || !hasStatusCheck(condition);
+  const operationStepConditionIsSafe = (condition: unknown) =>
+    condition === undefined || explicitSuccess(condition);
+  const operationJob = workflow.jobs[op.location.job];
+  const operationStep = operationJob.steps[op.location.step];
+  const targetJob = workflow.jobs[target.location.job];
+  const targetStep = targetJob.steps[target.location.step];
+  if (!safeCondition(targetJob.if) || !safeCondition(targetStep?.if)) return false;
+  // The result for a job is the same on every path that reaches it.
+  const visited = new Map<string, boolean>();
+  const visit = (id: string): boolean => {
+    const known = visited.get(id);
+    if (known !== undefined) return known;
+    const job = workflow.jobs[id];
+    const result =
+      id === op.location.job
+        ? safeCondition(job.if) &&
+          operationStepConditionIsSafe(operationStep?.if) &&
+          (!op.guarded || op.guardedByJobCondition === true)
+        : job.strategy === undefined &&
+          !job['continue-on-error'] &&
+          safeCondition(job.if) &&
+          job.needs.some(visit);
+    visited.set(id, result);
+    return result;
+  };
+  return visit(target.location.job);
 }
 export function analyzeRules(
   operations: Operation[],
@@ -143,73 +223,7 @@ export function analyzeRules(
       const candidates = operations.filter(
         (op) => op.kind === kind && precedes(op, deploy, workflow),
       );
-      // Why an operation inside a reusable workflow call does not gate a
-      // deployment outside that call, when the call itself is the reason.
-      const callGate = (op: Operation): string | undefined => {
-        const entry = workflow.jobs[op.location.job].callEntry;
-        if (!entry || workflow.jobs[deploy.location.job].callEntry === entry)
-          return undefined;
-        const operationJob = workflow.jobs[op.location.job];
-        if (
-          operationJob['continue-on-error'] ||
-          operationJob.steps[op.location.step]?.['continue-on-error']
-        )
-          return `continue-on-error inside the reusable workflow lets the call succeed when this ${kind} fails.`;
-        if (workflow.jobs[entry].strategy !== undefined)
-          return `The reusable workflow is called with a strategy; this ${kind} is a template, not proof for each instance.`;
-        // Whether a skipped callee job fails the calling job is not documented,
-        // so a conditional job is not treated as a gate for the caller.
-        const seen = new Set<string>();
-        const conditional = (id: string): string | undefined => {
-          const job = workflow.jobs[id];
-          if (job.callEntry !== entry || seen.has(id)) return undefined;
-          seen.add(id);
-          if (!explicitSuccess(job.if)) return id;
-          for (const need of job.needs) {
-            const found = conditional(need);
-            if (found) return found;
-          }
-        };
-        const skipped = conditional(op.location.job);
-        if (skipped)
-          return `Callee job ${skipped} is conditional; when it is skipped the reusable workflow call can still succeed, so this ${kind} is not a proven gate.`;
-        if (operationJob.strategy !== undefined)
-          return `The callee job has a strategy; this ${kind} is a template, not proof for each instance.`;
-      };
-      const guaranteed = (op: Operation): boolean => {
-        if (callGate(op)) return false;
-        const safeCondition = (condition: unknown) =>
-          condition === undefined ||
-          explicitSuccess(condition) ||
-          !hasStatusCheck(condition);
-        const operationStepConditionIsSafe = (condition: unknown) =>
-          condition === undefined || explicitSuccess(condition);
-        const operationJob = workflow.jobs[op.location.job];
-        const operationStep = operationJob.steps[op.location.step];
-        const deploymentJob = workflow.jobs[deploy.location.job];
-        const deploymentStep = deploymentJob.steps[deploy.location.step];
-        if (!safeCondition(deploymentJob.if) || !safeCondition(deploymentStep?.if))
-          return false;
-        // The result for a job is the same on every path that reaches it.
-        const visited = new Map<string, boolean>();
-        const visit = (id: string): boolean => {
-          const known = visited.get(id);
-          if (known !== undefined) return known;
-          const job = workflow.jobs[id];
-          const result =
-            id === op.location.job
-              ? safeCondition(job.if) &&
-                operationStepConditionIsSafe(operationStep?.if) &&
-                (!op.guarded || op.guardedByJobCondition === true)
-              : job.strategy === undefined &&
-                !job['continue-on-error'] &&
-                safeCondition(job.if) &&
-                job.needs.some(visit);
-          visited.set(id, result);
-          return result;
-        };
-        return visit(deploy.location.job);
-      };
+      const guaranteed = (op: Operation) => checkIsRequired(op, deploy, workflow);
       const sameIdentity = (op: Operation) =>
         op.identity.kind === 'immutable' &&
         deploy.identity.kind === 'immutable' &&
@@ -238,7 +252,7 @@ export function analyzeRules(
           file: possibleSame.location.file,
           line: possibleSame.location.line,
           reason:
-            callGate(possibleSame) ??
+            reusableGateReason(possibleSame, deploy, workflow) ??
             `A preceding ${kind} consumer references the deployed artifact, but its condition is not proven to run.`,
           ...(possibleSame.call ? { call: possibleSame.call } : {}),
         };

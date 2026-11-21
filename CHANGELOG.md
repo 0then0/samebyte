@@ -5,6 +5,14 @@ available from [GitHub Releases](https://github.com/0then0/samebyte/releases).
 
 ## Unreleased
 
+### Added
+
+- Optional offline OCI index analysis with `--oci-index` and `--publication`.
+  It checks the original index bytes against the supplied publication digest
+  and reports which child manifests have a required test of their exact
+  repository and digest. Buildx attestations and unsupported descriptors
+  remain visible in the report.
+
 ## [0.2.0] - 2026-11-13
 
 ### Added

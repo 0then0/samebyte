@@ -29,6 +29,30 @@ const callsText = (report: Report, explain: boolean): string[] => {
       ]
     : [];
 };
+function platformText(report: Report): string[] {
+  const coverage = report.platformCoverage;
+  if (!coverage) return [];
+  const { publication, index, manifests } = coverage;
+  return [
+    `Publication ${publication.job}.${publication.step}: ${publication.reference} [${publication.status}]`,
+    `  ${publication.reason}`,
+    `OCI index ${index.digest} [${index.status}]`,
+    ...(index.status === 'mismatch' ? [`  Local bytes: ${index.actualDigest}`] : []),
+    ...(index.reason ? [`  ${index.reason}`] : []),
+    ...manifests.flatMap(({ position, platform, digest, status, reason, test }) => [
+      `  ${platform ?? `Descriptor #${position + 1}`}${digest ? ` ${digest}` : ''} [${status}]`,
+      `    ${reason}`,
+      ...(test
+        ? [
+            `    Test ${test.reference}${test.selector ? ` (platform ${test.selector})` : ''} at ${test.location.file}:${test.location.line} (${test.location.job}${calledFrom(test.call)})`,
+          ]
+        : []),
+    ]),
+    ...(index.status === 'verified' && !manifests.length
+      ? ['  The index has no descriptors.']
+      : []),
+  ];
+}
 export function textReport(report: Report, explain = false): string {
   const lines: string[] = [];
   for (const diagnostic of report.diagnostics)
@@ -40,6 +64,13 @@ export function textReport(report: Report, explain = false): string {
       '',
     );
   lines.push(...callsText(report, explain));
+  const platforms = platformText(report);
+  if (platforms.length) lines.push(...platforms, '');
+  const testsInPlatformReport = new Set(
+    report.platformCoverage?.manifests.flatMap(({ test }) =>
+      test ? [test.operation] : [],
+    ),
+  );
   for (const finding of report.findings) {
     lines.push(
       `${finding.ruleId} ${finding.severity.toUpperCase()} [${finding.state}]`,
@@ -59,6 +90,7 @@ export function textReport(report: Report, explain = false): string {
   for (const operation of report.operations) {
     if (
       operation.kind === 'source-test' ||
+      testsInPlatformReport.has(operation.id) ||
       (operation.identity.kind !== 'unknown' && !operation.runtimeIdentityUnknown)
     )
       continue;
@@ -95,7 +127,7 @@ export function textReport(report: Report, explain = false): string {
       }
     }
   }
-  if (!report.deployments.length)
+  if (!report.deployments.length && !report.platformCoverage)
     lines.push('No supported deployments found. Artifact lineage was not verified.');
   if (report.diagnostics.length)
     lines.push('Analysis failed. Artifact lineage was not verified.');
@@ -132,6 +164,7 @@ export function graphReport(report: Report): string {
     artifacts,
     callsText(report, false).slice(0, -1).join('\n'),
     ...report.coverage.map(coverageText),
+    platformText(report).join('\n'),
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -189,6 +222,9 @@ export function sarifReport(report: Report): unknown {
         invocations: [
           {
             executionSuccessful: report.diagnostics.length === 0,
+            ...(report.platformCoverage
+              ? { properties: { platformCoverage: report.platformCoverage } }
+              : {}),
             toolExecutionNotifications: [
               ...report.diagnostics.map((d) => ({
                 level: 'error',

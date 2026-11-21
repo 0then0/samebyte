@@ -6,6 +6,7 @@ This page describes what SameByte recognizes in a workflow, how it follows an im
 - [Supported data flow](#supported-data-flow)
 - [Producers and consumers](#producers-and-consumers)
 - [Local reusable workflows](#local-reusable-workflows)
+- [Local OCI index analysis](#local-oci-index-analysis)
 - [Findings](#findings)
 - [Shell analysis boundaries](#shell-analysis-boundaries)
 - [Unknown boundaries and annotations](#unknown-boundaries-and-annotations)
@@ -33,7 +34,7 @@ The analysis separates workflow parsing, symbolic values, operation adapters, an
 - Job dependencies, step order, and completion order matter. A later test, a parallel sibling job, status checks that can bypass success, matrix jobs, and ignored failures do not establish unconditional verification. A plain `if: success()` condition preserves the success gate.
 - `background: true` steps only establish a check after `wait` or `wait-all`. Their outputs remain unknown until then. If waiting ignores failure with `continue-on-error`, the result stays unknown. A dependent job starts after background steps in its prerequisite job finish.
 - `parallel` syntax is parsed, but its nested operations are unsupported. SameByte reports an analysis diagnostic and exits with code `2` instead of claiming lineage is verified.
-- A multi-platform build and `docker run --platform ...` do not prove a specific runtime manifest. SameByte keeps these identities unknown because the selected OCI child manifest can depend on the target platform.
+- In workflow-only analysis, a multi-platform build and `docker run --platform ...` leave runtime identity unknown. The optional [local OCI index check](#local-oci-index-analysis) can establish coverage for explicitly pinned child manifests.
 - A concrete digest used by `docker run` without a recognized single-platform producer also remains unknown for testing. It may identify an OCI index, and a test runner can select a different child manifest from the production platform. Identity mismatches between distinct concrete digests are still reported.
 
 The common supported pipeline is:
@@ -122,6 +123,71 @@ The deployment check then stays `unknown` and its reason names the cause, the ca
 
 Remote reusable workflows, nested calls, matrix expansion, secrets, and dynamic workflow paths remain coverage boundaries.
 
+## Local OCI index analysis
+
+Use `--oci-index <file> --publication <file>` with a single workflow file. The
+publication JSON contains `job`, `step`, and `reference`. The first two name a
+job and an explicit step `id` in the entry workflow. The reference names the
+publication repository and the exact SHA-256 digest of its index.
+
+Supported publication steps are a single `docker buildx imagetools create`
+command with one destination tag and digest-pinned sources, or
+`docker/build-push-action` with `push: true`, one tag, and default outputs.
+SameByte checks the destination repository and any concrete digest pinned by
+a single-source index promotion. If all merge sources are concrete standalone
+manifests identified in the supplied index, their digest order must match its
+descriptors. During a build and push or a multi-source merge, the output digest
+comes from the supplied binding. A symbolic digest
+bound at the publication remains symbolic everywhere else in the analysis.
+The report marks the binding as input evidence. A runtime publication or a
+registry would need independent verification.
+
+Save the original index bytes. With a Buildx OCI export, use the digest from
+the build metadata to select the index blob inside the archive:
+
+```bash
+docker buildx build --platform linux/amd64,linux/arm64 \
+  --output type=oci,dest=release.tar --metadata-file build.json .
+digest=$(jq -er '."containerimage.digest"' build.json)
+tar -xOf release.tar "blobs/sha256/${digest#sha256:}" > index.oci
+sha256sum index.oci
+```
+
+An OCI archive's top-level `index.json` can be a layout entry pointing to the
+published index. Use the blob named by the publication digest. SameByte hashes
+the bytes before parsing, so changing whitespace also changes the digest.
+
+The check reads one flat [OCI image index](https://github.com/opencontainers/image-spec/blob/main/image-index.md).
+Each image descriptor needs a SHA-256 digest and a platform identifier of the
+form `os/architecture[/variant]`. A test must use the exact
+`repository@child-digest` in a recognized `docker run` command and pass the
+same dependency and success checks used for deployments. A test that can
+be skipped, run independently, or fail without blocking publication cannot
+prove coverage. Explicit Docker platform selectors must agree with the
+descriptor. The check reads the Docker selector from `--platform` or the
+effective workflow-defined `DOCKER_DEFAULT_PLATFORM`, including job container
+environment variables. Common platform aliases and default variants compare
+using [containerd's platform normalization](https://github.com/containerd/platforms/blob/v1.0.0-rc.5/database.go#L55-L102).
+The check uses neither
+runner architecture nor the index digest to infer the selected child.
+
+- `proven` identifies a required test of the exact child manifest.
+- `mismatch` identifies a required test that explicitly selects the platform
+  and pins a different digest in the same repository.
+- `unknown` marks insufficient evidence or a platform or digest listed more
+  than once. Each ambiguous descriptor remains visible.
+- `service` identifies a [Buildx attestation](https://docs.docker.com/build/metadata/attestations/attestation-storage/)
+  descriptor based on its attestation annotation or artifact type.
+- `unsupported` keeps nested indexes, other unsupported media types, and
+  unidentified platforms visible. An unmarked `unknown/unknown` is unsupported.
+- `invalid` marks a malformed descriptor. An invalid index or binding is an
+  analysis error and prevents every platform proof.
+
+See Docker's [multi-platform workflow example](https://docs.docker.com/build/ci/github-actions/multi-platform/)
+for building images on separate platform runners and publishing a combined
+index. Registry access, tag resolution, nested index expansion, and matrix
+evaluation are outside the local check.
+
 ## Findings
 
 - **SB001:** a production image with a proven digest link was built after source tests, and no recognized OCI test consumes that digest. A matching mutable tag only yields a medium confidence candidate because it cannot establish which bytes the registry served. Unrelated image tests never suppress this finding.
@@ -193,7 +259,7 @@ Each JSON `coverage` entry includes a stable `reason`, a boundary `type`, a `loc
 
 An expanded call has no notice of its own; every unsupported construct inside the callee keeps its own notice, with the callee location and a `call` object naming the call site. One resolved input or output chain is therefore not a claim that the callee is fully covered.
 
-Notices describe structural boundaries, including calls that may be skipped. They are not counts of missing operations. An empty array is not a completeness claim: adapters interpret documented interfaces, arbitrary binaries are not executed, and platform manifests are not inspected. There is no coverage percentage. An unsupported `parallel` block is an **analysis error** with exit code `2`.
+Notices describe structural boundaries, including calls that may be skipped. They are not counts of missing operations. Adapters interpret documented interfaces. Arbitrary binaries and OCI child manifest contents are outside the analysis. An unsupported `parallel` block is an **analysis error** with exit code `2`.
 
 Trusted annotations can assert an operation and its identity but do not establish that an action or script has no other behavior. Action calls and annotated `run` steps retain a coverage notice. Supported actions are analyzed through their adapters, not by inspecting implementation code.
 
@@ -206,4 +272,18 @@ JSON reports carry `version: 1`. Fields are added without changing the version; 
 - `calls`: one entry per job-level `uses`, with `id`, `caller` (`file`, `line`, `job`), `target`, `status` (`expanded` or `boundary`), the boundary `reason`, the resolved `workflow` file, and for expanded calls `inputs`, `outputs` (each with `state`, `value`, and trace `path`) and the callee `jobs`. The array is empty for workflows without calls.
 - `call` on operations, coverage notices, finding evidence, findings, and deployment `checkReasons` that lie inside a callee: the call `id`, the call site (`file`, `line`, `job`), the callee `workflow`, and `calleeJob`. Their `location` is the place in the callee, with `job` set to `<calling job> / <callee job>`. Finding evidence inside a callee also has its `location`.
 
-In SARIF, a result keeps the place of the problem as its location and lists callee evidence and call sites under `relatedLocations`. A coverage notification inside a callee has the call site as a second location. Reports for workflows without reusable calls differ from earlier releases only by the empty `calls` array.
+In SARIF, a result keeps the place of the problem as its location and lists callee evidence and call sites under `relatedLocations`. A coverage notification inside a callee has the call site as a second location.
+
+When both OCI flags are present, JSON adds `platformCoverage` and SARIF
+records it in the invocation's `properties`. Text, `explain`, and `graph`
+print the same descriptor statuses and reasons. The object contains the
+publication selector and input binding, the index's expected and computed
+digests, and the `manifests` array in index order. Each entry has a
+zero-based `position`, `status`, `reason`, and the available platform,
+digest, and media type. A matched `test` names its operation, image reference,
+location, optional selector, and call site. A hash mismatch leaves the
+descriptor array empty because the file was not parsed.
+
+Platform states are informational. Existing deployment findings determine
+exit code `1` and invalid evidence exits `2`. Without the flags, publication
+coverage is absent and workflow-only analysis uses the existing rules.

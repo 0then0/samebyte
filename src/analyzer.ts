@@ -28,6 +28,14 @@ import type {
   Value,
   Workflow,
 } from './model.js';
+import {
+  analyzePlatformCoverage,
+  imagetoolsPublication,
+  type LocalIndex,
+  type PlatformTest,
+  type PublicationPoint,
+  publicationRepository,
+} from './oci-index.js';
 import { type CallResolution, opaqueCallMessage, unloadedCall } from './reusable.js';
 import { analyzeRules, operationIsUnreachable } from './rules.js';
 import { balancedQuotes, resolveShell, tokenize } from './shell.js';
@@ -48,10 +56,10 @@ const isExplicitSuccess = (condition: unknown): boolean =>
     .replace(/^\((.*)\)$/s, '$1')
     .trim()
     .toLowerCase() === 'success()';
-const invalidateTrivyInput = (scope: Scope) => {
-  const value = unknownValue('unknown TRIVY_INPUT value', 'Shell environment mutation');
-  bind(scope, 'env.TRIVY_INPUT', value);
-  scope.set('shell.TRIVY_INPUT', value);
+const invalidateShellInput = (scope: Scope, name: string) => {
+  const value = unknownValue(`unknown ${name} value`, 'Shell environment mutation');
+  bind(scope, `env.${name}`, value);
+  scope.set(`shell.${name}`, value);
 };
 const hasUnknownShellArgumentBeforeReference = (
   tokens: string[],
@@ -125,11 +133,14 @@ export function analyzeWorkflow(
   config: Config = { annotations: [] },
   // Without a resolution every job-level `uses` stays an opaque boundary.
   resolution?: CallResolution,
+  localIndex?: LocalIndex,
 ): Report {
   const operations: Operation[] = [];
   const coverage: CoverageNotice[] = [];
   const calls: Call[] = [];
   const diagnostics: Report['diagnostics'] = [];
+  const platformTests: PlatformTest[] = [];
+  let publication: PublicationPoint | undefined;
   // Jobs of the entry workflow and of every expanded call, for ordering and gates.
   const graph: Record<string, Job> = {};
   let digestSequence = 0;
@@ -233,6 +244,14 @@ export function analyzeWorkflow(
       // Workflow-level env is that of this workflow file only: a caller's env is
       // not propagated into a reusable workflow.
       scope = environment(environment(scope, wf.env), job.env);
+      const containerEnv =
+        localIndex && isMapping(job.container) && isMapping(job.container.env)
+          ? job.container.env
+          : undefined;
+      const containerPlatform =
+        containerEnv?.DOCKER_DEFAULT_PLATFORM !== undefined
+          ? resolveValue(containerEnv.DOCKER_DEFAULT_PLATFORM, scope)
+          : undefined;
       for (const [index, step] of job.steps.entries()) {
         if (
           step.wait !== undefined ||
@@ -278,6 +297,13 @@ export function analyzeWorkflow(
         const backgroundId = step.id ?? `__samebyte_background_${index}`;
         const stepScope = environment(scope, step.env);
         const stepId = step.id ?? String(index + 1);
+        const selectedPublication =
+          localIndex &&
+          !site &&
+          localIndex.binding.job === localJobId &&
+          localIndex.binding.step === step.id &&
+          job.strategy === undefined &&
+          step.background !== true;
         const guarded =
           (job.if !== undefined && !isExplicitSuccess(job.if)) ||
           (step.if !== undefined && !isExplicitSuccess(step.if)) ||
@@ -299,6 +325,7 @@ export function analyzeWorkflow(
         const prefix = site
           ? `${site.id} > ${wf.file}#${localJobId}.${stepId}`
           : `${wf.file}#${jobId}.${stepId}`;
+        const location = { file: wf.file, line: step.line, job: jobId, step: index };
         const record = (
           kind: OperationKind,
           value: Value,
@@ -328,12 +355,7 @@ export function analyzeWorkflow(
             guardedByJobCondition: guardedByJobCondition && !extraGuard,
             completionStep: step.background === true ? job.steps.length : undefined,
             guarded: guarded || extraGuard,
-            location: {
-              file: wf.file,
-              line: step.line,
-              job: jobId,
-              step: index,
-            },
+            location,
             ...inCall,
           };
           operations.push(operation);
@@ -441,12 +463,21 @@ export function analyzeWorkflow(
             const multiPlatform =
               platforms.includes('${{') ||
               platforms.split(/[\s,]+/).filter(Boolean).length > 1;
-            produce(
-              step.uses,
-              'digest',
-              step.with?.tags ? resolveValue(step.with.tags, stepScope) : undefined,
-              multiPlatform,
-            );
+            const tags = step.with?.tags
+              ? resolveValue(step.with.tags, stepScope)
+              : undefined;
+            if (
+              selectedPublication &&
+              tags &&
+              !tags.unknown &&
+              step.with?.outputs === undefined
+            ) {
+              const push = resolveValue(step.with?.push, stepScope);
+              const repository = publicationRepository(tags.text);
+              if (repository && !push.unknown && push.text === 'true')
+                publication = { repository, location, order: operations.length };
+            }
+            produce(step.uses, 'digest', tags, multiPlatform);
           } else {
             const inputs = Object.fromEntries(
               Object.entries(step.with ?? {}).map(([key, raw]) => [
@@ -551,8 +582,10 @@ export function analyzeWorkflow(
                       key,
                       unknownValue('unknown environment value', 'GITHUB_ENV mutation'),
                     );
-              invalidateTrivyInput(scope);
-              invalidateTrivyInput(stepScope);
+              for (const target of [scope, stepScope]) {
+                invalidateShellInput(target, 'TRIVY_INPUT');
+                if (localIndex) invalidateShellInput(target, 'DOCKER_DEFAULT_PLATFORM');
+              }
             }
             const resolved = shellValue(line, stepScope);
             const tokens = complex ? undefined : tokenize(resolved.text);
@@ -577,6 +610,11 @@ export function analyzeWorkflow(
                 );
               continue;
             }
+            const target =
+              selectedPublication && lines.length === 1 && !resolved.unknown
+                ? imagetoolsPublication(tokens)
+                : undefined;
+            if (target) publication = { ...target, location, order: operations.length };
             const build = shellBuild(tokens);
             if (build)
               produce(
@@ -594,6 +632,7 @@ export function analyzeWorkflow(
             );
             if (
               !build &&
+              !target &&
               !consumers.length &&
               !nonMutatingDeployment(tokens) &&
               tokens[0] !== 'echo'
@@ -604,41 +643,56 @@ export function analyzeWorkflow(
                 'This command is not interpreted. SameByte does not execute binaries or scripts or infer their OCI behavior from names.',
                 tokens[0],
               );
-            for (const consumer of consumers)
-              record(
-                consumer.kind,
-                consumer.reference
-                  ? {
-                      ...resolved,
-                      text: consumer.reference,
-                      // An unrelated unresolved variable in a test command must
-                      // not erase an image identity that was parsed separately.
-                      // Unknown shell expansions before the image may shift its
-                      // argument position, so their boundary remains unresolved.
-                      // Expansions after the image cannot change its identity.
-                      unknown:
-                        consumer.identityUnknown !== undefined ||
-                        consumer.reference.includes('__samebyte_unknown__') ||
-                        hasUnknownShellArgumentBeforeReference(
-                          tokens,
-                          consumer.reference,
-                          consumer.referenceIndex,
-                        ),
-                      trace: consumer.identityUnknown
-                        ? [...resolved.trace, consumer.identityUnknown]
-                        : resolved.trace,
-                    }
-                  : consumer.kind === 'source-test'
-                    ? unknownValue(
-                        'local application build',
-                        'source tests do not establish OCI identity',
-                      )
-                    : unknownValue(
-                        'unknown image reference',
-                        'Image reference could not be resolved',
+            for (const consumer of consumers) {
+              const reference = consumer.reference
+                ? {
+                    ...resolved,
+                    text: consumer.reference,
+                    // Expansions after the operand cannot change its identity.
+                    unknown:
+                      consumer.reference.includes('__samebyte_unknown__') ||
+                      hasUnknownShellArgumentBeforeReference(
+                        tokens,
+                        consumer.reference,
+                        consumer.referenceIndex,
                       ),
+                  }
+                : consumer.kind === 'source-test'
+                  ? unknownValue(
+                      'local application build',
+                      'source tests do not establish OCI identity',
+                    )
+                  : unknownValue(
+                      'unknown image reference',
+                      'Image reference could not be resolved',
+                    );
+              const operation = record(
+                consumer.kind,
+                consumer.reference && consumer.identityUnknown
+                  ? {
+                      ...reference,
+                      unknown: true,
+                      trace: [...reference.trace, consumer.identityUnknown],
+                    }
+                  : reference,
                 tokens.slice(0, 2).join(' '),
               );
+              if (localIndex && consumer.dockerRun) {
+                const defaultPlatform =
+                  stepScope.get('shell.DOCKER_DEFAULT_PLATFORM') ?? containerPlatform;
+                const selector = consumer.dockerRun.platform;
+                platformTests.push({
+                  operation,
+                  identity: identity(reference),
+                  selector:
+                    selector !== undefined
+                      ? selector
+                      : defaultPlatform?.unknown
+                        ? null
+                        : defaultPlatform?.text || undefined,
+                });
+              }
+            }
             // Assignment and external scripts may mutate env or external state.
             // Do not read local scripts or infer their behavior from their names.
             if (
@@ -659,7 +713,16 @@ export function analyzeWorkflow(
                 /^TRIVY_INPUT=/.test(line) ||
                 (tokens[0] === 'export' &&
                   tokens.slice(1).some((token) => /^TRIVY_INPUT(?:=|$)/.test(token)));
-              if (assignedTrivyInput) invalidateTrivyInput(stepScope);
+              if (assignedTrivyInput) invalidateShellInput(stepScope, 'TRIVY_INPUT');
+              if (
+                localIndex &&
+                (/^DOCKER_DEFAULT_PLATFORM=/.test(line) ||
+                  (tokens[0] === 'export' &&
+                    tokens
+                      .slice(1)
+                      .some((token) => /^DOCKER_DEFAULT_PLATFORM(?:=|$)/.test(token))))
+              )
+                invalidateShellInput(stepScope, 'DOCKER_DEFAULT_PLATFORM');
               if (line.includes('GITHUB_ENV'))
                 for (const key of scope.keys())
                   if (key.startsWith('env.') || key.startsWith('shell.'))
@@ -667,7 +730,8 @@ export function analyzeWorkflow(
                       key,
                       unknownValue('unknown environment value', 'GITHUB_ENV mutation'),
                     );
-              if (line.includes('GITHUB_ENV')) invalidateTrivyInput(scope);
+              if (line.includes('GITHUB_ENV'))
+                invalidateShellInput(scope, 'TRIVY_INPUT');
             }
           }
         }
@@ -959,6 +1023,15 @@ export function analyzeWorkflow(
     );
   }
   const result = analyzeRules(reachableOperations, jobGraph);
+  const platformCoverage = localIndex
+    ? analyzePlatformCoverage(
+        localIndex,
+        publication,
+        platformTests,
+        jobGraph,
+        diagnostics,
+      )
+    : undefined;
   return {
     version: 1,
     workflows: [workflow.file],
@@ -968,9 +1041,12 @@ export function analyzeWorkflow(
     diagnostics,
     coverage,
     calls,
+    ...(platformCoverage ? { platformCoverage } : {}),
   };
 }
 export function mergeReports(reports: Report[]): Report {
+  const platformCoverage =
+    reports.length === 1 ? reports[0].platformCoverage : undefined;
   return {
     version: 1,
     workflows: reports.flatMap((r) => r.workflows),
@@ -981,5 +1057,6 @@ export function mergeReports(reports: Report[]): Report {
     diagnostics: reports.flatMap((r) => r.diagnostics),
     coverage: reports.flatMap((r) => r.coverage),
     calls: reports.flatMap((r) => r.calls),
+    ...(platformCoverage ? { platformCoverage } : {}),
   };
 }

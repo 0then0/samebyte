@@ -9,6 +9,8 @@ Usage: samebyte [check|explain|graph] [path] [options]
 
   --format text|json|sarif  Output format (default: text)
   --config <file>          Explicit artifact annotations (JSON)
+  --oci-index <file>       Raw OCI index bytes for a single workflow
+  --publication <file>     Publication job, step and digest binding (JSON)
   --output <file>          Write the report to a file instead of stdout
   --help                  Show usage
   --version               Show version
@@ -22,6 +24,8 @@ async function main(): Promise<number> {
     options: {
       format: { type: 'string', default: 'text' },
       config: { type: 'string' },
+      'oci-index': { type: 'string' },
+      publication: { type: 'string' },
       output: { type: 'string' },
       help: { type: 'boolean' },
       version: { type: 'boolean' },
@@ -43,11 +47,18 @@ async function main(): Promise<number> {
   if (!formats.includes(values.format as Format))
     throw new Error('Unsupported format. Expected text, json or sarif.');
   if (values.output === '') throw new Error('--output requires a file path.');
+  const index = values['oci-index'];
+  const publication = values.publication;
+  if ((index !== undefined || publication !== undefined) && (!index || !publication))
+    throw new Error(
+      '--oci-index and --publication require file paths and must be used together.',
+    );
   const outcome = await execute({
     input: positionals[0] ?? '.',
     format: values.format as Format,
     command,
     config: values.config,
+    ...(index && publication ? { index: { file: index, publication } } : {}),
     output: values.output,
   });
   if (!values.output) console.log(outcome.rendered);

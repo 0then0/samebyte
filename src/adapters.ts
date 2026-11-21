@@ -6,6 +6,7 @@ export interface Consumption {
   referenceIndex?: number;
   usedInputs?: string[];
   identityUnknown?: string;
+  dockerRun?: { platform?: string | null };
 }
 export function actionConsumption(
   uses: string,
@@ -169,6 +170,7 @@ export function shellConsumption(
         kind: 'test',
         reference: image?.reference,
         referenceIndex: image?.index,
+        dockerRun: image,
         identityUnknown: tokens.some(
           (token, index) =>
             token === '--platform' ||

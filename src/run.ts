@@ -7,6 +7,7 @@ import {
   validateConfig,
 } from './analyzer.js';
 import type { Report, Workflow } from './model.js';
+import { type LocalIndex, parsePublicationFile } from './oci-index.js';
 import { graphReport, sarifReport, textReport } from './output.js';
 import { discover, readWorkflow } from './parser.js';
 import { type Callee, resolveCalls } from './reusable.js';
@@ -18,6 +19,7 @@ export interface Options {
   format: Format;
   command?: 'check' | 'explain' | 'graph';
   config?: string;
+  index?: { file: string; publication: string };
   // Relative paths resolve against the process working directory.
   output?: string;
 }
@@ -32,13 +34,34 @@ export interface Outcome {
   writeError?: string;
 }
 
-export async function analyze(input: string, configFile?: string): Promise<Report> {
+export async function analyze(
+  input: string,
+  configFile?: string,
+  indexFiles?: Options['index'],
+): Promise<Report> {
   let config: Config = { annotations: [] };
   if (configFile)
     config = validateConfig(JSON.parse(await readFile(configFile, 'utf8')));
   const reports: Report[] = [];
   const diagnostics: Report['diagnostics'] = [];
   const files = await discover(input);
+  let localIndex: LocalIndex | undefined;
+  if (indexFiles) {
+    if (files.length !== 1 || files[0] !== resolve(input))
+      throw new Error('Local OCI index analysis requires a single workflow file.');
+    const file = resolve(indexFiles.file);
+    const bindingFile = resolve(indexFiles.publication);
+    const [bytes, binding] = await Promise.all([
+      readFile(file),
+      readFile(bindingFile, 'utf8'),
+    ]);
+    localIndex = {
+      binding: parsePublicationFile(binding),
+      bindingFile,
+      file,
+      bytes,
+    };
+  }
   if (!files.length)
     diagnostics.push({ file: resolve(input), message: 'No YAML workflows found.' });
   const failed = (file: string, error: unknown) =>
@@ -60,7 +83,12 @@ export async function analyze(input: string, configFile?: string): Promise<Repor
     try {
       analyzed.set(
         workflow,
-        analyzeWorkflow(workflow, config, await resolveCalls(workflow, callees)),
+        analyzeWorkflow(
+          workflow,
+          config,
+          await resolveCalls(workflow, callees),
+          localIndex,
+        ),
       );
     } catch (error) {
       failed(workflow.file, error);
@@ -128,7 +156,7 @@ export async function writeReportFile(path: string, content: string): Promise<vo
 }
 
 export async function execute(options: Options): Promise<Outcome> {
-  const report = await analyze(options.input, options.config);
+  const report = await analyze(options.input, options.config, options.index);
   const rendered = render(report, options.format, options.command);
   const outcome: Outcome = { report, code: exitCode(report), rendered };
   if (!options.output) return outcome;
